@@ -229,7 +229,6 @@ function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
   }) => (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={opts.title}
       onPress={opts.onPress}
       style={({ pressed }) => ({
         flexDirection: 'row',

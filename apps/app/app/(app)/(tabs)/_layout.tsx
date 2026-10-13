@@ -19,12 +19,16 @@ export default function TabsLayout() {
         headerShadowVisible: false,
         headerTitleStyle: { ...textStyle('headline'), color: colors.text },
         headerLeft: () => (
-          <View style={{ paddingHorizontal: spacing.md }}>
+          <View role="banner" style={{ paddingHorizontal: spacing.md }}>
             <LogoMark size={28} />
           </View>
         ),
         headerRight: () => (
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View
+            role="navigation"
+            aria-label={t('header.settings')}
+            style={{ flexDirection: 'row', alignItems: 'center' }}
+          >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={
