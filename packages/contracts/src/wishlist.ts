@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { fieldProvenance, isoDate, money } from './common';
+import { observationKind } from './pricewatch';
 
 export const savedProduct = z.object({
   id: z.string().min(1),
@@ -14,6 +15,11 @@ export const savedProduct = z.object({
   savedPrice: money.optional(),
   priceVerifiedAt: isoDate.optional(),
   variant: z.record(z.string(), z.string()).optional(),
+  /** Latest price the user verified on the merchant's page (manual verification). */
+  latestObservation: z
+    .object({ price: money, kind: observationKind, observedAt: isoDate, variantKey: z.string().optional() })
+    .nullable()
+    .optional(),
   collectionIds: z.array(z.string()),
   canonicalProductId: z.string().optional(),
   provenance: z.record(z.string(), fieldProvenance),

@@ -64,6 +64,18 @@ describe('user-owned data', () => {
   });
 });
 
+describe('price history', () => {
+  it('owner can read verified observations but never write them', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users/alice/savedProducts/p1/priceObservations/o1'), { kind: 'page' });
+    });
+    const ref = doc(alice(), 'users/alice/savedProducts/p1/priceObservations/o1');
+    await assertSucceeds(getDoc(ref));
+    await assertFails(setDoc(doc(alice(), 'users/alice/savedProducts/p1/priceObservations/o2'), { kind: 'page' }));
+    await assertFails(getDoc(doc(bob(), 'users/alice/savedProducts/p1/priceObservations/o1')));
+  });
+});
+
 describe('price watch', () => {
   it('owner can subscribe, but not for another uid', async () => {
     await assertSucceeds(

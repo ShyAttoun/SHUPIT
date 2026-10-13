@@ -1,4 +1,5 @@
 import type { Firestore } from 'firebase-admin/firestore';
+import { createNotification, loadPrefs } from '../notify';
 import { isTerminal, latestEventAt, nextCheckDelayMinutes, notificationsFor } from './refresh';
 import { ship24Provider } from './ship24';
 import { ProviderError, type TrackingProvider } from './types';
@@ -102,38 +103,31 @@ export async function refreshShipment(
       : new Date(now.getTime() + nextCheckDelayMinutes(effectiveStatus) * 60_000).toISOString(),
   });
 
-  for (const n of drafts) {
-    // Deterministic doc id = dedupe key → at-most-once even if a run is repeated.
-    const nRef = db
-      .collection('users')
-      .doc(uid)
-      .collection('notifications')
-      .doc(Buffer.from(n.dedupeKey).toString('base64url'));
-    batch.create(nRef, {
-      type: n.type,
-      status: n.status,
-      shipmentId,
-      orderId: claimed.orderId,
-      merchantName,
-      etaFrom: n.etaFrom ?? null,
-      etaTo: n.etaTo ?? null,
-      dedupeKey: n.dedupeKey,
-      createdAt: now.toISOString(),
-      readAt: null,
-    });
-  }
+  await batch.commit();
 
-  try {
-    await batch.commit();
-  } catch (e) {
-    // ALREADY_EXISTS on a notification create means a previous run already notified; redo without them.
-    if ((e as { code?: number }).code === 6) {
-      const retry = db.batch();
-      retry.update(ref, { lastCheckedAt: now.toISOString() });
-      await retry.commit();
-      return 'unchanged';
+  // Notifications go through the shared engine: preferences + idempotent ids.
+  if (drafts.length) {
+    const prefs = await loadPrefs(db, uid);
+    for (const n of drafts) {
+      await createNotification(
+        db,
+        uid,
+        {
+          type: n.type,
+          status: n.status,
+          dedupeKey: n.dedupeKey,
+          data: {
+            shipmentId,
+            orderId: claimed.orderId,
+            merchantName,
+            etaFrom: n.etaFrom ?? null,
+            etaTo: n.etaTo ?? null,
+            source: 'carrier',
+          },
+        },
+        { prefs, now },
+      );
     }
-    throw e;
   }
   return 'updated';
 }

@@ -17,6 +17,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { apiFetch } from '@/lib/api';
 import { db } from '@/lib/firebase';
 
 function useUid(): string {
@@ -133,7 +134,9 @@ export function useWishlistMutations() {
   });
 
   const deleteProduct = useMutation({
-    mutationFn: (id: string) => deleteDoc(doc(db, 'users', uid, 'savedProducts', id)),
+    mutationFn: async (id: string) => {
+      await apiFetch<{ ok: true }>(`/api/products?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    },
     onSuccess: refresh,
   });
 

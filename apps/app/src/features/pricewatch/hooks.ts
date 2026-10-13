@@ -1,8 +1,7 @@
-import type { Money, PriceWatchSubscription } from '@shupit/contracts';
+import type { Money, ObservationKind, PriceWatchSubscription } from '@shupit/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { apiFetch } from '@/lib/api';
 import { db } from '@/lib/firebase';
 
 function useUid(): string {
@@ -28,52 +27,49 @@ export function useSetPriceWatch(productId: string) {
   const uid = useUid();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (p: { enabled: boolean; targetPrice?: Money | null; minDropPercent?: number }) => {
+    mutationFn: async (p: { enabled?: boolean; targetPrice?: Money | null; minDropPercent?: number }) => {
       const id = subId(uid, productId);
       const ref = doc(db, 'priceWatchSubscriptions', id);
       const existing = await getDoc(ref);
       const now = new Date().toISOString();
       const prev = existing.exists() ? (existing.data() as PriceWatchSubscription) : null;
-      const next: PriceWatchSubscription = {
+      const next: Record<string, unknown> = {
         id,
         uid,
         savedProductId: productId,
-        enabled: p.enabled,
+        enabled: p.enabled ?? prev?.enabled ?? false,
         minDropPercent: p.minDropPercent ?? prev?.minDropPercent ?? 5,
         createdAt: prev?.createdAt ?? now,
         updatedAt: now,
-        ...(p.targetPrice === undefined
-          ? prev?.targetPrice
-            ? { targetPrice: prev.targetPrice }
-            : {}
-          : p.targetPrice
-            ? { targetPrice: p.targetPrice }
-            : {}),
-        ...(prev?.variantId ? { variantId: prev.variantId } : {}),
-      } as PriceWatchSubscription;
+      };
+      const target = p.targetPrice === undefined ? (prev?.targetPrice ?? null) : p.targetPrice;
+      if (target) next.targetPrice = target;
+      if (prev?.variantId) next.variantId = prev.variantId;
       await setDoc(ref, next);
-      return next;
+      return next as unknown as PriceWatchSubscription;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['pricewatch', uid, productId] }),
   });
 }
 
-export interface HistoryPoint {
-  observedAt: string;
+export interface Observation {
+  id: string;
   price: Money;
-  kind: string;
+  kind: ObservationKind;
+  observedAt: string;
+  dropPercent?: number | null;
 }
 
-export function usePriceHistory(productId: string, enabled: boolean) {
+/** Verified price history for a saved product (written by the server when you verify a price). */
+export function useObservations(productId: string) {
   const uid = useUid();
   return useQuery({
-    queryKey: ['pricehistory', uid, productId],
-    enabled,
-    queryFn: async (): Promise<HistoryPoint[]> => {
-      const res = await apiFetch<{ points: HistoryPoint[] }>(
-        `/api/price-history?savedProductId=${encodeURIComponent(productId)}`,
-      );
-      return res.points;
+    queryKey: ['observations', uid, productId],
+    queryFn: async (): Promise<Observation[]> => {
+      const snap = await getDocs(collection(db, 'users', uid, 'savedProducts', productId, 'priceObservations'));
+      return snap.docs
+        .map((d) => d.data() as Observation)
+        .sort((a, b) => a.observedAt.localeCompare(b.observedAt));
     },
   });
 }

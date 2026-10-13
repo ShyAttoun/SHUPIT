@@ -65,6 +65,7 @@ export const POST = withAuth(async (request, user) => {
           merchantId: merchant?.id ?? null,
           canonicalUrl: draft.canonicalUrl,
           urlKey: normalizeProductUrl(draft.canonicalUrl),
+          variant: draft.variant ?? null,
           // Fields not taken straight from the page's own structured data:
           aiFields: usedAi ? [!draft.title && title ? 'title' : null, !draft.price && price ? 'price' : null].filter(Boolean) : [],
         },

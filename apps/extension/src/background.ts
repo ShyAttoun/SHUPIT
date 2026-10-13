@@ -1,7 +1,7 @@
 import { ApiError, api, clearSession, getSession, jwtExpiryMs, setSession } from './auth';
 import { readPage, visibleScreenshot, withoutQuery, type PageCapture } from './capture';
 import { ALLOWED_ORIGINS } from './config';
-import { JOB_KEY, type BgRequest, type BgResponse, type Job } from './job';
+import { JOB_KEY, type BgRequest, type BgResponse, type Job, type PriceOutcome } from './job';
 
 interface ConnectMessage {
   type: 'connect';
@@ -82,13 +82,57 @@ async function runJob(req: Extract<BgRequest, { type: 'start' }>) {
 
   try {
     // Grab the screenshot first, while the tab is certainly still in view.
-    const screenshot = req.kind === 'product' ? null : await visibleScreenshot(req.windowId);
+    const screenshot = req.kind === 'product' || req.kind === 'price' ? null : await visibleScreenshot(req.windowId);
     const [res] = await chrome.scripting.executeScript({ target: { tabId: req.tabId }, func: readPage });
     const raw = res?.result as PageCapture | undefined;
     if (!raw) throw new Error('unsupported');
     job.pageUrl = raw.url;
 
-    if (req.kind === 'product') {
+    if (req.kind === 'price') {
+      const cap = await api<{ data: NonNullable<Job['product']> }>('/api/capture', {
+        method: 'POST',
+        body: { kind: 'product', page: raw },
+      });
+      const d = cap.data;
+      if (!d.price) throw new ApiError(422, 'no_price', null);
+      const aiRead = d.aiFields.includes('price');
+      const send = async (pageUrl: string, confirmed = false) =>
+        api<PriceOutcome>('/api/price-observations', {
+          method: 'POST',
+          body: {
+            pageUrl,
+            price: d.price,
+            pageTitle: d.title,
+            ...(d.variant ? { variant: d.variant } : {}),
+            ...(aiRead ? { aiRead: true } : {}),
+            ...(confirmed ? { confirmed: true } : {}),
+          },
+        });
+      // The saved product may have been stored under the page's own URL or its canonical one.
+      const candidates = [...new Set([d.canonicalUrl, raw.url])];
+      let lastErr: unknown = null;
+      for (const url of candidates) {
+        try {
+          job.price = { ...(await send(url)), price: d.price };
+          lastErr = null;
+          break;
+        } catch (e) {
+          lastErr = e;
+          if (e instanceof ApiError && e.code === 'identity_mismatch') {
+            const b = e.body as { savedTitle?: string; pageTitle?: string } | null;
+            job.priceConfirm = {
+              savedTitle: b?.savedTitle ?? '',
+              pageTitle: b?.pageTitle ?? d.title,
+              body: { pageUrl: url, price: d.price, pageTitle: d.title, ...(d.variant ? { variant: d.variant } : {}), ...(aiRead ? { aiRead: true } : {}) },
+            };
+            lastErr = null;
+            break;
+          }
+          if (!(e instanceof ApiError && e.code === 'product_not_saved')) throw e;
+        }
+      }
+      if (lastErr) throw lastErr;
+    } else if (req.kind === 'product') {
       const r = await api<{ data: Job['product'] }>('/api/capture', {
         method: 'POST',
         body: { kind: 'product', page: raw },

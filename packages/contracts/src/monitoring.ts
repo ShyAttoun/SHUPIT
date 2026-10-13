@@ -6,7 +6,7 @@ import type { MonitoringStatus } from './pricewatch';
  * Never returns 'active' unless an authorized price provider is configured.
  */
 export function monitoringAvailability(merchant: Merchant | undefined): MonitoringStatus {
-  if (!merchant) return 'unsupported_merchant';
-  if (!merchant.priceProviderId) return 'unsupported_merchant';
+  // No authorized automatic source: the price is verified manually via the extension.
+  if (!merchant || !merchant.priceProviderId) return 'manual';
   return 'active';
 }

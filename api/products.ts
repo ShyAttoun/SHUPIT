@@ -5,6 +5,18 @@ import { withAuth } from './_lib/withAuth';
 
 export const OPTIONS = preflight;
 
+/** DELETE ?id= → removes a saved product with its price history and price-watch subscription. */
+export const DELETE = withAuth(async (request, user) => {
+  const id = new URL(request.url).searchParams.get('id');
+  if (!id || id.length > 128 || id.includes('/')) return errorResponse(400, 'bad_request', 'Missing id');
+  const db = adminDb();
+  const ref = db.collection('users').doc(user.uid).collection('savedProducts').doc(id);
+  if (!(await ref.get()).exists) return errorResponse(404, 'not_found', 'Product not found');
+  await db.recursiveDelete(ref);
+  await db.collection('priceWatchSubscriptions').doc(`${user.uid}_${id}`).delete().catch(() => undefined);
+  return json({ ok: true }, 200, {}, request);
+});
+
 /** POST → saves a product captured by the extension (server-validated, de-duplicated by URL key). */
 export const POST = withAuth(async (request, user) => {
   const parsed = saveProductRequest.safeParse(await readJson(request));

@@ -26,6 +26,22 @@ export const he: Translations = {
   notifications: {
     title: 'עדכונים',
     markRead: 'סימון כנקרא',
+    emptyTitle: 'אין התראות עדיין',
+    emptyBody: 'שינויי מחיר שתאמתו ועדכוני משלוחים יופיעו כאן.',
+    markAllRead: 'סימון הכול כנקרא ({{count}})',
+    unread: 'חדש',
+    bell: 'התראות',
+    priceDrop: '{{product}}: המחיר ירד ב-{{percent}}% ל-{{newPrice}}',
+    targetReached: '{{product}}: הגיע למחיר היעד שלכם ({{newPrice}})',
+    prefs: {
+      title: 'התראות',
+      body: 'בחרו אילו עדכונים יופיעו ברשימת ההתראות.',
+      priceDrops: 'ירידות מחיר',
+      targetReached: 'הגעה למחיר יעד',
+      shipmentStatus: 'שינויי סטטוס משלוח',
+      readyForPickup: 'מוכן לאיסוף',
+      deliveryExceptions: 'בעיות במשלוח',
+    },
     status: {
       shipped: '{{merchant}}: ההזמנה נשלחה',
       in_transit: '{{merchant}}: ההזמנה בדרך',
@@ -245,6 +261,7 @@ export const he: Translations = {
     trackPrice: 'מעקב מחיר',
     availability: {
       active: 'ניטור אוטומטי זמין לחנות הזו.',
+      manual: 'אימות ידני: המחיר מתעדכן כשאתם מאמתים אותו בדף המוצר באמצעות התוסף.',
       unsupported_merchant:
         'ניטור מחיר אוטומטי עדיין לא זמין לחנות הזו. נשמור את המחיר שהזנתם.',
       no_source_connected: 'ניטור המחיר עדיין לא מחובר לחנות הזו.',
@@ -252,6 +269,12 @@ export const he: Translations = {
       stale: 'בדיקת המחיר האחרונה אינה עדכנית.',
       unavailable: 'הניטור אינו זמין זמנית.',
     },
+    unverifiedRead: 'נקרא על ידי AI, לא מאומת (אין התראות ממנו)',
+    manualNote: 'אין מקור מחיר אוטומטי לחנות הזו. המחיר מאומת כשאתם פותחים את דף המוצר עם תוסף SHUPIT ל-Chrome ובוחרים "אימות מחיר".',
+    verifyHint: 'פתחו את דף המוצר והשתמשו בתוסף: אימות מחיר.',
+    lastVerifiedOnVisit: 'אומת לאחרונה בביקור שלכם',
+    notVerifiedYet: 'עדיין לא אומת',
+    targetSaved: 'ההתראות מבוססות על המחירים המאומתים שתתעדו.',
     currentVerified: 'מחיר מאומת נוכחי',
     noVerified: 'אין עדיין מחיר מאומת',
     originalSaved: 'המחיר בעת השמירה',

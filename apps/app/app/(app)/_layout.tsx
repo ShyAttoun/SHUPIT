@@ -17,6 +17,7 @@ export default function AppLayout() {
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="settings" options={{ title: t('settings.title') }} />
+      <Stack.Screen name="notifications" options={{ title: t('notifications.title') }} />
       <Stack.Screen name="product/add" options={{ title: t('wishlist.add.title') }} />
       <Stack.Screen name="product/[id]" options={{ title: t('wishlist.title') }} />
       <Stack.Screen name="order/add" options={{ title: t('orders.form.title') }} />

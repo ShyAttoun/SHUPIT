@@ -56,7 +56,9 @@ function firstString(v: Json): string | undefined {
   return undefined;
 }
 
-function jsonLdProduct(html: string): { title?: string; image?: string; price?: string | number; currency?: string } | null {
+function jsonLdProduct(
+  html: string,
+): { title?: string; image?: string; price?: string | number; currency?: string; variant?: string } | null {
   for (const m of html.matchAll(/<script\b[^>]*application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
     let data: Json;
     try {
@@ -73,8 +75,11 @@ function jsonLdProduct(html: string): { title?: string; image?: string; price?: 
         : {}) as Record<string, Json>;
       const price = off.price ?? off.lowPrice ?? spec.price;
       const currency = off.priceCurrency ?? spec.priceCurrency;
+      const part = (v: unknown) => (typeof v === 'string' ? v : typeof v === 'number' ? String(v) : undefined);
+      const variant = [part(o.sku) ?? part(off.sku), part(o.color), part(o.size)].filter(Boolean).join('|');
       return {
         title: typeof o.name === 'string' ? o.name : undefined,
+        variant: variant || undefined,
         image: firstString(o.image),
         price: typeof price === 'string' || typeof price === 'number' ? price : undefined,
         currency: typeof currency === 'string' ? currency : undefined,
@@ -135,6 +140,7 @@ export function parseProductHtml(html: string, pageUrl: string): ProductDraft {
     title: title ? title.slice(0, 300) : undefined,
     imageUrl,
     price,
+    ...(ld?.variant ? { variant: ld.variant.slice(0, 120) } : {}),
     missing,
   };
 }

@@ -9,6 +9,8 @@ export const productDraft = z.object({
   title: z.string().optional(),
   imageUrl: z.string().url().optional(),
   price: money.optional(),
+  /** Variant exposed by the page (sku / color / size), when present. */
+  variant: z.string().max(120).optional(),
   /** Which fields could not be read, so the UI can ask the user instead of guessing. */
   missing: z.array(z.enum(['title', 'imageUrl', 'price'])),
 });
@@ -119,3 +121,17 @@ export const goResponse = z.object({
 export type GoResponse = z.infer<typeof goResponse>;
 
 export { currencyCode };
+
+export const priceObservationRequest = z.object({
+  pageUrl: z.string().url().max(2048),
+  price: money,
+  /** Title as shown on the page, used to confirm it is the same product. */
+  pageTitle: z.string().max(300).optional(),
+  /** Variant as exposed by the page (sku / color / size); compared only with the same variant. */
+  variant: z.string().max(120).optional(),
+  /** True when the price was read by AI from text rather than from the page's structured data. */
+  aiRead: z.boolean().optional(),
+  /** The user confirmed that this page is the saved product despite a title mismatch. */
+  confirmed: z.boolean().optional(),
+});
+export type PriceObservationRequest = z.infer<typeof priceObservationRequest>;

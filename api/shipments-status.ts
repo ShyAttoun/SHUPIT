@@ -8,6 +8,8 @@ import { ExtractionFailedError, NotConfiguredError, extractOrders } from './_lib
 import { withAuth } from './_lib/withAuth';
 import { AI_RULE } from './_lib/rateLimit';
 import { hasAiConsent } from './_lib/consent';
+import { createNotification } from './_lib/notify';
+import { notificationsFor } from './_lib/tracking/refresh';
 
 export const OPTIONS = preflight;
 
@@ -63,6 +65,11 @@ export const POST = withAuth(async (request, user) => {
     if (!update) return errorResponse(422, 'no_status', 'No status visible');
 
     const now = new Date().toISOString();
+    const previous = {
+      status: snap.get('status') as string,
+      estimatedDeliveryAt: (snap.get('estimatedDeliveryAt') as string | null) ?? null,
+      hasCarrierEta: false,
+    };
     const terminal = update.status === 'delivered' || update.status === 'returned';
     const batch = db.batch();
     batch.update(ref, {
@@ -84,6 +91,28 @@ export const POST = withAuth(async (request, user) => {
       batch.set(ref.collection('trackingEvents').doc(ev.id), ev.doc, { merge: true });
     }
     await batch.commit();
+
+    // A manual update that changes the status goes through the same notification engine.
+    const orderId = snap.get('orderId') as string;
+    const orderSnap = await db.collection('users').doc(user.uid).collection('orders').doc(orderId).get();
+    for (const n of notificationsFor(id, previous as never, {
+      status: update.status,
+      estimatedDeliveryAt: update.estimatedDeliveryAt,
+    })) {
+      await createNotification(db, user.uid, {
+        type: n.type,
+        status: n.status,
+        dedupeKey: n.dedupeKey,
+        data: {
+          shipmentId: id,
+          orderId,
+          merchantName: (orderSnap.get('merchantName') as string | undefined) ?? '',
+          etaFrom: n.etaFrom ?? null,
+          etaTo: n.etaTo ?? null,
+          source: 'manual',
+        },
+      });
+    }
     return json(
       { status: update.status, estimatedDeliveryAt: update.estimatedDeliveryAt ?? null, events: update.events.length },
       200,

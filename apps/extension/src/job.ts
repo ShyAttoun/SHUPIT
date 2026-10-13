@@ -1,7 +1,7 @@
 /** Shared between the popup (renders) and the background worker (does the work). */
 export const JOB_KEY = 'shupit.job';
 
-export type JobKind = 'product' | 'orders' | 'shipment';
+export type JobKind = 'product' | 'orders' | 'shipment' | 'price';
 
 export interface ProductData {
   title: string;
@@ -11,6 +11,23 @@ export interface ProductData {
   merchantId: string | null;
   canonicalUrl: string;
   aiFields: string[];
+  variant?: string | null;
+}
+
+export interface PriceOutcome {
+  recorded: boolean;
+  kind: string;
+  dropPercent: number | null;
+  comparedWith: { amountMinor: number; currency: string } | null;
+  alerts: { type: string; result: string }[];
+  reason: string;
+  price: { amountMinor: number; currency: string };
+}
+
+export interface PriceConfirm {
+  savedTitle: string;
+  pageTitle: string;
+  body: Record<string, unknown>;
 }
 
 export interface OrderData {
@@ -48,6 +65,9 @@ export interface Job {
   product?: ProductData;
   orders?: { data: OrderData; merchantId: string | null }[];
   result?: { status: string; estimatedDeliveryAt: string | null; events: number };
+  price?: PriceOutcome;
+  /** Set when the page looks like a different product than the saved one: needs the user's OK. */
+  priceConfirm?: PriceConfirm;
 }
 
 export type BgRequest =

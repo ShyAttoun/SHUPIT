@@ -24,6 +24,22 @@ export const en = {
   notifications: {
     title: 'Updates',
     markRead: 'Mark as read',
+    emptyTitle: 'No notifications yet',
+    emptyBody: 'Price changes you verify and shipment updates will appear here.',
+    markAllRead: 'Mark all as read ({{count}})',
+    unread: 'New',
+    bell: 'Notifications',
+    priceDrop: '{{product}}: price dropped {{percent}}% to {{newPrice}}',
+    targetReached: '{{product}}: reached your target price ({{newPrice}})',
+    prefs: {
+      title: 'Notifications',
+      body: 'Choose which updates appear in your notification list.',
+      priceDrops: 'Price drops',
+      targetReached: 'Target price reached',
+      shipmentStatus: 'Shipment status changes',
+      readyForPickup: 'Ready for pickup',
+      deliveryExceptions: 'Delivery problems',
+    },
     status: {
       shipped: '{{merchant}}: your order has shipped',
       in_transit: '{{merchant}}: your order is on its way',
@@ -243,6 +259,7 @@ export const en = {
     trackPrice: 'Track price',
     availability: {
       active: 'Automatic monitoring is available for this store.',
+      manual: 'Verified manually: the price updates when you verify it on the product page with the extension.',
       unsupported_merchant:
         'Automatic price monitoring isn’t available for this store yet. We’ll keep the price you saved.',
       no_source_connected: 'Price monitoring isn’t connected for this store yet.',
@@ -250,6 +267,12 @@ export const en = {
       stale: 'The latest price check is out of date.',
       unavailable: 'Monitoring is temporarily unavailable.',
     },
+    unverifiedRead: 'read by AI, not verified (no alerts from this)',
+    manualNote: 'No automatic price source for this store. The price is verified when you open the product page with the SHUPIT Chrome extension and choose “Verify price”.',
+    verifyHint: 'Open the product page and use the extension: Verify price.',
+    lastVerifiedOnVisit: 'Last verified on your visit',
+    notVerifiedYet: 'Not verified yet',
+    targetSaved: 'Alerts use the verified prices you record.',
     currentVerified: 'Current verified price',
     noVerified: 'No verified price yet',
     originalSaved: 'Price when saved',

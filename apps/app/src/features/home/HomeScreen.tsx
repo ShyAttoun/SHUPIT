@@ -9,7 +9,8 @@ import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } 
 import { arrivingSoon, isActiveShipment, useOrders, useShipments, type ShipmentDoc } from '@/features/orders/hooks';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate } from '@/lib/format';
-import { useMarkNotificationRead, useNotifications } from '@/features/orders/notifications';
+import { notificationRoute, notificationTitle } from '@/features/notifications/format';
+import { useNotificationActions, useNotifications } from '@/features/notifications/hooks';
 
 export function HomeScreen() {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ export function HomeScreen() {
   const orders = useOrders();
   const shipments = useShipments();
   const notifications = useNotifications();
-  const markRead = useMarkNotificationRead();
+  const { markRead } = useNotificationActions();
 
   if (orders.isLoading || shipments.isLoading) {
     return (
@@ -119,19 +120,19 @@ export function HomeScreen() {
     <Screen scroll>
       <View style={{ gap: spacing.lg }}>
         {updates.length > 0 ? (
-          <Section title={t('notifications.title')}>
+          <Section
+            title={t('notifications.title')}
+            action={<Button variant="ghost" label={t('home.seeAll')} onPress={() => router.push('/notifications')} />}
+          >
             {updates.map((n) => (
               <ListRow
                 key={n.id}
-                title={
-                  n.type === 'shipment_eta'
-                    ? t('notifications.eta', { merchant: n.merchantName, date: formatDate(n.etaTo, language) ?? '' })
-                    : t(`notifications.status.${n.status}` as 'notifications.status.delivered', { merchant: n.merchantName })
-                }
+                title={notificationTitle(n, t as never, language)}
                 subtitle={formatDate(n.createdAt, language)}
                 onPress={() => {
-                  markRead.mutate(n.id);
-                  router.push(`/order/${n.orderId}`);
+                  markRead.mutate([n.id]);
+                  const route = notificationRoute(n);
+                  if (route) router.push(route as never);
                 }}
               />
             ))}

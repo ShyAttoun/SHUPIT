@@ -19,6 +19,30 @@ const T = {
   addOrderSub: he
     ? 'קורא את ההזמנה (או כמה הזמנות) מהדף ומוסיף אותן לרשימת ההזמנות'
     : 'Reads the order (or several orders) on this page and adds them',
+  verifyPrice: he ? 'אימות מחיר ב-SHUPIT' : 'Verify price in SHUPIT',
+  verifyPriceSub: he
+    ? 'בודק את המחיר המוצג בדף הזה ומתעד אותו בהיסטוריה של מוצר שמור. זה אימות ידני, לא ניטור אוטומטי.'
+    : 'Checks the price shown on this page and records it in a saved product’s history. A manual check, not automatic monitoring.',
+  priceRecorded: he ? 'המחיר תועד ✓' : 'Price recorded ✓',
+  priceUnchanged: he ? 'אותו מחיר כמו בבדיקה האחרונה.' : 'Same as the last check.',
+  priceWas: (v: string) => (he ? `לפני כן: ${v}` : `Previously: ${v}`),
+  priceChange: he ? 'שינוי' : 'Change',
+  alertCreated: he ? 'נוצרה התראה באפליקציה.' : 'An in-app alert was created.',
+  alertOff: he ? 'ההתראה כבויה בהעדפות.' : 'The alert is turned off in your preferences.',
+  noSubscription: he
+    ? 'הפעילו "מעקב מחיר" במוצר כדי לקבל התראות.'
+    : 'Turn on “Track price” on the product to get alerts.',
+  priceAi: he
+    ? 'המחיר נקרא על ידי AI ולא מאומת: תועד, אך לא יופעלו ממנו התראות.'
+    : 'The price was read by AI and is not verified: recorded, but no alerts come from it.',
+  notSaved: he
+    ? 'המוצר הזה עדיין לא שמור ב-SHUPIT. שמרו אותו קודם.'
+    : 'This product isn’t saved in SHUPIT yet. Save it first.',
+  noPrice: he ? 'לא מצאנו מחיר בדף.' : 'No price found on this page.',
+  identityTitle: he ? 'האם זה אותו מוצר?' : 'Is this the same product?',
+  identitySaved: he ? 'שמור' : 'Saved',
+  identityPage: he ? 'בדף' : 'On this page',
+  recordAnyway: he ? 'כן, לתעד' : 'Yes, record it',
   updateShipment: he ? 'עדכון מעקב משלוח ב-SHUPIT' : 'Update shipment tracking in SHUPIT',
   updateShipmentSub: he
     ? 'קורא סטטוס, תאריך הגעה ואירועים מדף המעקב ומעדכן משלוח קיים'
@@ -142,6 +166,10 @@ function errorText(code: string | undefined): string {
       return T.rateLimited;
     case 'unsupported':
       return T.unsupportedPage;
+    case 'product_not_saved':
+      return T.notSaved;
+    case 'no_price':
+      return T.noPrice;
     default:
       return T.generic;
   }
@@ -188,7 +216,7 @@ function backButton() {
   });
 }
 
-async function startJob(kind: 'product' | 'orders' | 'shipment', shipmentId?: string) {
+async function startJob(kind: 'product' | 'orders' | 'shipment' | 'price', shipmentId?: string) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id || !tab.url || !/^https?:/.test(tab.url)) {
     render(...header(), el('p', { class: 'error' }, T.unsupportedPage), backButton());
@@ -204,6 +232,7 @@ async function home() {
     ...header(s?.email),
     actionButton(T.saveProduct, T.saveProductSub, () => void startJob('product'), true),
     actionButton(T.addOrder, T.addOrderSub, () => void startJob('orders')),
+    actionButton(T.verifyPrice, T.verifyPriceSub, () => void startJob('price')),
     actionButton(T.updateShipment, T.updateShipmentSub, () => void pickShipment()),
     el('p', { class: 'note' }, T.privacy),
   );
@@ -464,6 +493,58 @@ function renderShipmentResult(job: Job) {
   );
 }
 
+function renderPrice(job: Job) {
+  void clearJob();
+  if (job.priceConfirm) {
+    const c = job.priceConfirm;
+    const go = el('button', { class: 'btn primary', textContent: T.recordAnyway });
+    go.onclick = async () => {
+      go.disabled = true;
+      try {
+        const r = await api<NonNullable<Job['price']>>('/api/price-observations', {
+          method: 'POST',
+          body: { ...c.body, confirmed: true },
+        });
+        renderPrice({ ...job, priceConfirm: undefined, price: { ...r, price: c.body.price as never } });
+      } catch (e) {
+        render(...header(), el('p', { class: 'error' }, errorText(e instanceof BgError ? e.code : undefined)), backButton());
+      }
+    };
+    render(
+      ...header(),
+      el('p', {}, T.identityTitle),
+      el(
+        'div',
+        { class: 'card' },
+        ...[row(T.identitySaved, c.savedTitle), row(T.identityPage, c.pageTitle)].filter((n): n is HTMLDivElement => !!n),
+      ),
+      go,
+      backButton(),
+    );
+    return;
+  }
+  const p = job.price;
+  if (!p) {
+    render(...header(), el('p', { class: 'error' }, T.generic), backButton());
+    return;
+  }
+  const fmt = (m: { amountMinor: number; currency: string }) =>
+    `${(m.amountMinor / 100).toFixed(2)} ${m.currency}`;
+  const lines: Node[] = [];
+  lines.push(el('p', { class: p.recorded ? 'ok' : '' }, p.recorded ? T.priceRecorded : T.priceUnchanged));
+  const rows = [
+    row(T.price, fmt(p.price)),
+    p.comparedWith ? row(T.priceWas(''), fmt(p.comparedWith)) : null,
+    p.dropPercent !== null ? row(T.priceChange, `${p.dropPercent > 0 ? '-' : '+'}${Math.abs(p.dropPercent).toFixed(1)}%`) : null,
+  ].filter((n): n is HTMLDivElement => !!n);
+  lines.push(el('div', { class: 'card' }, ...rows));
+  if (p.kind === 'page_ai') lines.push(el('p', { class: 'note' }, T.priceAi));
+  else if (p.alerts.some((a) => a.result === 'created')) lines.push(el('p', { class: 'ok' }, T.alertCreated));
+  else if (p.alerts.some((a) => a.result === 'disabled')) lines.push(el('p', { class: 'note' }, T.alertOff));
+  else if (p.reason === 'no_subscription') lines.push(el('p', { class: 'note' }, T.noSubscription));
+  render(...header(), ...lines, backButton());
+}
+
 function renderJob(job: Job) {
   if (job.status === 'running') {
     render(...header(), el('p', {}, T.reading), el('p', { class: 'note' }, T.runningNote));
@@ -474,7 +555,8 @@ function renderJob(job: Job) {
     render(...header(), el('p', { class: 'error' }, errorText(job.error)), backButton());
     return;
   }
-  if (job.kind === 'product' && job.product) renderProduct(job);
+  if (job.kind === 'price') renderPrice(job);
+  else if (job.kind === 'product' && job.product) renderProduct(job);
   else if (job.kind === 'orders') renderOrders(job);
   else renderShipmentResult(job);
 }

@@ -37,9 +37,9 @@ test('catalog ids unique, none claims affiliate or price provider', () => {
   assert.ok(merchantCatalog.every((m) => !m.affiliateProgramId && !m.priceProviderId));
 });
 
-test('monitoring is unavailable without a provider', () => {
-  assert.equal(monitoringAvailability(getMerchant('amazon')), 'unsupported_merchant');
-  assert.equal(monitoringAvailability(undefined), 'unsupported_merchant');
+test('without a provider the price is verified manually, never "active"', () => {
+  assert.equal(monitoringAvailability(getMerchant('amazon')), 'manual');
+  assert.equal(monitoringAvailability(undefined), 'manual');
   assert.equal(
     monitoringAvailability({ ...getMerchant('amazon')!, priceProviderId: 'p1' }),
     'active',

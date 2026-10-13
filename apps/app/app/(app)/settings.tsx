@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { connectExtension, disconnectExtension, type ConnectResult } from '@/lib/extension';
 import { PrivacySection } from '@/features/privacy/PrivacySection';
 import { useInstall } from '@/lib/pwa';
+import { NotificationPrefsSection } from '@/features/notifications/PrefsSection';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -145,6 +146,8 @@ export default function SettingsScreen() {
             ) : null}
           </View>
         ) : null}
+
+        <NotificationPrefsSection />
 
         <PrivacySection />
 

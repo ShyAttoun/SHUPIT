@@ -39,3 +39,12 @@ test('saveProductRequest validates currency and url', () => {
   );
   assert.equal(saveProductRequest.safeParse({ title: 'x', productUrl: 'https://x.test/p' }).success, true);
 });
+
+test('variant (sku/color/size) is read from structured data for price comparison', () => {
+  const html = htmlFromCapture({
+    url: 'https://shop.example/p/1',
+    jsonLd: ['{"@type":"Product","name":"Shirt","sku":"SH-1","color":"Blue","size":"M","offers":{"price":"10","priceCurrency":"USD"}}'],
+  });
+  const d = parseProductHtml(html, 'https://shop.example/p/1');
+  assert.equal(d.variant, 'SH-1|Blue|M');
+});

@@ -1,5 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Heart, Home, Package, Store, UserRound } from 'lucide-react-native';
+import { Bell, Heart, Home, Package, Store, UserRound } from 'lucide-react-native';
+import { useUnreadCount } from '@/features/notifications/hooks';
+import { Text } from '@/design';
 import { Pressable, View } from 'react-native';
 import { LogoMark, useTheme } from '@/design';
 import { useTranslation } from '@/i18n';
@@ -8,6 +10,7 @@ export default function TabsLayout() {
   const { colors, spacing, hitTarget, textStyle } = useTheme();
   const { t } = useTranslation();
   const router = useRouter();
+  const unread = useUnreadCount();
 
   return (
     <Tabs
@@ -21,20 +24,52 @@ export default function TabsLayout() {
           </View>
         ),
         headerRight: () => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t('header.settings')}
-            onPress={() => router.push('/settings')}
-            style={{
-              width: hitTarget,
-              height: hitTarget,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginHorizontal: spacing.xxs,
-            }}
-          >
-            <UserRound size={24} color={colors.text} />
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                unread > 0 ? `${t('notifications.bell')} (${unread})` : t('notifications.bell')
+              }
+              onPress={() => router.push('/notifications')}
+              style={{ width: hitTarget, height: hitTarget, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Bell size={24} color={colors.text} />
+              {unread > 0 ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 6,
+                    end: 4,
+                    minWidth: 18,
+                    height: 18,
+                    paddingHorizontal: 4,
+                    borderRadius: 9,
+                    backgroundColor: colors.accent,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text variant="caption" color="onAccent" style={{ fontSize: 11, lineHeight: 14 }}>
+                    {unread > 9 ? '9+' : String(unread)}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('header.settings')}
+              onPress={() => router.push('/settings')}
+              style={{
+                width: hitTarget,
+                height: hitTarget,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginHorizontal: spacing.xxs,
+              }}
+            >
+              <UserRound size={24} color={colors.text} />
+            </Pressable>
+          </View>
         ),
         tabBarActiveTintColor: colors.accentText,
         tabBarInactiveTintColor: colors.textSecondary,
