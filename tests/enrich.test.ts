@@ -20,6 +20,9 @@ test('event times: wall-clock stored as written, bad input rejected', () => {
   assert.equal(eventTimeToIso('2026-10-13T16:46'), '2026-10-13T16:46:00.000Z');
   assert.equal(eventTimeToIso('2026-10-13'), '2026-10-13T12:00:00.000Z');
   assert.equal(eventTimeToIso('13/10/2026'), null);
+  // Full ISO as sent by the app/extension when saving an order must NOT be dropped.
+  assert.equal(eventTimeToIso('2026-10-13T16:46:00.000Z'), '2026-10-13T16:46:00.000Z');
+  assert.equal(eventTimeToIso('2026-10-13T16:46:00+03:00'), '2026-10-13T13:46:00.000Z');
   assert.equal(eventTimeToIso('2026-13-45'), null);
 });
 
