@@ -3,3 +3,8 @@ export * from './merchant';
 export * from './wishlist';
 export * from './orders';
 export * from './pricewatch';
+export * from './money';
+export * from './url';
+export * from './merchantCatalog';
+export * from './monitoring';
+export * from './inputs';

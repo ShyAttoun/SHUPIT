@@ -6,6 +6,9 @@ export const savedProduct = z.object({
   title: z.string().min(1).max(300),
   merchantId: z.string().optional(),
   productUrl: z.string().url().optional(),
+  /** normalizeProductUrl(productUrl); used for duplicate detection. */
+  urlKey: z.string().optional(),
+  note: z.string().max(500).optional(),
   imageUrl: z.string().url().optional(),
   /** Price at the moment of saving. Not a live price. */
   savedPrice: money.optional(),

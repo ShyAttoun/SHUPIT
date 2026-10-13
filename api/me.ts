@@ -1,6 +1,8 @@
-import { json } from './_lib/http';
+import { json, preflight } from './_lib/http';
 import { withAuth } from './_lib/withAuth';
 
-export const GET = withAuth((_request, user) =>
-  json({ uid: user.uid, email: user.email ?? null }),
+export const OPTIONS = preflight;
+
+export const GET = withAuth((request, user) =>
+  json({ uid: user.uid, email: user.email ?? null }, 200, {}, request),
 );

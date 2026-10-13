@@ -20,6 +20,7 @@ export function withAuth(handler: AuthedHandler, verify: (t: string) => Promise<
     } catch (e) {
       // Privacy-conscious: log the error class only, never request bodies or tokens.
       console.error('handler_error', e instanceof Error ? e.name : 'unknown');
+      if (e instanceof SyntaxError) return errorResponse(400, 'bad_request', 'Invalid JSON');
       return errorResponse(500, 'internal', 'Unexpected error');
     }
   };

@@ -1,10 +1,25 @@
 import { getApp, getApps, initializeApp } from 'firebase/app';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
+import {
+  connectFirestoreEmulator,
+  getFirestore,
+  initializeFirestore,
+  type Firestore,
+} from 'firebase/firestore';
 import { firebaseConfig, useEmulators } from './env';
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-export const db = getFirestore(app);
+function createDb(): Firestore {
+  try {
+    // Optional fields are `undefined` in app code; Firestore rejects those by default.
+    return initializeFirestore(app, { ignoreUndefinedProperties: true });
+  } catch {
+    // Fast refresh: already initialized.
+    return getFirestore(app);
+  }
+}
+
+export const db = createDb();
 
 let emulatorsConnected = false;
 export function connectEmulatorsOnce(connectAuth: () => void) {

@@ -1,6 +1,8 @@
+import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { Button, Screen, Text, useTheme } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useStoresMutations } from '@/features/stores/hooks';
 import { useTranslation } from '@/i18n';
 import { useLanguageStore, type LanguagePreference } from '@/i18n/store';
 import { useApplyLanguage } from '@/i18n/useApplyLanguage';
@@ -11,6 +13,8 @@ export default function SettingsScreen() {
   const { user, signOut } = useAuth();
   const { preference, setPreference } = useLanguageStore();
   const { needsRestart } = useApplyLanguage();
+  const router = useRouter();
+  const { reopenOnboarding } = useStoresMutations();
 
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('settings.languageSystem') },
@@ -70,6 +74,13 @@ export default function SettingsScreen() {
             </Text>
           ) : null}
         </View>
+
+        <Button
+          variant="secondary"
+          label={t('settings.reopenStoresOnboarding')}
+          loading={reopenOnboarding.isPending}
+          onPress={() => reopenOnboarding.mutate(undefined, { onSuccess: () => router.replace('/stores') })}
+        />
 
         <Button variant="secondary" label={t('settings.signOut')} onPress={() => void signOut()} />
       </View>
