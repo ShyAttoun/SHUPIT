@@ -309,6 +309,8 @@ export const he: Translations = {
     noResults: 'לא נמצאו הזמנות שמתאימות לחיפוש',
     items_one: 'פריט אחד',
     items_other: '{{count}} פריטים',
+    itemAndMore_one: '{{title}} ועוד פריט',
+    itemAndMore_other: '{{title}} ועוד {{count}} פריטים',
     import: {
       chooseTitle: 'איך תרצו להוסיף?',
       screenshot: 'העלאת צילום מסך',

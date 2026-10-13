@@ -31,6 +31,8 @@ export function ListRow({
         paddingHorizontal: spacing.md,
         borderRadius: radius.lg,
         backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
       }}
     >
       {leading}
