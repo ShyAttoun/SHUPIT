@@ -164,6 +164,8 @@ export const he: Translations = {
   },
   header: {
     settings: 'פרופיל והגדרות',
+    lightTheme: 'מעבר לתצוגה בהירה',
+    darkTheme: 'מעבר לתצוגה כהה',
   },
   home: {
     emptyTitle: 'עדיין אין משהו בדרך',

@@ -4,6 +4,7 @@ import { useUnreadCount } from '@/features/notifications/hooks';
 import { Text } from '@/design';
 import { Pressable, View } from 'react-native';
 import { LogoMark, useTheme } from '@/design';
+import { ThemeToggle } from '@/design/ThemeToggle';
 import { useTranslation } from '@/i18n';
 
 export default function TabsLayout() {
@@ -73,6 +74,7 @@ export default function TabsLayout() {
             >
               <UserRound size={24} color={colors.text} />
             </Pressable>
+            <ThemeToggle />
           </View>
         ),
         tabBarActiveTintColor: colors.accentText,

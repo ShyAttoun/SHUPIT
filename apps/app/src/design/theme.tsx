@@ -9,9 +9,10 @@ import {
   type FontWeight,
   type TextVariant,
 } from '@shupit/tokens';
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
-import { useColorScheme, type TextStyle } from 'react-native';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
+import { Platform, useColorScheme, type TextStyle } from 'react-native';
 import { useAppLanguage } from '@/i18n';
+import { useThemeStore } from './themeStore';
 
 const fontFamilies = {
   en: {
@@ -42,8 +43,18 @@ const ThemeContext = createContext<Theme | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
+  const preference = useThemeStore((s) => s.preference);
   const { language } = useAppLanguage();
-  const mode = scheme === 'dark' ? 'dark' : 'light';
+  const mode = preference === 'system' ? (scheme === 'dark' ? 'dark' : 'light') : preference;
+
+  // Web: keep the page behind the app and the browser chrome in the active theme.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+    const background = themes[mode].background;
+    document.documentElement.style.colorScheme = mode;
+    document.body.style.backgroundColor = background;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', background);
+  }, [mode]);
 
   const theme = useMemo<Theme>(
     () => ({

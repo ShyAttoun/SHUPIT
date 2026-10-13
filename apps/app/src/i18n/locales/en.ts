@@ -162,6 +162,8 @@ export const en = {
   },
   header: {
     settings: 'Profile and settings',
+    lightTheme: 'Switch to light theme',
+    darkTheme: 'Switch to dark theme',
   },
   home: {
     emptyTitle: 'Nothing on its way yet',
