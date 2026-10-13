@@ -1,5 +1,7 @@
 import { collection, getDocs } from 'firebase/firestore';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { TrackingEvent } from '@shupit/contracts';
@@ -11,6 +13,49 @@ import { db } from '@/lib/firebase';
 import { formatDate, formatDateTime, formatPrice } from '@/lib/format';
 import { confirmAction } from '@/lib/platform';
 import { useOrderMutations, useOrders, useShipments, type ShipmentDoc } from './hooks';
+
+function RefreshButton({ shipment }: { shipment: ShipmentDoc }) {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [message, setMessage] = useState<string | null>(null);
+  const refresh = useMutation({
+    mutationFn: () =>
+      apiFetch<{ outcome: string }>(`/api/shipments-refresh?id=${encodeURIComponent(shipment.id)}`, { method: 'POST' }),
+    onSuccess: async (res) => {
+      setMessage(
+        res.outcome === 'not_configured'
+          ? t('orders.detail.notConfigured')
+          : res.outcome === 'too_soon'
+            ? t('orders.detail.tooSoon')
+            : res.outcome === 'provider_error'
+              ? t('orders.detail.refreshFailed')
+              : t('orders.detail.refreshed'),
+      );
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['shipments', user?.uid] }),
+        qc.invalidateQueries({ queryKey: ['trackingEvents', user?.uid, shipment.id] }),
+        qc.invalidateQueries({ queryKey: ['notifications', user?.uid] }),
+      ]);
+    },
+    onError: () => setMessage(t('orders.detail.refreshFailed')),
+  });
+  return (
+    <View style={{ gap: 4 }}>
+      <Button
+        variant="secondary"
+        label={refresh.isPending ? t('orders.detail.checking') : t('orders.detail.checkUpdates')}
+        loading={refresh.isPending}
+        onPress={() => refresh.mutate()}
+      />
+      {message ? (
+        <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
+          {message}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 
 function Timeline({ shipment }: { shipment: ShipmentDoc }) {
   const { t } = useTranslation();
@@ -163,6 +208,9 @@ export function OrderDetailScreen() {
                     )
                   : null}
                 {kv(t('orders.detail.lastUpdate'), formatDateTime(s.lastVerifiedAt, language))}
+                {s.trackingNumber && s.status !== 'delivered' && s.status !== 'returned' ? (
+                  <RefreshButton shipment={s} />
+                ) : null}
                 <Text variant="label" color="textSecondary">
                   {t('orders.detail.timeline')}
                 </Text>

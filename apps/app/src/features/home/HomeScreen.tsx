@@ -9,6 +9,7 @@ import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } 
 import { arrivingSoon, isActiveShipment, useOrders, useShipments, type ShipmentDoc } from '@/features/orders/hooks';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate } from '@/lib/format';
+import { useMarkNotificationRead, useNotifications } from '@/features/orders/notifications';
 
 export function HomeScreen() {
   const { t } = useTranslation();
@@ -17,6 +18,8 @@ export function HomeScreen() {
   const router = useRouter();
   const orders = useOrders();
   const shipments = useShipments();
+  const notifications = useNotifications();
+  const markRead = useMarkNotificationRead();
 
   if (orders.isLoading || shipments.isLoading) {
     return (
@@ -48,6 +51,7 @@ export function HomeScreen() {
   const soon = arrivingSoon(shipmentList, new Date());
   const pickup = shipmentList.filter((s) => s.status === 'ready_for_pickup');
   const recent = orderList.slice(0, 3);
+  const updates = (notifications.data ?? []).filter((n) => !n.readAt).slice(0, 5);
 
   const quickActions = (
     <Section title={t('home.quickActions')}>
@@ -114,6 +118,25 @@ export function HomeScreen() {
   return (
     <Screen scroll>
       <View style={{ gap: spacing.lg }}>
+        {updates.length > 0 ? (
+          <Section title={t('notifications.title')}>
+            {updates.map((n) => (
+              <ListRow
+                key={n.id}
+                title={
+                  n.type === 'shipment_eta'
+                    ? t('notifications.eta', { merchant: n.merchantName, date: formatDate(n.etaTo, language) ?? '' })
+                    : t(`notifications.status.${n.status}` as 'notifications.status.delivered', { merchant: n.merchantName })
+                }
+                subtitle={formatDate(n.createdAt, language)}
+                onPress={() => {
+                  markRead.mutate(n.id);
+                  router.push(`/order/${n.orderId}`);
+                }}
+              />
+            ))}
+          </Section>
+        ) : null}
         {pickup.length > 0 ? <Section title={t('home.readyForPickup')}>{pickup.map(shipmentRow)}</Section> : null}
         {soon.length > 0 ? <Section title={t('home.arrivingSoon')}>{soon.map(shipmentRow)}</Section> : null}
         {active.length > 0 ? (

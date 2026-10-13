@@ -30,5 +30,11 @@
   ],
   "regions": [
     "fra1"
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/refresh-shipments",
+      "schedule": "*/20 * * * *"
+    }
   ]
 }

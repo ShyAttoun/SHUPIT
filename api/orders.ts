@@ -80,6 +80,9 @@ export const POST = withAuth(async (request, user) => {
       estimatedDeliverySource: s.estimatedDeliveryAt ? 'user' : null,
       lastEventAt: null,
       lastVerifiedAt: null,
+      // Picked up by the refresh cron once a tracking provider is configured.
+      trackable: !!s.trackingNumber,
+      nextCheckAt: s.trackingNumber ? now : null,
       createdAt: now,
     });
   }
