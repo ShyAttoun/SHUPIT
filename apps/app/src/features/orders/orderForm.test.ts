@@ -48,3 +48,41 @@ describe('buildOrderInput', () => {
     expect(Object.keys(r.errors).sort()).toEqual(['merchantName', 'purchaseDate', 'total']);
   });
 });
+
+import { draftFromExtraction, emptyOrderForm, unchangedAiFields } from './orderForm';
+
+describe('draftFromExtraction', () => {
+  const data = {
+    merchantName: 'KSP',
+    orderNumber: '555',
+    purchaseDate: '2026-10-02',
+    total: { amount: 99.9, currency: 'ILS' },
+    items: [{ title: 'Cable', quantity: 2 }],
+    shipments: [{ carrier: null, trackingNumber: 'RR1', estimatedDelivery: null }],
+  };
+  it('fills values and lists AI fields', () => {
+    const r = draftFromExtraction(data, { id: 'ksp', name: 'KSP' }, 'USD');
+    expect(r.values.merchantId).toBe('ksp');
+    expect(r.values.currency).toBe('ILS');
+    expect(r.values.trackingNumber).toBe('RR1');
+    expect(r.aiFields.sort()).toEqual(['externalOrderId', 'items', 'merchantName', 'purchasedAt', 'total']);
+  });
+  it('leaves unknowns empty and falls back to the default currency', () => {
+    const r = draftFromExtraction(
+      { merchantName: null, orderNumber: null, purchaseDate: null, total: null, items: [], shipments: [] },
+      null,
+      'USD',
+    );
+    expect(r.values.currency).toBe('USD');
+    expect(r.values.merchantName).toBe('');
+    expect(r.aiFields).toEqual([]);
+  });
+  it('drops AI provenance for edited fields only', () => {
+    const { values, aiFields } = draftFromExtraction(data, null, 'USD');
+    const edited = { ...values, total: '120', orderNumber: '555' };
+    expect(unchangedAiFields(values, edited, aiFields).sort()).toEqual(
+      ['externalOrderId', 'items', 'merchantName', 'purchasedAt'],
+    );
+    expect(unchangedAiFields(values, emptyOrderForm('USD'), aiFields)).toEqual([]);
+  });
+});

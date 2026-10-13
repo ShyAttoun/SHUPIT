@@ -1,8 +1,21 @@
-import { getMerchant, orderCreateInput } from '@shupit/contracts';
+import { getMerchant, orderCreateInput, type OrderCreateInput } from '@shupit/contracts';
 import { adminDb } from './_lib/firebaseAdmin';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { orderDedupeKey } from './_lib/orderKeys';
 import { withAuth } from './_lib/withAuth';
+
+/** AI-read fields that the user left unedited are marked ai_vision; everything else is user-entered. */
+function provenanceFor(input: OrderCreateInput, now: string) {
+  const ai = new Set(input.aiFields ?? []);
+  const source = (field: string) => ({ source: ai.has(field) ? 'ai_vision' : 'user', capturedAt: now });
+  return {
+    merchantName: source('merchantName'),
+    items: source('items'),
+    ...(input.total ? { total: source('total') } : {}),
+    ...(input.externalOrderId ? { externalOrderId: source('externalOrderId') } : {}),
+    ...(input.purchasedAt ? { purchasedAt: source('purchasedAt') } : {}),
+  };
+}
 
 export const OPTIONS = preflight;
 
@@ -35,7 +48,6 @@ export const POST = withAuth(async (request, user) => {
 
   const now = new Date().toISOString();
   const orderRef = orders.doc();
-  const prov = { source: 'user', capturedAt: now } as const;
   const orderDoc = {
     id: orderRef.id,
     merchantId: input.merchantId ?? null,
@@ -44,8 +56,8 @@ export const POST = withAuth(async (request, user) => {
     purchasedAt: input.purchasedAt ?? null,
     total: input.total ?? null,
     items: input.items,
-    importSource: 'manual',
-    provenance: { merchantName: prov, items: prov, ...(input.total ? { total: prov } : {}) },
+    importSource: input.importSource ?? 'manual',
+    provenance: provenanceFor(input, now),
     dedupeKey: dedupeKey ?? null,
     createdAt: now,
     updatedAt: now,

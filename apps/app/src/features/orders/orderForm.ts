@@ -94,3 +94,72 @@ export function buildOrderInput(
     },
   };
 }
+
+export const emptyOrderForm = (currency: string): OrderFormValues => ({
+  merchantId: null,
+  merchantName: '',
+  orderNumber: '',
+  purchaseDate: '',
+  total: '',
+  currency,
+  items: [{ title: '', quantity: '1' }],
+  carrier: '',
+  trackingNumber: '',
+  eta: '',
+});
+
+/** AI field names, matching the provenance keys the API understands. */
+export type AiField = 'merchantName' | 'externalOrderId' | 'purchasedAt' | 'total' | 'items';
+
+/** Maps a model extraction into editable form values. Missing values stay empty (never guessed). */
+export function draftFromExtraction(
+  data: {
+    merchantName: string | null;
+    orderNumber: string | null;
+    purchaseDate: string | null;
+    total: { amount: number; currency: string } | null;
+    items: { title: string; quantity: number }[];
+    shipments: { carrier: string | null; trackingNumber: string | null; estimatedDelivery: string | null }[];
+  },
+  merchant: { id: string; name: string } | null,
+  fallbackCurrency: string,
+): { values: OrderFormValues; aiFields: AiField[] } {
+  const ship = data.shipments[0];
+  const values: OrderFormValues = {
+    merchantId: merchant?.id ?? null,
+    merchantName: merchant?.name ?? data.merchantName ?? '',
+    orderNumber: data.orderNumber ?? '',
+    purchaseDate: data.purchaseDate ?? '',
+    total: data.total ? String(data.total.amount) : '',
+    currency: data.total?.currency ?? fallbackCurrency,
+    items: data.items.length
+      ? data.items.map((i) => ({ title: i.title, quantity: String(i.quantity) }))
+      : [{ title: '', quantity: '1' }],
+    carrier: ship?.carrier ?? '',
+    trackingNumber: ship?.trackingNumber ?? '',
+    eta: ship?.estimatedDelivery ?? '',
+  };
+  const aiFields: AiField[] = [];
+  if (values.merchantName) aiFields.push('merchantName');
+  if (values.orderNumber) aiFields.push('externalOrderId');
+  if (values.purchaseDate) aiFields.push('purchasedAt');
+  if (values.total) aiFields.push('total');
+  if (data.items.length) aiFields.push('items');
+  return { values, aiFields };
+}
+
+/** Keeps only the AI fields the user did not change after extraction. */
+export function unchangedAiFields(
+  initial: OrderFormValues,
+  current: OrderFormValues,
+  aiFields: AiField[],
+): AiField[] {
+  const same: Record<AiField, boolean> = {
+    merchantName: initial.merchantName === current.merchantName,
+    externalOrderId: initial.orderNumber === current.orderNumber,
+    purchasedAt: initial.purchaseDate === current.purchaseDate,
+    total: initial.total === current.total && initial.currency === current.currency,
+    items: JSON.stringify(initial.items) === JSON.stringify(current.items),
+  };
+  return aiFields.filter((f) => same[f]);
+}

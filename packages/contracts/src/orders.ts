@@ -18,6 +18,7 @@ export type ShipmentStatus = z.infer<typeof shipmentStatus>;
 export const importSource = z.enum([
   'manual',
   'screenshot',
+  'link',
   'pasted_text',
   'forwarded_email',
   'extension',

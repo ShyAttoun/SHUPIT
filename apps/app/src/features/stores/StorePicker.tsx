@@ -7,7 +7,7 @@ import { SearchField } from '@/components/SearchField';
 import { Text, useTheme } from '@/design';
 import { useTranslation } from '@/i18n';
 
-/** Searchable multi-select of merchants. Controlled by `selected`. */
+/** Searchable multi-select grid of app-icon tiles with the store name underneath. */
 export function StorePicker({
   selected,
   onToggle,
@@ -32,7 +32,7 @@ export function StorePicker({
       {items.length === 0 ? (
         <Text color="textSecondary">{t('stores.noResults')}</Text>
       ) : (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.md }}>
           {items.map((m) => {
             const isSel = selected.includes(m.id);
             return (
@@ -43,24 +43,43 @@ export function StorePicker({
                 accessibilityLabel={m.name}
                 onPress={() => onToggle(m.id)}
                 style={{
-                  width: '47%',
-                  flexGrow: 1,
-                  minHeight: hitTarget + 28,
-                  padding: spacing.sm,
-                  borderRadius: radius.lg,
-                  borderWidth: 1.5,
-                  borderColor: isSel ? colors.accent : colors.border,
-                  backgroundColor: isSel ? colors.accentSoft : colors.background,
-                  flexDirection: 'row',
+                  width: '33.333%',
+                  minHeight: hitTarget + 40,
                   alignItems: 'center',
-                  gap: spacing.sm,
+                  gap: spacing.xs,
+                  paddingHorizontal: spacing.xxs,
                 }}
               >
-                <MerchantLogo name={m.name} size={40} />
-                <Text variant="bodyStrong" style={{ flex: 1 }} numberOfLines={1}>
+                <View
+                  style={{
+                    borderRadius: radius.lg,
+                    padding: 3,
+                    borderWidth: 2,
+                    borderColor: isSel ? colors.accent : 'transparent',
+                  }}
+                >
+                  <MerchantLogo name={m.name} domain={m.domains[0]} size={64} />
+                  {isSel ? (
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: -6,
+                        end: -6,
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        backgroundColor: colors.accent,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Check size={14} color={colors.onAccent} />
+                    </View>
+                  ) : null}
+                </View>
+                <Text variant="caption" numberOfLines={2} style={{ textAlign: 'center' }}>
                   {m.name}
                 </Text>
-                {isSel ? <Check size={18} color={colors.accentText} /> : null}
               </Pressable>
             );
           })}

@@ -59,3 +59,15 @@ export function merchantForUrl(url: string): Merchant | undefined {
     x.domains.some((d) => host === d || host.endsWith(`.${d}`)),
   );
 }
+
+/** Case-insensitive exact name match against the catalog (e.g. "ksp" → KSP). */
+export function merchantByName(name: string | null | undefined): Merchant | undefined {
+  const n = name?.trim().toLowerCase();
+  if (!n) return undefined;
+  return merchantCatalog.find((x) => x.name.toLowerCase() === n || x.id === n);
+}
+
+/** Icon URL for a merchant domain (Google favicon service; sizes vary, UI falls back to a monogram). */
+export function merchantLogoUrl(domain: string, size = 128): string {
+  return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size}`;
+}

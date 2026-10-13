@@ -14,6 +14,8 @@ import { Chip } from '@/components/Chip';
 import { Button, Screen, Text, TextField, useTheme } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { apiFetch } from '@/lib/api';
+import { pickScreenshot } from '@/lib/imagePicker';
+import { ApiError } from '@/lib/api';
 import { findDuplicate, useCollections, useSavedProducts, useWishlistMutations } from './hooks';
 
 interface PreviewResponse {
@@ -46,6 +48,8 @@ export function AddProductScreen() {
   const [fromPage, setFromPage] = useState({ title: false, price: false, image: false });
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; price?: string }>({});
   const [canonicalUrl, setCanonicalUrl] = useState<string | undefined>();
+  const [shotBusy, setShotBusy] = useState(false);
+  const [blocked, setBlocked] = useState(false);
 
   const typedUrl = url.trim();
   const dup = findDuplicate(products.data ?? [], canonicalUrl ?? (isHttpUrl(typedUrl) ? typedUrl : undefined));
@@ -73,14 +77,59 @@ export function AddProductScreen() {
         setCurrency(d.price.currency);
       }
       setFromPage({ title: !!d.title, price: !!d.price, image: !!d.imageUrl });
-      setNotice(res.unreadable ? t('wishlist.add.unreadable') : d.missing.length ? t('wishlist.add.partial') : null);
+      setBlocked(!!res.unreadable);
+      setNotice(res.unreadable ? t('wishlist.add.blocked') : d.missing.length ? t('wishlist.add.partial') : null);
       setShowForm(true);
     } catch {
       setCanonicalUrl(typedUrl);
-      setNotice(t('wishlist.add.unreadable'));
+      setBlocked(true);
+      setNotice(t('wishlist.add.blocked'));
       setShowForm(true);
     } finally {
       setFetching(false);
+    }
+  };
+
+  const fromScreenshot = async () => {
+    let picked;
+    try {
+      picked = await pickScreenshot();
+    } catch {
+      setNotice(t('wishlist.add.shotFailed'));
+      setShowForm(true);
+      return;
+    }
+    if (!picked) return;
+    setShotBusy(true);
+    setNotice(t('wishlist.add.readingShot'));
+    setShowForm(true);
+    try {
+      const res = await apiFetch<{
+        data: { title: string | null; price: { amount: number; currency: string } | null };
+        merchantId: string | null;
+      }>('/api/extract', {
+        method: 'POST',
+        body: { kind: 'product', imageBase64: picked.base64, mediaType: picked.mediaType },
+      });
+      if (res.data.title) setTitle(res.data.title);
+      if (res.data.price) {
+        setPrice(String(res.data.price.amount));
+        setCurrency(res.data.price.currency);
+      }
+      // Screenshot values are AI-read, not page-verified: they stay "user-confirmed" provenance-wise.
+      setFromPage((f) => ({ ...f, title: false, price: false }));
+      setNotice(t('wishlist.add.partial'));
+      setBlocked(false);
+    } catch (e) {
+      const key =
+        e instanceof ApiError && e.code === 'not_configured'
+          ? t('orders.import.notConfigured')
+          : e instanceof ApiError && e.code === 'quota_exceeded'
+            ? t('orders.import.quota')
+            : t('wishlist.add.shotFailed');
+      setNotice(key);
+    } finally {
+      setShotBusy(false);
     }
   };
 
@@ -134,6 +183,12 @@ export function AddProductScreen() {
             label={fetching ? t('wishlist.add.fetching') : t('wishlist.add.fetchDetails')}
             loading={fetching}
             onPress={() => void fetchDetails()}
+          />
+          <Button
+            variant={blocked ? 'primary' : 'secondary'}
+            label={t('wishlist.add.screenshot')}
+            loading={shotBusy}
+            onPress={() => void fromScreenshot()}
           />
           {!showForm ? (
             <Button variant="ghost" label={t('wishlist.add.orManual')} onPress={() => setShowForm(true)} />
