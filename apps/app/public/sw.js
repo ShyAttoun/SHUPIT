@@ -5,7 +5,7 @@
  * - Web Share Target: receives POST /share (text, url, image) and hands it to the app.
  * Authenticated data is never stored by this worker.
  */
-const VERSION = 'v1';
+const VERSION = 'v2';
 const SHELL_CACHE = `shupit-shell-${VERSION}`;
 const ASSET_CACHE = `shupit-assets-${VERSION}`;
 const SHARE_CACHE = 'shupit-share-v1';
@@ -59,6 +59,17 @@ self.addEventListener('fetch', (event) => {
   }
   if (req.method !== 'GET' || url.origin !== location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
+
+  // Precached static files (offline page, manifest, icons): cache first.
+  if (PRECACHE.includes(url.pathname)) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(SHELL_CACHE);
+        return (await cache.match(url.pathname)) || fetch(req);
+      })(),
+    );
+    return;
+  }
 
   // Navigations: network first, then the cached shell, then the offline page.
   if (req.mode === 'navigate') {
