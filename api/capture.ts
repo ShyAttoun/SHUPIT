@@ -1,5 +1,6 @@
 import { captureRequest, merchantByName, merchantForUrl, normalizeProductUrl, fromMinor } from '@shupit/contracts';
 import { htmlFromCapture } from './_lib/page';
+import { sanitizeItemImages } from './_lib/orderEnrich';
 import { parseProductHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { consumeAiQuota } from './_lib/usage';
@@ -71,8 +72,10 @@ export const POST = withAuth(async (request, user) => {
   if (text.length < 40) return errorResponse(422, 'unreadable', 'The page has no readable content');
   if (!(await consumeAiQuota(user.uid))) return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
   try {
-    const data = await extractOrder({ text });
+    const data = await extractOrder({ text, images: page.images });
     if (!data.isOrderScreenshot) return errorResponse(422, 'not_an_order', 'No order found');
+    // Item pictures may only be URLs that really exist on the page.
+    data.items = sanitizeItemImages(data.items, page.images?.map((i) => i.src));
     const m = merchantByName(data.merchantName) ?? merchant;
     return json({ kind, data, merchantId: m?.id ?? null }, 200, {}, request);
   } catch (e) {

@@ -18,6 +18,14 @@ export function formatDateTime(iso: string | null | undefined, language: string)
   return new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short' }).format(d);
 }
 
+/** Date+time exactly as written on the source page (stored as wall-clock UTC). */
+export function formatDateTimeWall(iso: string | null | undefined, language: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat(language, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' }).format(d);
+}
+
 /** Percent change from `from` to `to` (same currency only); null if not comparable. */
 export function percentChange(from: Money, to: Money): number | null {
   if (from.currency !== to.currency || from.amountMinor <= 0) return null;

@@ -29,6 +29,7 @@ export const orderCreateInput = z.object({
       z.object({
         title: z.string().trim().min(1).max(200),
         quantity: z.number().int().min(1).max(999),
+        imageUrl: z.string().url().max(2048).optional(),
       }),
     )
     .max(50),
@@ -40,6 +41,13 @@ export const orderCreateInput = z.object({
         estimatedDeliveryAt: isoDate.optional(),
         /** Only meaningful for screenshot/link imports; stored as unverified. */
         status: shipmentStatus.optional(),
+        /** Carrier wording of the status, as read from the page/screenshot. */
+        statusText: z.string().trim().max(200).optional(),
+        estimatedDeliveryFrom: isoDate.optional(),
+        events: z
+          .array(z.object({ description: z.string().trim().min(1).max(300), occurredAt: isoDate }))
+          .max(30)
+          .optional(),
       }),
     )
     .max(5),

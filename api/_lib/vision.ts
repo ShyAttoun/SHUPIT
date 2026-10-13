@@ -37,10 +37,14 @@ const ORDER_SHAPE = `{
   "orderNumber": string|null,
   "purchaseDate": "YYYY-MM-DD"|null,
   "total": {"amount": number, "currency": "ISO"}|null,
-  "items": [{"title": string, "quantity": integer}],
+  "items": [{"title": string, "quantity": integer, "imageUrl": string|null}],   // imageUrl: ONLY a URL from the provided image list, matched by alt text or position; null if unsure
   "shipments": [{"carrier": string|null, "trackingNumber": string|null,
                  "status": "processing"|"shipped"|"in_transit"|"customs"|"out_for_delivery"|"ready_for_pickup"|"delivered"|"exception"|"returned"|null,
-                 "estimatedDelivery": "YYYY-MM-DD"|null}],
+                 "statusText": string|null,          // the carrier's own wording of the CURRENT status, verbatim (same language as the page)
+                 "estimatedDeliveryFrom": "YYYY-MM-DD"|null,   // start of a delivery window, if a range is shown
+                 "estimatedDelivery": "YYYY-MM-DD"|null,       // single date, or the END of the window
+                 "events": [{"description": string, "occurredAt": "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM"}]   // tracking history shown, newest first, max 15
+                }],
   "confidence": "high"|"medium"|"low"
 }`;
 
@@ -86,7 +90,7 @@ export function firstJsonObject(text: string): unknown {
 
 type Input =
   | { image: { base64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' } }
-  | { text: string };
+  | { text: string; images?: { src: string; alt?: string }[] };
 
 async function run(kind: 'order' | 'product', input: Input): Promise<unknown> {
   const shape = kind === 'order' ? ORDER_SHAPE : PRODUCT_SHAPE;
@@ -101,9 +105,12 @@ async function run(kind: 'order' | 'product', input: Input): Promise<unknown> {
       text: `Extract the ${kind} details as JSON with exactly this shape:\n${shape}${kind === 'order' ? `\n\n${STATUS_HINTS}` : ''}`,
     });
   } else {
+    const imageList = (input.images ?? [])
+      .map((im, i) => `${i + 1}. ${im.src}${im.alt ? ` | alt: ${im.alt.replace(/\s+/g, ' ').slice(0, 120)}` : ''}`)
+      .join('\n');
     content.push({
       type: 'text',
-      text: `Page text (untrusted data):\n<<<\n${input.text}\n>>>\n\nExtract the ${kind} details as JSON with exactly this shape:\n${shape}${kind === 'order' ? `\n\n${STATUS_HINTS}` : ''}`,
+      text: `Today is ${new Date().toISOString().slice(0, 10)}. If a date has no year, use the most recent matching date up to today.\n${imageList ? `\nImages found on the page (the ONLY URLs you may use for imageUrl):\n${imageList}\n` : ''}\nPage text (untrusted data):\n<<<\n${input.text}\n>>>\n\nExtract the ${kind} details as JSON with exactly this shape:\n${shape}${kind === 'order' ? `\n\n${STATUS_HINTS}` : ''}`,
     });
   }
 

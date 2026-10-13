@@ -13,6 +13,12 @@ export interface OrderFormValues {
   eta: string; // YYYY-MM-DD or ''
   /** Status read from a screenshot (unverified snapshot); not user-editable in the form. */
   status?: ShipmentStatus | null;
+  /** Extra shipment details read from the screenshot; carried through unchanged. */
+  extras?: {
+    statusText?: string | null;
+    estimatedDeliveryFrom?: string | null;
+    events?: { description: string; occurredAt: string }[];
+  };
 }
 
 export type OrderFormErrors = Partial<
@@ -27,6 +33,14 @@ export function dateToIso(value: string): string | null {
   const date = new Date(Date.UTC(y, mo - 1, d, 12));
   if (date.getUTCFullYear() !== y || date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d) return null;
   return date.toISOString();
+}
+
+/** YYYY-MM-DD[THH:MM] (wall-clock as shown on the page) → ISO, or null. */
+export function eventToIso(value: string): string | null {
+  const m = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/.exec(value);
+  if (!m) return null;
+  const iso = `${m[1]}T${m[2] ?? '12:00'}:00.000Z`;
+  return Number.isNaN(Date.parse(iso)) ? null : iso;
 }
 
 /** Validates the form and returns either an API payload or field error keys (translated by the UI). */
@@ -92,6 +106,17 @@ export function buildOrderInput(
               ...(trackingNumber ? { trackingNumber } : {}),
               ...(eta ? { estimatedDeliveryAt: eta } : {}),
               ...(status ? { status } : {}),
+              ...(v.extras?.statusText ? { statusText: v.extras.statusText } : {}),
+              ...(dateToIso(v.extras?.estimatedDeliveryFrom ?? '')
+                ? { estimatedDeliveryFrom: dateToIso(v.extras?.estimatedDeliveryFrom ?? '')! }
+                : {}),
+              ...(v.extras?.events?.length
+                ? {
+                    events: v.extras.events
+                      .map((e) => ({ description: e.description, occurredAt: eventToIso(e.occurredAt) }))
+                      .filter((e): e is { description: string; occurredAt: string } => !!e.occurredAt),
+                  }
+                : {}),
             },
           ]
         : [],
@@ -127,7 +152,10 @@ export function draftFromExtraction(
       carrier: string | null;
       trackingNumber: string | null;
       status?: ShipmentStatus | null;
+      statusText?: string | null;
+      estimatedDeliveryFrom?: string | null;
       estimatedDelivery: string | null;
+      events?: { description: string; occurredAt: string }[];
     }[];
   },
   merchant: { id: string; name: string } | null,
@@ -148,6 +176,11 @@ export function draftFromExtraction(
     trackingNumber: ship?.trackingNumber ?? '',
     eta: ship?.estimatedDelivery ?? '',
     status: ship?.status ?? null,
+    extras: {
+      statusText: ship?.statusText ?? null,
+      estimatedDeliveryFrom: ship?.estimatedDeliveryFrom ?? null,
+      events: ship?.events ?? [],
+    },
   };
   const aiFields: AiField[] = [];
   if (values.merchantName) aiFields.push('merchantName');

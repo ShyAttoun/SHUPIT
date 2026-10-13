@@ -17,6 +17,9 @@ export type ShipmentDoc = Shipment & {
   /** 'ai_vision' = read from a user's screenshot (snapshot, not carrier-verified). */
   statusSource?: 'user' | 'ai_vision' | 'carrier' | null;
   statusAsOf?: string | null;
+  /** The carrier's own wording of the status, as read from the page/screenshot. */
+  statusText?: string | null;
+  estimatedDeliveryFrom?: string | null;
 };
 
 export function useOrders() {

@@ -6,6 +6,7 @@ import { Chip } from '@/components/Chip';
 import { ListRow } from '@/components/ListRow';
 import { SearchField } from '@/components/SearchField';
 import { StatusBadge } from '@/components/StatusBadge';
+import { Thumb } from '@/components/Thumb';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate, formatPrice } from '@/lib/format';
@@ -113,6 +114,9 @@ export function OrdersScreen() {
             return (
               <ListRow
                 key={o.id}
+                leading={
+                  o.items[0]?.imageUrl ? <Thumb imageUrl={o.items[0].imageUrl} fallbackName={o.merchantName} size={52} /> : undefined
+                }
                 title={o.merchantName}
                 subtitle={[
                   o.externalOrderId,

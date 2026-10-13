@@ -23,7 +23,14 @@ export const extractedOrder = z.object({
   purchaseDate: ymd,
   total: amount,
   items: z
-    .array(z.object({ title: z.string().min(1).max(200), quantity: z.number().int().min(1).max(999) }))
+    .array(
+      z.object({
+        title: z.string().min(1).max(200),
+        quantity: z.number().int().min(1).max(999),
+        /** Must be one of the image URLs found on the page; null when unsure. */
+        imageUrl: z.string().url().max(2048).nullable().optional(),
+      }),
+    )
     .max(30),
   shipments: z
     .array(
@@ -32,7 +39,20 @@ export const extractedOrder = z.object({
         trackingNumber: z.string().max(60).nullable(),
         /** Current delivery status if the screenshot shows one (progress bar or status text). */
         status: shipmentStatus.nullable().optional(),
+        /** The carrier's own wording of the current status, verbatim. */
+        statusText: z.string().max(200).nullable().optional(),
+        estimatedDeliveryFrom: ymd.optional(),
         estimatedDelivery: ymd,
+        /** Tracking history shown on the page, newest first. occurredAt: YYYY-MM-DD or YYYY-MM-DDTHH:MM (local time as shown). */
+        events: z
+          .array(
+            z.object({
+              description: z.string().min(1).max(300),
+              occurredAt: z.string().regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/),
+            }),
+          )
+          .max(30)
+          .optional(),
       }),
     )
     .max(5),
@@ -68,6 +88,11 @@ export const pageCapture = z.object({
   metas: z.record(z.string().max(100), z.string().max(1000)).optional(),
   jsonLd: z.array(z.string().max(50_000)).max(5).optional(),
   text: z.string().max(30_000).optional(),
+  /** Images visible on the page, so item pictures can be matched without guessing URLs. */
+  images: z
+    .array(z.object({ src: z.string().url().max(2048), alt: z.string().max(200).optional() }))
+    .max(40)
+    .optional(),
 });
 export type PageCapture = z.infer<typeof pageCapture>;
 

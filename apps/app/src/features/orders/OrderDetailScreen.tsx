@@ -11,7 +11,8 @@ import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { db } from '@/lib/firebase';
-import { formatDate, formatDateTime, formatPrice } from '@/lib/format';
+import { formatDate, formatDateTime, formatDateTimeWall, formatPrice } from '@/lib/format';
+import { Thumb } from '@/components/Thumb';
 import { confirmAction } from '@/lib/platform';
 import { useOrderMutations, useOrders, useShipments, type ShipmentDoc } from './hooks';
 
@@ -114,10 +115,10 @@ function Timeline({ shipment }: { shipment: ShipmentDoc }) {
   const events = useQuery({
     queryKey: ['trackingEvents', user?.uid, shipment.id],
     enabled: !!user,
-    queryFn: async (): Promise<TrackingEvent[]> => {
+    queryFn: async (): Promise<(TrackingEvent & { timeIsWallClock?: boolean })[]> => {
       const snap = await getDocs(collection(db, 'users', user!.uid, 'shipments', shipment.id, 'trackingEvents'));
       return snap.docs
-        .map((d) => d.data() as TrackingEvent)
+        .map((d) => d.data() as TrackingEvent & { timeIsWallClock?: boolean })
         .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     },
   });
@@ -134,10 +135,13 @@ function Timeline({ shipment }: { shipment: ShipmentDoc }) {
     <View style={{ gap: spacing.sm }}>
       {(events.data ?? []).map((e) => (
         <View key={e.id} style={{ gap: 2, paddingStart: spacing.sm, borderStartWidth: 2, borderStartColor: colors.accent }}>
-          <Text variant="bodyStrong">{t(`orders.status.${e.status}`)}</Text>
-          {e.description ? <Text variant="small">{e.description}</Text> : null}
+          {e.description ? (
+            <Text variant="bodyStrong">{e.description}</Text>
+          ) : (
+            <Text variant="bodyStrong">{t(`orders.status.${e.status}`)}</Text>
+          )}
           <Text variant="caption" color="textSecondary">
-            {formatDateTime(e.occurredAt, language)}
+            {e.timeIsWallClock ? formatDateTimeWall(e.occurredAt, language) : formatDateTime(e.occurredAt, language)}
             {e.location?.text ? ` · ${e.location.text}` : ''}
           </Text>
         </View>
@@ -229,11 +233,57 @@ export function OrderDetailScreen() {
         {order.items.length > 0 ? (
           <View style={{ gap: spacing.xs }}>
             <Text variant="headline">{t('orders.detail.itemsHeading')}</Text>
-            {order.items.map((it, i) => (
-              <Text key={i}>
-                {it.quantity} × {it.title}
-              </Text>
-            ))}
+            <View
+              style={{
+                borderRadius: radius.lg,
+                borderWidth: 1,
+                borderColor: colors.border,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  padding: spacing.sm,
+                  backgroundColor: colors.surface,
+                }}
+              >
+                <Text variant="caption" color="textSecondary" style={{ width: 56, textAlign: 'center' }}>
+                  {t('orders.detail.tableImage')}
+                </Text>
+                <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>
+                  {t('orders.detail.tableItem')}
+                </Text>
+                <Text variant="caption" color="textSecondary" style={{ width: 44, textAlign: 'center' }}>
+                  {t('orders.detail.tableQty')}
+                </Text>
+              </View>
+              {order.items.map((it, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: spacing.sm,
+                    padding: spacing.sm,
+                    borderTopWidth: 1,
+                    borderTopColor: colors.border,
+                  }}
+                >
+                  <View style={{ width: 56, alignItems: 'center' }}>
+                    <Thumb imageUrl={it.imageUrl} fallbackName={it.title} size={48} />
+                  </View>
+                  <Text style={{ flex: 1 }} numberOfLines={3}>
+                    {it.title}
+                  </Text>
+                  <Text variant="bodyStrong" style={{ width: 44, textAlign: 'center' }}>
+                    {it.quantity}
+                  </Text>
+                </View>
+              ))}
+            </View>
           </View>
         ) : null}
 
@@ -248,6 +298,7 @@ export function OrderDetailScreen() {
                 style={{ gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface }}
               >
                 <StatusBadge status={s.status} />
+                {s.statusText ? kv(t('orders.detail.carrierStatus'), s.statusText) : null}
                 {s.statusSource === 'ai_vision' && s.statusAsOf ? (
                   <Text variant="caption" color="textSecondary">
                     {t('orders.detail.statusFromScreenshot', { date: formatDate(s.statusAsOf, language) ?? '' })}
@@ -257,8 +308,8 @@ export function OrderDetailScreen() {
                 {kv(t('orders.detail.trackingNumber'), s.trackingNumber)}
                 {s.estimatedDeliveryAt
                   ? kv(
-                      t('orders.detail.eta'),
-                      `${formatDate(s.estimatedDeliveryAt, language)}${s.estimatedDeliverySource === 'user' ? ` (${t('orders.detail.etaUser')})` : ''}`,
+                      s.estimatedDeliveryFrom ? t('orders.detail.etaWindow') : t('orders.detail.eta'),
+                      `${s.estimatedDeliveryFrom ? `${formatDate(s.estimatedDeliveryFrom, language)} – ` : ''}${formatDate(s.estimatedDeliveryAt, language)}${s.estimatedDeliverySource === 'user' ? ` (${t('orders.detail.etaUser')})` : ''}`,
                     )
                   : null}
                 {kv(t('orders.detail.lastUpdate'), formatDateTime(s.lastVerifiedAt, language))}

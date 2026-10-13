@@ -14,9 +14,19 @@ const T = {
   openSettings: he ? 'פתיחת ההגדרות' : 'Open settings',
   signedInAs: he ? 'מחובר כ-' : 'Signed in as ',
   disconnect: he ? 'ניתוק' : 'Disconnect',
-  saveProduct: he ? 'שמירת המוצר מהדף' : 'Save this product',
-  addOrder: he ? 'הוספת ההזמנה מהדף' : 'Add this order',
-  updateShipment: he ? 'עדכון סטטוס משלוח מהדף' : 'Update a shipment’s status from this page',
+  saveProduct: he ? 'הוספה ל-Wishlist ב-SHUPIT' : 'Add to your SHUPIT Wishlist',
+  saveProductSub: he ? 'שומר את המוצר שמופיע בדף הזה' : 'Saves the product shown on this page',
+  addOrder: he ? 'הוספה להזמנות ב-SHUPIT' : 'Add to your SHUPIT Orders',
+  addOrderSub: he
+    ? 'קורא את פרטי ההזמנה מהדף ומוסיף אותה לרשימת ההזמנות'
+    : 'Reads the order details on this page and adds the order',
+  updateShipment: he ? 'עדכון מעקב משלוח ב-SHUPIT' : 'Update shipment tracking in SHUPIT',
+  updateShipmentSub: he
+    ? 'קורא סטטוס, תאריך הגעה ואירועים מדף המעקב ומעדכן משלוח קיים'
+    : 'Reads status, delivery estimate and events from a tracking page and updates a shipment',
+  statusText: he ? 'סטטוס במילות חברת השילוח' : 'Carrier status',
+  eta: he ? 'צפי הגעה' : 'Estimated delivery',
+  events: he ? 'אירועי מעקב' : 'Tracking events',
   privacy: he
     ? 'התוסף קורא את הדף הנוכחי רק כשלוחצים על פעולה, ושולח את הטקסט הנראה ל-SHUPIT.'
     : 'The extension reads the current page only when you press an action, and sends its visible text to SHUPIT.',
@@ -113,6 +123,12 @@ async function activePage(): Promise<PageCapture> {
   return res.result as PageCapture;
 }
 
+function actionButton(title: string, sub: string, onclick: () => void, primary = false) {
+  const b = el('button', { class: primary ? 'btn primary' : 'btn', onclick });
+  b.append(el('strong', {}, title), el('small', {}, sub));
+  return b;
+}
+
 function backButton() {
   return el('button', { class: 'btn', textContent: T.back, onclick: () => void home() });
 }
@@ -140,9 +156,9 @@ async function home() {
   const s = await getSession();
   render(
     ...header(s?.email),
-    el('button', { class: 'btn primary', textContent: T.saveProduct, onclick: () => void productFlow() }),
-    el('button', { class: 'btn', textContent: T.addOrder, onclick: () => void orderFlow() }),
-    el('button', { class: 'btn', textContent: T.updateShipment, onclick: () => void shipmentFlow() }),
+    actionButton(T.saveProduct, T.saveProductSub, () => void productFlow(), true),
+    actionButton(T.addOrder, T.addOrderSub, () => void orderFlow()),
+    actionButton(T.updateShipment, T.updateShipmentSub, () => void shipmentFlow()),
     el('p', { class: 'note' }, T.privacy),
   );
 }
@@ -229,13 +245,27 @@ interface OrderPreview {
     orderNumber: string | null;
     purchaseDate: string | null;
     total: { amount: number; currency: string } | null;
-    items: { title: string; quantity: number }[];
-    shipments: { carrier: string | null; trackingNumber: string | null; status?: string | null; estimatedDelivery: string | null }[];
+    items: { title: string; quantity: number; imageUrl?: string | null }[];
+    shipments: {
+      carrier: string | null;
+      trackingNumber: string | null;
+      status?: string | null;
+      statusText?: string | null;
+      estimatedDeliveryFrom?: string | null;
+      estimatedDelivery: string | null;
+      events?: { description: string; occurredAt: string }[];
+    }[];
   };
   merchantId: string | null;
 }
 
-const isoNoon = (ymd: string | null) => (ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? `${ymd}T12:00:00.000Z` : undefined);
+const isoNoon = (ymd: string | null | undefined) =>
+  ymd && /^\d{4}-\d{2}-\d{2}$/.test(ymd) ? `${ymd}T12:00:00.000Z` : undefined;
+/** Event time as shown on the page (YYYY-MM-DD[THH:MM]) → ISO, wall-clock kept as written. */
+const eventIso = (v: string) => {
+  const m = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/.exec(v);
+  return m ? `${m[1]}T${m[2] ?? '12:00'}:00.000Z` : null;
+};
 
 async function orderFlow() {
   busy(T.reading);
@@ -269,14 +299,27 @@ async function orderFlow() {
             ...(d.orderNumber ? { externalOrderId: d.orderNumber } : {}),
             ...(isoNoon(d.purchaseDate) ? { purchasedAt: isoNoon(d.purchaseDate) } : {}),
             ...(d.total ? { total: { amountMinor: Math.round(d.total.amount * 10 ** exp), currency: d.total.currency } } : {}),
-            items: d.items,
+            items: d.items.map((it) => ({
+              title: it.title,
+              quantity: it.quantity,
+              ...(it.imageUrl ? { imageUrl: it.imageUrl } : {}),
+            })),
             shipments: ship
               ? [
                   {
                     ...(ship.carrier ? { carrier: ship.carrier } : {}),
                     ...(ship.trackingNumber ? { trackingNumber: ship.trackingNumber } : {}),
                     ...(isoNoon(ship.estimatedDelivery) ? { estimatedDeliveryAt: isoNoon(ship.estimatedDelivery) } : {}),
+                    ...(isoNoon(ship.estimatedDeliveryFrom) ? { estimatedDeliveryFrom: isoNoon(ship.estimatedDeliveryFrom) } : {}),
                     ...(ship.status ? { status: ship.status } : {}),
+                    ...(ship.statusText ? { statusText: ship.statusText } : {}),
+                    ...(ship.events?.length
+                      ? {
+                          events: ship.events
+                            .map((e) => ({ description: e.description, occurredAt: eventIso(e.occurredAt) }))
+                            .filter((e): e is { description: string; occurredAt: string } => !!e.occurredAt),
+                        }
+                      : {}),
                   },
                 ]
               : [],
@@ -307,7 +350,16 @@ async function orderFlow() {
           row(T.total, d.total ? `${d.total.amount} ${d.total.currency}` : null),
           row(T.items, d.items.length ? String(d.items.length) : null),
           row(T.tracking, [ship?.carrier, ship?.trackingNumber].filter(Boolean).join(' · ') || null),
-          row(T.status, ship?.status ?? null),
+          row(T.status, ship?.statusText ?? ship?.status ?? null),
+          row(
+            T.eta,
+            ship?.estimatedDelivery
+              ? ship.estimatedDeliveryFrom
+                ? `${ship.estimatedDeliveryFrom} → ${ship.estimatedDelivery}`
+                : ship.estimatedDelivery
+              : null,
+          ),
+          row(T.events, ship?.events?.length ? String(ship.events.length) : null),
         ].filter((n): n is HTMLDivElement => !!n),
       ),
       msg,

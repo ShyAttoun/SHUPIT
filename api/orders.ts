@@ -2,6 +2,7 @@ import { getMerchant, orderCreateInput, type OrderCreateInput } from '@shupit/co
 import { adminDb } from './_lib/firebaseAdmin';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { orderDedupeKey } from './_lib/orderKeys';
+import { toEventDocs } from './_lib/orderEnrich';
 import { withAuth } from './_lib/withAuth';
 
 /** AI-read fields that the user left unedited are marked ai_vision; everything else is user-entered. */
@@ -80,6 +81,8 @@ export const POST = withAuth(async (request, user) => {
       statusSource: s.status ? (input.importSource === 'manual' || !input.importSource ? 'user' : 'ai_vision') : null,
       statusAsOf: s.status ? now : null,
       estimatedDeliveryAt: s.estimatedDeliveryAt ?? null,
+      estimatedDeliveryFrom: s.estimatedDeliveryFrom ?? null,
+      statusText: s.statusText ?? null,
       estimatedDeliverySource: s.estimatedDeliveryAt ? 'user' : null,
       lastEventAt: null,
       lastVerifiedAt: null,
@@ -88,6 +91,9 @@ export const POST = withAuth(async (request, user) => {
       nextCheckAt: s.trackingNumber ? now : null,
       createdAt: now,
     });
+    for (const ev of toEventDocs(ref.id, s.events, 'page')) {
+      batch.set(ref.collection('trackingEvents').doc(ev.id), ev.doc, { merge: true });
+    }
   }
   await batch.commit();
 
