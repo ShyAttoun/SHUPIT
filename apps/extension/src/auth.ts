@@ -24,11 +24,27 @@ export async function clearSession(): Promise<void> {
   await chrome.storage.local.remove(KEY);
 }
 
-/** Returns a valid ID token, refreshing it when it is about to expire. Null = disconnected. */
-export async function getIdToken(): Promise<string | null> {
+/** Expiry (epoch ms) from the token's own `exp` claim; null if it can't be read. */
+export function jwtExpiryMs(token: string): number | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+    return typeof json.exp === 'number' ? json.exp * 1000 : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns a valid ID token, refreshing it when it is about to expire (or when `force` is set).
+ * Null = disconnected.
+ */
+export async function getIdToken(force = false): Promise<string | null> {
   const s = await getSession();
   if (!s) return null;
-  if (s.expiresAt - 60_000 > Date.now()) return s.idToken;
+  const expiresAt = jwtExpiryMs(s.idToken) ?? s.expiresAt;
+  if (!force && expiresAt - 60_000 > Date.now()) return s.idToken;
 
   try {
     const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`, {
@@ -46,7 +62,7 @@ export async function getIdToken(): Promise<string | null> {
       ...s,
       idToken: j.id_token,
       refreshToken: j.refresh_token,
-      expiresAt: Date.now() + Number(j.expires_in) * 1000,
+      expiresAt: jwtExpiryMs(j.id_token) ?? Date.now() + Number(j.expires_in) * 1000,
     });
     return j.id_token;
   } catch {
@@ -64,8 +80,12 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const token = await getIdToken();
+export async function api<T>(
+  path: string,
+  init: { method?: string; body?: unknown } = {},
+  retried = false,
+): Promise<T> {
+  const token = await getIdToken(retried);
   if (!token) throw new ApiError(401, 'disconnected', null);
   const res = await fetch(`${API_BASE}${path}`, {
     method: init.method ?? 'GET',
@@ -75,6 +95,8 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
   });
+  // The server said the token is not valid: refresh once and retry before giving up.
+  if (res.status === 401 && !retried) return api<T>(path, init, true);
   let data: unknown = null;
   try {
     data = await res.json();

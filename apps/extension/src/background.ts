@@ -1,4 +1,4 @@
-import { clearSession, getSession, setSession } from './auth';
+import { clearSession, getSession, jwtExpiryMs, setSession } from './auth';
 import { ALLOWED_ORIGINS } from './config';
 
 interface ConnectMessage {
@@ -32,7 +32,7 @@ chrome.runtime.onMessageExternal.addListener((msg: unknown, sender, sendResponse
       email: m.email ?? null,
       idToken: m.idToken,
       refreshToken: m.refreshToken,
-      expiresAt: Date.now() + (m.expiresIn ?? 3600) * 1000,
+      expiresAt: jwtExpiryMs(m.idToken) ?? Date.now() + (m.expiresIn ?? 3600) * 1000,
     }).then(() => sendResponse({ ok: true }));
     return true; // async response
   }

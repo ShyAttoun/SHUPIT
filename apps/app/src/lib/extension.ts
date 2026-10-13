@@ -37,7 +37,7 @@ function send(message: unknown): Promise<{ ok?: boolean } | null> {
 export async function connectExtension(): Promise<ConnectResult> {
   const user = auth.currentUser;
   if (!user) return 'not_signed_in';
-  const idToken = await user.getIdToken();
+  const idToken = await user.getIdToken(true);
   const res = await send({
     type: 'connect',
     uid: user.uid,
