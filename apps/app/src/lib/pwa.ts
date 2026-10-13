@@ -17,9 +17,12 @@ export function registerServiceWorker() {
   if (!isWeb || !('serviceWorker' in navigator)) return;
   const host = window.location.hostname;
   if (host === 'localhost' || host === '127.0.0.1') return;
-  window.addEventListener('load', () => {
+  const register = () => {
     navigator.serviceWorker.register('/sw.js').catch(() => undefined);
-  });
+  };
+  // The bundle can execute after `load` has already fired.
+  if (document.readyState === 'complete') register();
+  else window.addEventListener('load', register, { once: true });
 }
 
 /** Captures Chrome's install prompt so it can be shown from our own UI. */
