@@ -40,6 +40,22 @@ export function readPage(): PageCapture {
   return { url: location.href, title: document.title.slice(0, 500), metas, jsonLd, text, images };
 }
 
+/**
+ * Screenshot of the visible area of the active tab (activeTab permission, only after a user click).
+ * Returns null if it can't be taken; the text capture still works without it.
+ */
+export async function visibleScreenshot(): Promise<{ imageBase64: string; mediaType: 'image/jpeg' } | null> {
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'jpeg', quality: 60 });
+    const base64 = dataUrl.split(',')[1];
+    // Keep well under the request limit.
+    if (!base64 || base64.length > 3_000_000) return null;
+    return { imageBase64: base64, mediaType: 'image/jpeg' };
+  } catch {
+    return null;
+  }
+}
+
 /** Order/tracking pages: drop query and hash, which often carry personal tokens. */
 export function withoutQuery(page: PageCapture): PageCapture {
   try {

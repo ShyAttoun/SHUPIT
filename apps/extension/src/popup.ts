@@ -1,6 +1,6 @@
 import { ApiError, api, clearSession, getSession } from './auth';
 import { APP_URL } from './config';
-import { readPage, withoutQuery, type PageCapture } from './capture';
+import { readPage, visibleScreenshot, withoutQuery, type PageCapture } from './capture';
 
 const he = (navigator.language || 'en').toLowerCase().startsWith('he');
 document.documentElement.lang = he ? 'he' : 'en';
@@ -28,8 +28,8 @@ const T = {
   eta: he ? 'צפי הגעה' : 'Estimated delivery',
   events: he ? 'אירועי מעקב' : 'Tracking events',
   privacy: he
-    ? 'התוסף קורא את הדף הנוכחי רק כשלוחצים על פעולה, ושולח את הטקסט הנראה ל-SHUPIT.'
-    : 'The extension reads the current page only when you press an action, and sends its visible text to SHUPIT.',
+    ? 'התוסף קורא את הדף הנוכחי רק כשלוחצים על פעולה, ושולח ל-SHUPIT את הטקסט הנראה (ובהזמנות ומעקב גם צילום של האזור הנראה).'
+    : 'The extension reads the current page only when you press an action, and sends its visible text (and a screenshot of the visible area, for orders and tracking) to SHUPIT.',
   reading: he ? 'קורא את הדף…' : 'Reading the page…',
   product: he ? 'מוצר' : 'Product',
   title: he ? 'שם' : 'Name',
@@ -271,7 +271,11 @@ async function orderFlow() {
   busy(T.reading);
   try {
     const page = withoutQuery(await activePage());
-    const res = await api<OrderPreview>('/api/capture', { method: 'POST', body: { kind: 'order', page } });
+    const screenshot = await visibleScreenshot();
+    const res = await api<OrderPreview>('/api/capture', {
+      method: 'POST',
+      body: { kind: 'order', page, ...(screenshot ? { screenshot } : {}) },
+    });
     const d = res.data;
     const ship = d.shipments[0];
     const exp = d.total?.currency === 'JPY' ? 0 : 2;
@@ -395,9 +399,10 @@ async function shipmentFlow() {
           busy(T.reading);
           try {
             const page = withoutQuery(await activePage());
+            const screenshot = await visibleScreenshot();
             await api(`/api/shipments-status?id=${encodeURIComponent(s.id)}`, {
               method: 'POST',
-              body: { kind: 'order', page },
+              body: { kind: 'order', page, ...(screenshot ? { screenshot } : {}) },
             });
             render(...header(), el('p', { class: 'ok' }, T.statusUpdated), backButton());
           } catch (e) {

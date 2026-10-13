@@ -15,9 +15,9 @@ export const OPTIONS = preflight;
  * Order: AI reads the visible text (the user is logged in, so this is the page they see).
  */
 export const POST = withAuth(async (request, user) => {
-  const parsed = captureRequest.safeParse(await readJson(request, 200_000));
+  const parsed = captureRequest.safeParse(await readJson(request, 4_400_000));
   if (!parsed.success) return errorResponse(400, 'bad_request', 'Invalid request');
-  const { kind, page } = parsed.data;
+  const { kind, page, screenshot } = parsed.data;
   const merchant = merchantForUrl(page.url);
 
   if (kind === 'product') {
@@ -72,7 +72,11 @@ export const POST = withAuth(async (request, user) => {
   if (text.length < 40) return errorResponse(422, 'unreadable', 'The page has no readable content');
   if (!(await consumeAiQuota(user.uid))) return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
   try {
-    const data = await extractOrder({ text, images: page.images });
+    const data = await extractOrder({
+      text,
+      images: page.images,
+      ...(screenshot ? { screenshot: { base64: screenshot.imageBase64, mediaType: screenshot.mediaType } } : {}),
+    });
     if (!data.isOrderScreenshot) return errorResponse(422, 'not_an_order', 'No order found');
     // Item pictures may only be URLs that really exist on the page.
     data.items = sanitizeItemImages(data.items, page.images?.map((i) => i.src));

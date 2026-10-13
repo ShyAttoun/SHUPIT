@@ -99,6 +99,13 @@ export type PageCapture = z.infer<typeof pageCapture>;
 export const captureRequest = z.object({
   kind: z.enum(['product', 'order']),
   page: pageCapture,
+  /** Visible area of the tab, so highlighted progress-bar steps (visual only) can be read. */
+  screenshot: z
+    .object({
+      imageBase64: z.string().max(3_500_000),
+      mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+    })
+    .optional(),
 });
 export type CaptureRequest = z.infer<typeof captureRequest>;
 

@@ -39,7 +39,15 @@ export const POST = withAuth(async (request, user) => {
 
   try {
     const data = await extractOrder(
-      image ? { image } : { text: pageText, images: asPage.success ? asPage.data.page.images : undefined },
+      image
+        ? { image }
+        : {
+            text: pageText,
+            images: asPage.success ? asPage.data.page.images : undefined,
+            ...(asPage.success && asPage.data.screenshot
+              ? { screenshot: { base64: asPage.data.screenshot.imageBase64, mediaType: asPage.data.screenshot.mediaType } }
+              : {}),
+          },
     );
     if (!data.isOrderScreenshot) return errorResponse(422, 'not_an_order', 'No order found');
     const update = statusUpdateFrom(data, snap.get('trackingNumber') as string | null);
