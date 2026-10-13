@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
 import { merchantLogoUrl } from '@shupit/contracts';
 import { Text, useTheme } from '@/design';
@@ -20,7 +20,26 @@ export function MerchantLogo({
   size?: number;
 }) {
   const { colors, radius } = useTheme();
-  const [useIcon, setUseIcon] = useState(!!domain);
+  const url = domain ? merchantLogoUrl(domain, 128) : null;
+  const [useIcon, setUseIcon] = useState(!!url);
+
+  // Probe the real pixel size once (onLoad events don't carry dimensions on web).
+  useEffect(() => {
+    if (!url) return;
+    let cancelled = false;
+    Image.getSize(
+      url,
+      (w, h) => {
+        if (!cancelled && Math.min(w, h) < MIN_ICON_PX) setUseIcon(false);
+      },
+      () => {
+        if (!cancelled) setUseIcon(false);
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
 
   const initials = name
     .split(/\s+/)
@@ -46,15 +65,10 @@ export function MerchantLogo({
         overflow: 'hidden',
       }}
     >
-      {useIcon && domain ? (
+      {useIcon && url ? (
         <Image
-          source={{ uri: merchantLogoUrl(domain, 128) }}
+          source={{ uri: url }}
           accessibilityIgnoresInvertColors
-          onLoad={(e) => {
-            const w = e.nativeEvent?.source?.width ?? 0;
-            const h = e.nativeEvent?.source?.height ?? 0;
-            if (Math.min(w, h) < MIN_ICON_PX) setUseIcon(false);
-          }}
           onError={() => setUseIcon(false)}
           style={{ width: size * 0.62, height: size * 0.62 }}
           resizeMode="contain"
