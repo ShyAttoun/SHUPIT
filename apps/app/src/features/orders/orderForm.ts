@@ -1,4 +1,4 @@
-import { parsePriceNumber, toMinor, type OrderCreateInput } from '@shupit/contracts';
+import { parsePriceNumber, toMinor, type OrderCreateInput, type ShipmentStatus } from '@shupit/contracts';
 
 export interface OrderFormValues {
   merchantId: string | null; // catalog id, or null for "other"
@@ -11,6 +11,8 @@ export interface OrderFormValues {
   carrier: string;
   trackingNumber: string;
   eta: string; // YYYY-MM-DD or ''
+  /** Status read from a screenshot (unverified snapshot); not user-editable in the form. */
+  status?: ShipmentStatus | null;
 }
 
 export type OrderFormErrors = Partial<
@@ -71,7 +73,8 @@ export function buildOrderInput(
 
   const carrier = v.carrier.trim();
   const trackingNumber = v.trackingNumber.trim();
-  const hasShipment = !!(carrier || trackingNumber || eta);
+  const status = v.status ?? undefined;
+  const hasShipment = !!(carrier || trackingNumber || eta || status);
 
   return {
     ok: true,
@@ -88,6 +91,7 @@ export function buildOrderInput(
               ...(carrier ? { carrier } : {}),
               ...(trackingNumber ? { trackingNumber } : {}),
               ...(eta ? { estimatedDeliveryAt: eta } : {}),
+              ...(status ? { status } : {}),
             },
           ]
         : [],
@@ -119,7 +123,12 @@ export function draftFromExtraction(
     purchaseDate: string | null;
     total: { amount: number; currency: string } | null;
     items: { title: string; quantity: number }[];
-    shipments: { carrier: string | null; trackingNumber: string | null; estimatedDelivery: string | null }[];
+    shipments: {
+      carrier: string | null;
+      trackingNumber: string | null;
+      status?: ShipmentStatus | null;
+      estimatedDelivery: string | null;
+    }[];
   },
   merchant: { id: string; name: string } | null,
   fallbackCurrency: string,
@@ -138,6 +147,7 @@ export function draftFromExtraction(
     carrier: ship?.carrier ?? '',
     trackingNumber: ship?.trackingNumber ?? '',
     eta: ship?.estimatedDelivery ?? '',
+    status: ship?.status ?? null,
   };
   const aiFields: AiField[] = [];
   if (values.merchantName) aiFields.push('merchantName');

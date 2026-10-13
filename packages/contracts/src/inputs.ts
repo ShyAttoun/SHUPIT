@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { currencyCode, isoDate, money } from './common';
+import { shipmentStatus } from './orders';
 
 /** Draft produced by metadata extraction; every field is optional and unverified until confirmed. */
 export const productDraft = z.object({
@@ -37,6 +38,8 @@ export const orderCreateInput = z.object({
         carrier: z.string().trim().max(60).optional(),
         trackingNumber: z.string().trim().max(60).optional(),
         estimatedDeliveryAt: isoDate.optional(),
+        /** Only meaningful for screenshot/link imports; stored as unverified. */
+        status: shipmentStatus.optional(),
       }),
     )
     .max(5),

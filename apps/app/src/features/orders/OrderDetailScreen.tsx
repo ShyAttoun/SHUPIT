@@ -1,7 +1,8 @@
 import { collection, getDocs } from 'firebase/firestore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { ApiError, apiFetch } from '@/lib/api';
+import { pickScreenshot } from '@/lib/imagePicker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { TrackingEvent } from '@shupit/contracts';
@@ -47,6 +48,54 @@ function RefreshButton({ shipment }: { shipment: ShipmentDoc }) {
         label={refresh.isPending ? t('orders.detail.checking') : t('orders.detail.checkUpdates')}
         loading={refresh.isPending}
         onPress={() => refresh.mutate()}
+      />
+      {message ? (
+        <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
+          {message}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [message, setMessage] = useState<string | null>(null);
+  const update = useMutation({
+    mutationFn: async () => {
+      const picked = await pickScreenshot();
+      if (!picked) return null;
+      return apiFetch<{ status: string }>(`/api/shipments-status?id=${encodeURIComponent(shipment.id)}`, {
+        method: 'POST',
+        body: { kind: 'order', imageBase64: picked.base64, mediaType: picked.mediaType },
+      });
+    },
+    onSuccess: async (res) => {
+      if (!res) return;
+      setMessage(t('orders.detail.updated'));
+      await qc.invalidateQueries({ queryKey: ['shipments', user?.uid] });
+    },
+    onError: (e) => {
+      setMessage(
+        e instanceof ApiError && e.code === 'no_status'
+          ? t('orders.detail.noStatus')
+          : e instanceof ApiError && e.code === 'not_configured'
+            ? t('orders.import.notConfigured')
+            : e instanceof ApiError && e.code === 'quota_exceeded'
+              ? t('orders.import.quota')
+              : t('orders.import.generic'),
+      );
+    },
+  });
+  return (
+    <View style={{ gap: 4 }}>
+      <Button
+        variant="secondary"
+        label={update.isPending ? t('orders.detail.updating') : t('orders.detail.updateFromScreenshot')}
+        loading={update.isPending}
+        onPress={() => update.mutate()}
       />
       {message ? (
         <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
@@ -199,6 +248,11 @@ export function OrderDetailScreen() {
                 style={{ gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface }}
               >
                 <StatusBadge status={s.status} />
+                {s.statusSource === 'ai_vision' && s.statusAsOf ? (
+                  <Text variant="caption" color="textSecondary">
+                    {t('orders.detail.statusFromScreenshot', { date: formatDate(s.statusAsOf, language) ?? '' })}
+                  </Text>
+                ) : null}
                 {kv(t('orders.detail.carrier'), s.carrier)}
                 {kv(t('orders.detail.trackingNumber'), s.trackingNumber)}
                 {s.estimatedDeliveryAt
@@ -208,6 +262,7 @@ export function OrderDetailScreen() {
                     )
                   : null}
                 {kv(t('orders.detail.lastUpdate'), formatDateTime(s.lastVerifiedAt, language))}
+                {s.status !== 'delivered' && s.status !== 'returned' ? <StatusFromScreenshot shipment={s} /> : null}
                 {s.trackingNumber && s.status !== 'delivered' && s.status !== 'returned' ? (
                   <RefreshButton shipment={s} />
                 ) : null}

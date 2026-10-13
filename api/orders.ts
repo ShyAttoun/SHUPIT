@@ -75,13 +75,16 @@ export const POST = withAuth(async (request, user) => {
       carrier: s.carrier ?? null,
       trackingNumber: s.trackingNumber ?? null,
       // No carrier source connected: never claim a status we have not verified.
-      status: 'unknown',
+      // A status read from a screenshot is a user-supplied snapshot, never carrier-verified.
+      status: s.status ?? 'unknown',
+      statusSource: s.status ? (input.importSource === 'manual' || !input.importSource ? 'user' : 'ai_vision') : null,
+      statusAsOf: s.status ? now : null,
       estimatedDeliveryAt: s.estimatedDeliveryAt ?? null,
       estimatedDeliverySource: s.estimatedDeliveryAt ? 'user' : null,
       lastEventAt: null,
       lastVerifiedAt: null,
       // Picked up by the refresh cron once a tracking provider is configured.
-      trackable: !!s.trackingNumber,
+      trackable: !!s.trackingNumber && s.status !== 'delivered' && s.status !== 'returned',
       nextCheckAt: s.trackingNumber ? now : null,
       createdAt: now,
     });

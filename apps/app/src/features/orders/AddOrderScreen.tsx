@@ -4,6 +4,7 @@ import { Camera, Link2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Button, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
 import { useFavoriteStores } from '@/features/stores/hooks';
 import { useAppLanguage, useTranslation } from '@/i18n';
@@ -424,6 +425,15 @@ export function AddOrderScreen() {
             />
           ) : null}
         </View>
+
+        {values.status ? (
+          <View style={{ gap: 4 }}>
+            <Text variant="label" color="textSecondary">
+              {t('orders.import.statusRead')}
+            </Text>
+            <StatusBadge status={values.status} />
+          </View>
+        ) : null}
 
         <View style={{ gap: spacing.sm }}>
           <Text variant="headline">{t('orders.form.tracking')}</Text>

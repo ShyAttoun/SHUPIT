@@ -11,7 +11,13 @@ function useUid(): string {
   return user.uid;
 }
 
-export type ShipmentDoc = Shipment & { createdAt?: string; estimatedDeliverySource?: 'user' | null };
+export type ShipmentDoc = Shipment & {
+  createdAt?: string;
+  estimatedDeliverySource?: 'user' | 'carrier' | null;
+  /** 'ai_vision' = read from a user's screenshot (snapshot, not carrier-verified). */
+  statusSource?: 'user' | 'ai_vision' | 'carrier' | null;
+  statusAsOf?: string | null;
+};
 
 export function useOrders() {
   const uid = useUid();

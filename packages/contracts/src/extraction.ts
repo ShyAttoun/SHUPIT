@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { shipmentStatus } from './orders';
 
 const ymd = z
   .string()
@@ -29,6 +30,8 @@ export const extractedOrder = z.object({
       z.object({
         carrier: z.string().max(60).nullable(),
         trackingNumber: z.string().max(60).nullable(),
+        /** Current delivery status if the screenshot shows one (progress bar or status text). */
+        status: shipmentStatus.nullable().optional(),
         estimatedDelivery: ymd,
       }),
     )
