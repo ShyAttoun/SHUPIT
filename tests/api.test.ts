@@ -1,9 +1,9 @@
 import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import type { DecodedIdToken } from 'firebase-admin/auth';
-import { GET as health } from './health';
-import { bearerToken } from './_lib/http';
-import { withAuth } from './_lib/withAuth';
+import { GET as health } from '../api/health';
+import { bearerToken } from '../api/_lib/http';
+import { withAuth } from '../api/_lib/withAuth';
 
 const fakeUser = { uid: 'u1', email: 'a@b.c' } as DecodedIdToken;
 const req = (auth?: string) =>

@@ -15,8 +15,8 @@
     "test": "npm run test --workspaces --if-present",
     "emulators": "firebase emulators:start --project shupit-8a4f5",
     "test:rules": "firebase emulators:exec --only firestore --project shupit-8a4f5 \"npm run test:rules -w @shupit/contracts\"",
-    "typecheck:api": "tsc --noEmit -p api",
-    "test:api": "tsx --test api/api.test.ts"
+    "typecheck:api": "tsc --noEmit -p api && tsc --noEmit -p tests",
+    "test:api": "tsx --test tests/api.test.ts"
   },
   "dependencies": {
     "firebase-admin": "^13.10.0"
