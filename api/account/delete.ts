@@ -1,7 +1,7 @@
 import { adminAuth, adminDb } from '../_lib/firebaseAdmin';
 import { deleteAccountData } from '../_lib/account';
 import { errorResponse, json, preflight } from '../_lib/http';
-import { SENSITIVE_RULE } from '../_lib/rateLimit';
+import { DELETE_RULE } from '../_lib/rateLimit';
 import { withAuth } from '../_lib/withAuth';
 
 export const OPTIONS = preflight;
@@ -19,5 +19,5 @@ export const POST = withAuth(
     const summary = await deleteAccountData(adminDb(), adminAuth(), user.uid);
     return json({ ok: true, summary }, 200, {}, request);
   },
-  { rate: SENSITIVE_RULE },
+  { rate: DELETE_RULE },
 );

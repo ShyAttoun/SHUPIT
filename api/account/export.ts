@@ -1,7 +1,7 @@
 import { adminAuth, adminDb } from '../_lib/firebaseAdmin';
 import { exportAccountData } from '../_lib/account';
 import { preflight } from '../_lib/http';
-import { SENSITIVE_RULE } from '../_lib/rateLimit';
+import { EXPORT_RULE } from '../_lib/rateLimit';
 import { withAuth } from '../_lib/withAuth';
 
 export const OPTIONS = preflight;
@@ -24,5 +24,5 @@ export const GET = withAuth(
       },
     });
   },
-  { rate: SENSITIVE_RULE },
+  { rate: EXPORT_RULE },
 );

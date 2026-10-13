@@ -14,7 +14,9 @@ export interface RateStore {
 
 export const DEFAULT_RULE: RateRule = { bucket: 'api', limit: 120, windowSec: 60 };
 export const AI_RULE: RateRule = { bucket: 'ai', limit: 20, windowSec: 60 };
-export const SENSITIVE_RULE: RateRule = { bucket: 'sensitive', limit: 5, windowSec: 3600 };
+/** Separate buckets so exporting data never blocks deleting an account (and vice versa). */
+export const EXPORT_RULE: RateRule = { bucket: 'export', limit: 5, windowSec: 3600 };
+export const DELETE_RULE: RateRule = { bucket: 'delete', limit: 5, windowSec: 3600 };
 
 export function windowStartMs(nowMs: number, windowSec: number): number {
   const w = windowSec * 1000;
