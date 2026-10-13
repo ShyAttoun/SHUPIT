@@ -1,0 +1,15 @@
+node_modules/
+.expo/
+dist/
+web-build/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+*.tsbuildinfo
+coverage/

@@ -1,0 +1,100 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    // Client may never set server-managed bookkeeping fields.
+    function noServerFields() {
+      return !request.resource.data.keys().hasAny(['serverManaged', 'verifiedBy']);
+    }
+
+    // ---- User-owned data ------------------------------------------------
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && noServerFields();
+      allow delete: if false; // account deletion runs server-side
+
+      // Preferences, favorite stores, collections, saved products:
+      // owner full access.
+      match /preferences/{id} {
+        allow read, write: if isOwner(uid);
+      }
+      match /favoriteStores/{id} {
+        allow read, write: if isOwner(uid);
+      }
+      match /collections/{id} {
+        allow read, write: if isOwner(uid);
+      }
+      match /savedProducts/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && noServerFields();
+      }
+
+      // Orders are created by the owner (manual entry) but derived data
+      // (shipments, tracking events, import jobs) is written by the server.
+      match /orders/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && noServerFields();
+        match /items/{itemId} {
+          allow read, write: if isOwner(uid);
+        }
+      }
+      match /shipments/{id} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+        match /trackingEvents/{eventId} {
+          allow read: if isOwner(uid);
+          allow write: if false;
+        }
+      }
+      match /importJobs/{id} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+      match /notifications/{id} {
+        allow read: if isOwner(uid);
+        // Only the read marker may change from the client.
+        allow update: if isOwner(uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readAt']);
+        allow create, delete: if false;
+      }
+    }
+
+    // ---- Shared reference data -----------------------------------------
+    match /merchants/{id} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ---- Price Watch ----------------------------------------------------
+    match /priceWatchSubscriptions/{id} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && noServerFields();
+      allow update: if signedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == resource.data.uid
+        && noServerFields();
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+    match /priceAlertEvents/{id} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    // ---- Server-only ----------------------------------------------------
+    // canonicalProducts, productVariants, priceObservations,
+    // merchantPriceProviders, affiliatePrograms, affiliateClicks are
+    // reachable only through Cloud Functions (Admin SDK bypasses rules).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
