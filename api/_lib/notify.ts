@@ -50,7 +50,8 @@ export async function createNotification(
     });
     // Browser push is opt-in and best effort; the in-app notification above is the source of truth.
     if (prefs.push) {
-      void sendPush(db, uid, (lang) => ({
+      // Awaited: a serverless function may be frozen once the response is sent.
+      await sendPush(db, uid, (lang) => ({
         ...pushText({ type: draft.type, status: draft.status, data: draft.data }, lang),
         tag: draft.dedupeKey,
       })).catch(() => undefined);
