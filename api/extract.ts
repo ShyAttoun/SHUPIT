@@ -10,6 +10,9 @@ import {
   extractProduct,
 } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
+import { AI_RULE } from './_lib/rateLimit';
+import { hasAiConsent } from './_lib/consent';
+import { adminDb } from './_lib/firebaseAdmin';
 
 export const OPTIONS = preflight;
 
@@ -36,6 +39,9 @@ export const POST = withAuth(async (request, user) => {
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return errorResponse(503, 'not_configured', 'AI extraction is not configured yet');
+  }
+  if (!(await hasAiConsent(adminDb(), user.uid))) {
+    return errorResponse(403, 'consent_required', 'AI processing consent is required');
   }
   if (!(await consumeAiQuota(user.uid))) {
     return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
@@ -81,4 +87,4 @@ export const POST = withAuth(async (request, user) => {
     if (url && !imageBase64) return errorResponse(422, 'unreadable', 'The page could not be read');
     throw e;
   }
-});
+}, { rate: AI_RULE });

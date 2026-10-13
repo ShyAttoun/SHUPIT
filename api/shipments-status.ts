@@ -6,6 +6,8 @@ import { toEventDocs } from './_lib/orderEnrich';
 import { consumeAiQuota } from './_lib/usage';
 import { ExtractionFailedError, NotConfiguredError, extractOrders } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
+import { AI_RULE } from './_lib/rateLimit';
+import { hasAiConsent } from './_lib/consent';
 
 export const OPTIONS = preflight;
 
@@ -31,6 +33,9 @@ export const POST = withAuth(async (request, user) => {
   if (!process.env.ANTHROPIC_API_KEY) return errorResponse(503, 'not_configured', 'AI extraction is not configured yet');
 
   const db = adminDb();
+  if (!(await hasAiConsent(db, user.uid))) {
+    return errorResponse(403, 'consent_required', 'AI processing consent is required');
+  }
   const ref = db.collection('users').doc(user.uid).collection('shipments').doc(id);
   const snap = await ref.get();
   if (!snap.exists) return errorResponse(404, 'not_found', 'Shipment not found');
@@ -89,4 +94,4 @@ export const POST = withAuth(async (request, user) => {
     if (e instanceof ExtractionFailedError) return errorResponse(422, 'extraction_failed', 'Could not read this');
     throw e;
   }
-});
+}, { rate: AI_RULE });

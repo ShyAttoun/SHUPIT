@@ -23,18 +23,18 @@ test('bearerToken parsing', () => {
 });
 
 test('withAuth rejects missing and invalid tokens', async () => {
-  const handler = withAuth(() => new Response('ok'), async () => {
-    throw new Error('bad');
+  const handler = withAuth(() => new Response('ok'), {
+    rate: false,
+    verify: async () => {
+      throw new Error('bad');
+    },
   });
   assert.equal((await handler(req())).status, 401);
   assert.equal((await handler(req('Bearer nope'))).status, 401);
 });
 
 test('withAuth passes verified user to handler', async () => {
-  const handler = withAuth(
-    (_r, u) => new Response(u.uid),
-    async () => fakeUser,
-  );
+  const handler = withAuth((_r, u) => new Response(u.uid), { rate: false, verify: async () => fakeUser });
   const res = await handler(req('Bearer good'));
   assert.equal(res.status, 200);
   assert.equal(await res.text(), 'u1');
@@ -45,7 +45,7 @@ test('withAuth maps handler crashes to 500 without leaking details', async () =>
     () => {
       throw new Error('secret db detail');
     },
-    async () => fakeUser,
+    { rate: false, verify: async () => fakeUser },
   );
   const res = await handler(req('Bearer good'));
   assert.equal(res.status, 500);

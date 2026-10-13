@@ -4,6 +4,9 @@ import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 import { z } from 'zod';
 import { Button, LogoMark, Screen, Text, TextField, useTheme } from '@/design';
+import { Switch } from 'react-native';
+import { LegalLinks } from '@/legal/LegalLinks';
+import { setConsents } from '@/lib/account';
 import { useTranslation } from '@/i18n';
 import { useAuth } from './AuthProvider';
 import { authErrorKey } from './errors';
@@ -17,6 +20,7 @@ export function SignInScreen() {
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [formError, setFormError] = useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const schema = z.object({
     email: z.string().trim().email(t('auth.errors.invalidEmail')),
@@ -34,9 +38,17 @@ export function SignInScreen() {
 
   const onSubmit = handleSubmit(async ({ email, password }) => {
     setFormError(null);
+    if (mode === 'signUp' && !agreed) {
+      setFormError(t('legal.mustAgree'));
+      return;
+    }
     try {
       if (mode === 'signIn') await signInWithEmail(email.trim(), password);
-      else await signUpWithEmail(email.trim(), password);
+      else {
+        await signUpWithEmail(email.trim(), password);
+        // Record acceptance of the terms (best effort; the account already exists).
+        void setConsents({ terms: true }).catch(() => undefined);
+      }
     } catch (e) {
       setFormError(t(`auth.errors.${authErrorKey(e)}`));
     }
@@ -47,6 +59,7 @@ export function SignInScreen() {
     setGoogleBusy(true);
     try {
       await signInWithGoogle();
+      void setConsents({ terms: true }).catch(() => undefined);
     } catch (e) {
       const code = (e as { code?: string }).code;
       // Closing the popup is not an error worth surfacing.
@@ -111,6 +124,22 @@ export function SignInScreen() {
               />
             )}
           />
+          {mode === 'signUp' ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+              <Switch
+                accessibilityLabel={t('legal.agreePrefix')}
+                value={agreed}
+                onValueChange={setAgreed}
+                trackColor={{ true: theme.colors.accent, false: theme.colors.border }}
+              />
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text variant="small">
+                  {t('legal.agreePrefix')} {t('legal.terms')} {t('legal.and')}{t('legal.privacy')}
+                </Text>
+                <LegalLinks />
+              </View>
+            </View>
+          ) : null}
           {formError ? (
             <Text color="danger" accessibilityLiveRegion="polite">
               {formError}
@@ -136,6 +165,8 @@ export function SignInScreen() {
             />
           </View>
         ) : null}
+
+        {mode === 'signIn' ? <LegalLinks center /> : null}
 
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: theme.spacing.xs, flexWrap: 'wrap' }}>
           <Text color="textSecondary">

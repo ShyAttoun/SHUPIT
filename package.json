@@ -17,7 +17,8 @@
     "test:rules": "firebase emulators:exec --only firestore --project shupit-8a4f5 \"npm run test:rules -w @shupit/contracts\"",
     "typecheck:api": "tsc --noEmit -p api && tsc --noEmit -p tests",
     "test:api": "tsx --test tests/*.test.ts",
-    "postinstall": "npm run build -w @shupit/contracts"
+    "postinstall": "npm run build -w @shupit/contracts",
+    "test:emulator": "firebase emulators:exec --only firestore,auth --project demo-shupit \"tsx --test tests/emulator/*.test.ts\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

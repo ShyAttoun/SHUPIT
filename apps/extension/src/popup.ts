@@ -61,6 +61,10 @@ const T = {
   unreadable: he ? 'אין בדף תוכן קריא.' : 'This page has no readable content.',
   notConfigured: he ? 'הקריאה האוטומטית עדיין לא זמינה.' : 'Automatic reading isn’t available yet.',
   quota: he ? 'הגעתם למגבלה היומית.' : 'You reached today’s limit.',
+  consentRequired: he
+    ? 'קריאת AI כבויה. הפעילו אותה באפליקציה: הגדרות ← פרטיות.'
+    : 'AI reading is off. Turn it on in the app: Settings → Privacy.',
+  rateLimited: he ? 'יותר מדי בקשות. המתינו רגע.' : 'Too many requests. Please wait a moment.',
   generic: he ? 'משהו השתבש. נסו שוב.' : 'Something went wrong. Try again.',
   disconnected: he ? 'החיבור פג. חברו מחדש מהאפליקציה.' : 'Your connection expired. Reconnect from the app.',
   unsupportedPage: he ? 'לא ניתן לקרוא את הדף הזה.' : 'This page can’t be read.',
@@ -132,6 +136,10 @@ function errorText(code: string | undefined): string {
       return T.notConfigured;
     case 'quota_exceeded':
       return T.quota;
+    case 'consent_required':
+      return T.consentRequired;
+    case 'rate_limited':
+      return T.rateLimited;
     case 'unsupported':
       return T.unsupportedPage;
     default:

@@ -7,6 +7,7 @@ import { Chip } from '@/components/Chip';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
 import { useFavoriteStores } from '@/features/stores/hooks';
+import { useAiConsent } from '@/features/privacy/AiConsent';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { ApiError, apiFetch } from '@/lib/api';
 import { ImageDropZone } from '@/components/ImageDropZone';
@@ -33,8 +34,12 @@ interface ExtractResponse {
   orders?: { data: ExtractedOrder; merchantId: string | null }[];
 }
 
-function errorKey(e: unknown): 'notOrder' | 'unreadableLink' | 'notConfigured' | 'quota' | 'generic' {
+function errorKey(
+  e: unknown,
+): 'notOrder' | 'unreadableLink' | 'notConfigured' | 'quota' | 'consentRequired' | 'rateLimited' | 'generic' {
   if (e instanceof ApiError) {
+    if (e.code === 'consent_required') return 'consentRequired';
+    if (e.code === 'rate_limited') return 'rateLimited';
     if (e.code === 'not_an_order') return 'notOrder';
     if (e.code === 'unreadable') return 'unreadableLink';
     if (e.code === 'not_configured') return 'notConfigured';
@@ -44,6 +49,16 @@ function errorKey(e: unknown): 'notOrder' | 'unreadableLink' | 'notConfigured' |
 }
 
 export function AddOrderScreen() {
+  const consent = useAiConsent();
+  return (
+    <>
+      <AddOrderContent ensure={consent.ensure} />
+      {consent.modal}
+    </>
+  );
+}
+
+function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
   const { t } = useTranslation();
   const { language } = useAppLanguage();
   const { colors, spacing, radius, hitTarget } = useTheme();
@@ -83,6 +98,7 @@ export function AddOrderScreen() {
   };
 
   const fromScreenshot = async (picked: PickedImage) => {
+    if (!(await ensure())) return;
     setStep('reading');
     try {
       const res = await apiFetch<ExtractResponse>('/api/extract', {
@@ -103,6 +119,7 @@ export function AddOrderScreen() {
       return;
     }
     setLinkError(null);
+    if (!(await ensure())) return;
     setStep('reading');
     try {
       const res = await apiFetch<ExtractResponse>('/api/extract', {

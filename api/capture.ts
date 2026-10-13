@@ -6,6 +6,9 @@ import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { consumeAiQuota } from './_lib/usage';
 import { ExtractionFailedError, NotConfiguredError, extractOrders, extractProduct } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
+import { AI_RULE } from './_lib/rateLimit';
+import { hasAiConsent } from './_lib/consent';
+import { adminDb } from './_lib/firebaseAdmin';
 
 export const OPTIONS = preflight;
 
@@ -25,7 +28,13 @@ export const POST = withAuth(async (request, user) => {
     let { title, price } = draft;
     let usedAi = false;
 
-    if ((!title || !price) && page.text && page.text.length >= 40 && process.env.ANTHROPIC_API_KEY) {
+    if (
+      (!title || !price) &&
+      page.text &&
+      page.text.length >= 40 &&
+      process.env.ANTHROPIC_API_KEY &&
+      (await hasAiConsent(adminDb(), user.uid))
+    ) {
       if (await consumeAiQuota(user.uid)) {
         try {
           const ai = await extractProduct({ text: page.text });
@@ -68,6 +77,9 @@ export const POST = withAuth(async (request, user) => {
 
   // order
   if (!process.env.ANTHROPIC_API_KEY) return errorResponse(503, 'not_configured', 'AI extraction is not configured yet');
+  if (!(await hasAiConsent(adminDb(), user.uid))) {
+    return errorResponse(403, 'consent_required', 'AI processing consent is required');
+  }
   const text = (page.text ?? '').trim();
   if (text.length < 40) return errorResponse(422, 'unreadable', 'The page has no readable content');
   if (!(await consumeAiQuota(user.uid))) return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
@@ -93,4 +105,4 @@ export const POST = withAuth(async (request, user) => {
     if (e instanceof ExtractionFailedError) return errorResponse(422, 'extraction_failed', 'Could not read this');
     throw e;
   }
-});
+}, { rate: AI_RULE });

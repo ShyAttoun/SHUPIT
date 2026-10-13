@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api';
 import { pickScreenshot } from '@/lib/imagePicker';
+import { useAiConsent } from '@/features/privacy/AiConsent';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { TrackingEvent } from '@shupit/contracts';
@@ -61,11 +62,13 @@ function RefreshButton({ shipment }: { shipment: ShipmentDoc }) {
 
 function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
   const { t } = useTranslation();
+  const consent = useAiConsent();
   const { user } = useAuth();
   const qc = useQueryClient();
   const [message, setMessage] = useState<string | null>(null);
   const update = useMutation({
     mutationFn: async () => {
+      if (!(await consent.ensure())) return null;
       const picked = await pickScreenshot();
       if (!picked) return null;
       return apiFetch<{ status: string }>(`/api/shipments-status?id=${encodeURIComponent(shipment.id)}`, {
@@ -80,7 +83,9 @@ function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
     },
     onError: (e) => {
       setMessage(
-        e instanceof ApiError && e.code === 'no_status'
+        e instanceof ApiError && e.code === 'consent_required'
+          ? t('orders.import.consentRequired')
+          : e instanceof ApiError && e.code === 'no_status'
           ? t('orders.detail.noStatus')
           : e instanceof ApiError && e.code === 'not_configured'
             ? t('orders.import.notConfigured')
@@ -92,6 +97,7 @@ function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
   });
   return (
     <View style={{ gap: 4 }}>
+      {consent.modal}
       <Button
         variant="secondary"
         label={update.isPending ? t('orders.detail.updating') : t('orders.detail.updateFromScreenshot')}

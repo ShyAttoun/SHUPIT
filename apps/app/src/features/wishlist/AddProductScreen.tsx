@@ -17,6 +17,7 @@ import { apiFetch } from '@/lib/api';
 import { ImageDropZone } from '@/components/ImageDropZone';
 import type { PickedImage } from '@/lib/imagePicker';
 import { ApiError } from '@/lib/api';
+import { useAiConsent } from '@/features/privacy/AiConsent';
 import { findDuplicate, useCollections, useSavedProducts, useWishlistMutations } from './hooks';
 
 interface PreviewResponse {
@@ -26,6 +27,16 @@ interface PreviewResponse {
 }
 
 export function AddProductScreen() {
+  const consent = useAiConsent();
+  return (
+    <>
+      <AddProductContent ensure={consent.ensure} />
+      {consent.modal}
+    </>
+  );
+}
+
+function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
   const { t } = useTranslation();
   const { language } = useAppLanguage();
   const { spacing } = useTheme();
@@ -92,6 +103,11 @@ export function AddProductScreen() {
   };
 
   const fromScreenshot = async (picked: PickedImage) => {
+    if (!(await ensure())) {
+      setNotice(t('privacy.ai.declined'));
+      setShowForm(true);
+      return;
+    }
     setShotBusy(true);
     setNotice(t('wishlist.add.readingShot'));
     setShowForm(true);
@@ -116,9 +132,11 @@ export function AddProductScreen() {
       const key =
         e instanceof ApiError && e.code === 'not_configured'
           ? t('orders.import.notConfigured')
-          : e instanceof ApiError && e.code === 'quota_exceeded'
-            ? t('orders.import.quota')
-            : t('wishlist.add.shotFailed');
+          : e instanceof ApiError && e.code === 'consent_required'
+            ? t('orders.import.consentRequired')
+            : e instanceof ApiError && e.code === 'quota_exceeded'
+              ? t('orders.import.quota')
+              : t('wishlist.add.shotFailed');
       setNotice(key);
     } finally {
       setShotBusy(false);

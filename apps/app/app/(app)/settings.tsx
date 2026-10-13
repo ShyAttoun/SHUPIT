@@ -8,6 +8,7 @@ import { useApplyLanguage } from '@/i18n/useApplyLanguage';
 import { Platform } from 'react-native';
 import { useState } from 'react';
 import { connectExtension, disconnectExtension, type ConnectResult } from '@/lib/extension';
+import { PrivacySection } from '@/features/privacy/PrivacySection';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -118,6 +119,8 @@ export default function SettingsScreen() {
             ) : null}
           </View>
         ) : null}
+
+        <PrivacySection />
 
         <Button variant="secondary" label={t('settings.signOut')} onPress={() => void signOut()} />
       </View>

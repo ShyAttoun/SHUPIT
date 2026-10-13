@@ -45,6 +45,8 @@ function RootNavigator() {
         <Stack.Protected guard={status === 'signedOut'}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
+        {/* Public: reachable signed in or out. */}
+        <Stack.Screen name="legal/[doc]" />
       </Stack>
     </>
   );
