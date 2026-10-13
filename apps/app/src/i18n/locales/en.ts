@@ -39,6 +39,13 @@ export const en = {
       shipmentStatus: 'Shipment status changes',
       readyForPickup: 'Ready for pickup',
       deliveryExceptions: 'Delivery problems',
+      pushTitle: 'Browser notifications',
+      pushBody: 'Get an alert on this device when something in your list changes. Asked only when you turn it on.',
+      pushOn: 'On for this device',
+      pushDenied: 'Notifications are blocked in your browser settings for this site.',
+      pushNeedsInstall: 'On iPhone/iPad, install SHUPIT to the home screen first, then turn this on.',
+      pushUnsupported: 'This browser doesn’t support push notifications.',
+      pushFailed: 'We couldn’t turn it on. Try again.',
     },
     status: {
       shipped: '{{merchant}}: your order has shipped',

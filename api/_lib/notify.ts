@@ -5,6 +5,7 @@ import {
   type NotificationType,
 } from '@shupit/contracts';
 import type { Firestore } from 'firebase-admin/firestore';
+import { pushText, sendPush } from './push';
 
 export interface NotificationDraft {
   type: NotificationType;
@@ -47,6 +48,13 @@ export async function createNotification(
       createdAt: (opts.now ?? new Date()).toISOString(),
       readAt: null,
     });
+    // Browser push is opt-in and best effort; the in-app notification above is the source of truth.
+    if (prefs.push) {
+      void sendPush(db, uid, (lang) => ({
+        ...pushText({ type: draft.type, status: draft.status, data: draft.data }, lang),
+        tag: draft.dedupeKey,
+      })).catch(() => undefined);
+    }
     return 'created';
   } catch (e) {
     if ((e as { code?: number }).code === 6) return 'duplicate'; // ALREADY_EXISTS

@@ -32,6 +32,12 @@ export async function exportAccountData(
   now = new Date(),
 ): Promise<Json> {
   const userDoc = await dumpDoc(db.collection('users').doc(uid));
+  // Push subscriptions hold the device's encryption secrets: report that they exist, not the keys.
+  const subs = (userDoc.collections as Record<string, { data: Record<string, unknown> | null }[]> | undefined)
+    ?.pushSubscriptions;
+  subs?.forEach((s) => {
+    if (s.data) delete s.data.keys;
+  });
 
   const related: Record<string, unknown[]> = {};
   for (const name of UID_COLLECTIONS) {

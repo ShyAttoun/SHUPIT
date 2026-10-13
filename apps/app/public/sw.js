@@ -5,7 +5,7 @@
  * - Web Share Target: receives POST /share (text, url, image) and hands it to the app.
  * Authenticated data is never stored by this worker.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL_CACHE = `shupit-shell-${VERSION}`;
 const ASSET_CACHE = `shupit-assets-${VERSION}`;
 const SHARE_CACHE = 'shupit-share-v1';
@@ -48,6 +48,42 @@ async function handleShare(request) {
   }
   return Response.redirect('/share?from=target', 303);
 }
+
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (_) {
+    data = { title: 'SHUPIT', body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'SHUPIT', {
+      body: data.body || '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/favicon-32.png',
+      tag: data.tag || undefined,
+      data: { url: data.url || '/notifications' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/notifications';
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const c of all) {
+        if ('focus' in c) {
+          await c.focus();
+          if ('navigate' in c) await c.navigate(url);
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })(),
+  );
+});
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;

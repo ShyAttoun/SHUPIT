@@ -41,6 +41,13 @@ export const he: Translations = {
       shipmentStatus: 'שינויי סטטוס משלוח',
       readyForPickup: 'מוכן לאיסוף',
       deliveryExceptions: 'בעיות במשלוח',
+      pushTitle: 'התראות בדפדפן',
+      pushBody: 'קבלו התראה במכשיר הזה כשמשהו ברשימה משתנה. נשאל רק כשתפעילו.',
+      pushOn: 'פעיל במכשיר הזה',
+      pushDenied: 'ההתראות חסומות בהגדרות הדפדפן לאתר הזה.',
+      pushNeedsInstall: 'באייפון/אייפד יש להתקין קודם את SHUPIT למסך הבית, ואז להפעיל.',
+      pushUnsupported: 'הדפדפן הזה לא תומך בהתראות Push.',
+      pushFailed: 'לא הצלחנו להפעיל. נסו שוב.',
     },
     status: {
       shipped: '{{merchant}}: ההזמנה נשלחה',
