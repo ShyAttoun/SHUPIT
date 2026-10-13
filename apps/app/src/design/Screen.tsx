@@ -16,6 +16,7 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
 
   const content = (
     <View
+      role="main"
       {...rest}
       style={[
         {
@@ -37,7 +38,12 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       {scroll ? (
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+          // Keyboard users must be able to scroll long, mostly-static content (e.g. legal pages).
+          tabIndex={0}
+        >
           {content}
         </ScrollView>
       ) : (

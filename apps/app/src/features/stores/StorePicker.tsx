@@ -40,6 +40,7 @@ export function StorePicker({
                 key={m.id}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: isSel }}
+                aria-checked={isSel}
                 accessibilityLabel={m.name}
                 onPress={() => onToggle(m.id)}
                 style={{

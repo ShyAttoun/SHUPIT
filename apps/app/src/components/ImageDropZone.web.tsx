@@ -5,7 +5,8 @@ import type { ImageDropZoneProps } from './ImageDropZone';
 
 /** Web: drag & drop, paste (Ctrl/Cmd+V) or click to choose a screenshot. */
 export function ImageDropZone({ label, hint, busy, onImage, onError }: ImageDropZoneProps) {
-  const { colors, spacing, radius } = useTheme();
+  const theme = useTheme();
+  const { colors, spacing, radius } = theme;
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
 
@@ -45,7 +46,6 @@ export function ImageDropZone({ label, hint, busy, onImage, onError }: ImageDrop
     <div
       role="button"
       tabIndex={0}
-      aria-label={label}
       aria-busy={busy}
       onClick={open}
       onKeyDown={(e) => {
@@ -79,6 +79,7 @@ export function ImageDropZone({ label, hint, busy, onImage, onError }: ImageDrop
         cursor: busy ? 'default' : 'pointer',
         opacity: busy ? 0.6 : 1,
         color: colors.text,
+        fontFamily: theme.textStyle('body').fontFamily,
         outlineOffset: 2,
         transition: 'background-color 120ms',
       }}

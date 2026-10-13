@@ -56,7 +56,8 @@ export default function SettingsScreen() {
                 <Pressable
                   key={o.value}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected }}
+                  accessibilityState={{ selected, checked: selected }}
+                  aria-checked={selected}
                   onPress={() => setPreference(o.value)}
                   style={{
                     minHeight: theme.hitTarget + 4,
