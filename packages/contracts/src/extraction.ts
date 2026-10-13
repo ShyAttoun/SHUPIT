@@ -60,3 +60,32 @@ export const extractRequest = z
     message: 'image or url required',
   });
 export type ExtractRequest = z.infer<typeof extractRequest>;
+
+/** A page as seen inside the user's own browser (extension). Text is bounded; nothing here is a credential. */
+export const pageCapture = z.object({
+  url: z.string().url().max(2048),
+  title: z.string().max(500).optional(),
+  metas: z.record(z.string().max(100), z.string().max(1000)).optional(),
+  jsonLd: z.array(z.string().max(50_000)).max(5).optional(),
+  text: z.string().max(30_000).optional(),
+});
+export type PageCapture = z.infer<typeof pageCapture>;
+
+export const captureRequest = z.object({
+  kind: z.enum(['product', 'order']),
+  page: pageCapture,
+});
+export type CaptureRequest = z.infer<typeof captureRequest>;
+
+export const saveProductRequest = z.object({
+  title: z.string().trim().min(1).max(300),
+  productUrl: z.string().url().max(2048),
+  imageUrl: z.string().url().max(2048).optional(),
+  price: z
+    .object({ amountMinor: z.number().int().nonnegative(), currency: z.string().regex(/^[A-Z]{3}$/) })
+    .optional(),
+  merchantId: z.string().max(60).optional(),
+  /** Which fields were read by the page/AI and left unedited. */
+  readFields: z.array(z.enum(['title', 'imageUrl', 'price'])).max(3).optional(),
+});
+export type SaveProductRequest = z.infer<typeof saveProductRequest>;

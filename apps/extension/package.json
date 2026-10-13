@@ -1,0 +1,14 @@
+{
+  "name": "@shupit/extension",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.300",
+    "esbuild": "^0.25.0",
+    "typescript": "~6.0.3"
+  }
+}

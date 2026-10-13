@@ -5,6 +5,9 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useTranslation } from '@/i18n';
 import { useLanguageStore, type LanguagePreference } from '@/i18n/store';
 import { useApplyLanguage } from '@/i18n/useApplyLanguage';
+import { Platform } from 'react-native';
+import { useState } from 'react';
+import { connectExtension, disconnectExtension, type ConnectResult } from '@/lib/extension';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -13,6 +16,7 @@ export default function SettingsScreen() {
   const { preference, setPreference } = useLanguageStore();
   const { needsRestart } = useApplyLanguage();
   const router = useRouter();
+  const [extState, setExtState] = useState<ConnectResult | null>(null);
 
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('settings.languageSystem') },
@@ -78,6 +82,42 @@ export default function SettingsScreen() {
           label={t('settings.reopenStoresOnboarding')}
           onPress={() => router.push('/stores?pick=1')}
         />
+
+        {Platform.OS === 'web' ? (
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text variant="label" color="textSecondary">
+              {t('settings.extension.title')}
+            </Text>
+            <Text variant="small" color="textSecondary">
+              {t('settings.extension.body')}
+            </Text>
+            <Button
+              variant="secondary"
+              label={t('settings.extension.connect')}
+              onPress={() => void connectExtension().then(setExtState)}
+            />
+            {extState === 'connected' ? (
+              <>
+                <Text variant="small" color="success" accessibilityLiveRegion="polite">
+                  {t('settings.extension.connected')}
+                </Text>
+                <Button
+                  variant="ghost"
+                  label={t('settings.extension.disconnect')}
+                  onPress={() => void disconnectExtension().then(() => setExtState(null))}
+                />
+              </>
+            ) : extState === 'not_installed' ? (
+              <Text variant="small" color="warning" accessibilityLiveRegion="polite">
+                {t('settings.extension.notInstalled')}
+              </Text>
+            ) : extState ? (
+              <Text variant="small" color="danger" accessibilityLiveRegion="polite">
+                {t('settings.extension.failed')}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <Button variant="secondary" label={t('settings.signOut')} onPress={() => void signOut()} />
       </View>

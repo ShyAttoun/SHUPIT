@@ -305,5 +305,14 @@ export const he: Translations = {
     restartForRtl: 'הפעילו מחדש את האפליקציה כדי להחיל את כיוון הטקסט.',
     signOut: 'התנתקות',
     reopenStoresOnboarding: 'בחירת חנויות מועדפות מחדש',
+    extension: {
+      title: 'תוסף Chrome',
+      body: 'שמרו מוצרים והוסיפו הזמנות ישירות מהדף שאתם רואים, גם כשצריך להיות מחוברים.',
+      connect: 'חיבור תוסף Chrome',
+      connected: 'מחובר. לחצו על סמל SHUPIT ב-Chrome בכל דף מוצר או הזמנה.',
+      notInstalled: 'התוסף עדיין לא מותקן בדפדפן הזה.',
+      failed: 'החיבור נכשל. נסו שוב.',
+      disconnect: 'ניתוק התוסף',
+    },
   },
 };

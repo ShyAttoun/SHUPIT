@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "SHUPIT",
+  "version": "0.1.0",
+  "description": "Save products and add orders to SHUPIT from the page you are looking at.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzb5j9okYs4lfIvefV/fCKirW+3DOiAF4CMvNrppAHICAUlZDt4Sa7HN1C02GtAI8hxUqxN0mR5CLKhmglNHCEMerz+goqjURiwQR4ltzVEoE01zFo8abUtfJOGwDIMTQwmW8CR1XRVp9rCVQiEa+2ml8/2UFYrCI5hWOn0Z22itvq/XYre6hZxZyzbBwPnXcKAZwK4f7XJqyDM2Q+hOjoiw6XU+uEvmLFOgFXzEvFHfmxqE5aw+/ykZJ8UL8Hgj86JenJlBjmGuUjPUo5fkgwaA+PE+GIXUm7OGNVGlcVkEpUPn/3tMVSxn++F2uRWdHYot+kPFoZPbsyqVK5LUM9QIDAQAB",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SHUPIT",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://shupit.vercel.app/*",
+    "https://securetoken.googleapis.com/*"
+  ],
+  "externally_connectable": {
+    "matches": [
+      "https://shupit.vercel.app/*",
+      "http://localhost:8081/*"
+    ]
+  }
+}

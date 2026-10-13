@@ -21,7 +21,7 @@ export const orderCreateInput = z.object({
   purchasedAt: isoDate.optional(),
   total: money.optional(),
   /** How the draft was produced; defaults to manual. */
-  importSource: z.enum(['manual', 'screenshot', 'link']).optional(),
+  importSource: z.enum(['manual', 'screenshot', 'link', 'extension']).optional(),
   /** Field names that were read by AI and left unedited by the user (provenance). */
   aiFields: z.array(z.string().max(40)).max(12).optional(),
   items: z

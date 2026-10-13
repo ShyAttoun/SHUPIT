@@ -303,6 +303,15 @@ export const en = {
     restartForRtl: 'Restart the app to apply the new text direction.',
     signOut: 'Sign out',
     reopenStoresOnboarding: 'Choose favorite stores again',
+    extension: {
+      title: 'Chrome extension',
+      body: 'Save products and add orders straight from the page you’re looking at, even when it needs you to be signed in.',
+      connect: 'Connect Chrome extension',
+      connected: 'Connected. Open the SHUPIT icon in Chrome on any product or order page.',
+      notInstalled: 'The extension isn’t installed in this browser yet.',
+      failed: 'Couldn’t connect. Try again.',
+      disconnect: 'Disconnect extension',
+    },
   },
 };
 
