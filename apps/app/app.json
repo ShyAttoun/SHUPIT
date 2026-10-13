@@ -7,10 +7,15 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#071625",
-    "plugins": ["expo-router", "expo-font", "expo-localization"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-localization"
+    ],
     "web": {
       "bundler": "metro",
       "output": "single"
-    }
+    },
+    "icon": "./assets/brand/icon-512.png"
   }
 }

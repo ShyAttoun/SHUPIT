@@ -5,11 +5,11 @@
  * - Web Share Target: receives POST /share (text, url, image) and hands it to the app.
  * Authenticated data is never stored by this worker.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL_CACHE = `shupit-shell-${VERSION}`;
 const ASSET_CACHE = `shupit-assets-${VERSION}`;
 const SHARE_CACHE = 'shupit-share-v1';
-const PRECACHE = ['/offline.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/favicon.svg'];
+const PRECACHE = ['/offline.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png', '/favicon.svg', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(SHELL_CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting()));

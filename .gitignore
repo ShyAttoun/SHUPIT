@@ -14,3 +14,6 @@ ui-debug.log
 *.tsbuildinfo
 coverage/
 .vercel
+
+# Local audit output (screenshots)
+tests/e2e/out/
