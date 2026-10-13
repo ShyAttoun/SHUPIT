@@ -10,7 +10,7 @@ function corsHeaders(request?: Request): Record<string, string> {
   return {
     'access-control-allow-origin': origin,
     'access-control-allow-headers': 'authorization, content-type',
-    'access-control-allow-methods': 'GET, POST, DELETE, OPTIONS',
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
     vary: 'Origin',
   };
 }

@@ -14,6 +14,16 @@ export const productDraft = z.object({
 });
 export type ProductDraft = z.infer<typeof productDraft>;
 
+export const pickupInput = z.object({
+  name: z.string().trim().max(120).optional(),
+  address: z.string().trim().max(300).optional(),
+  until: isoDate.optional(),
+  instructions: z.string().trim().max(500).optional(),
+  /** Collection / pickup code. Sensitive: only ever shown to its owner. */
+  code: z.string().trim().max(60).optional(),
+});
+export type PickupInput = z.infer<typeof pickupInput>;
+
 export const orderCreateInput = z.object({
   merchantId: z.string().max(60).optional(),
   merchantName: z.string().trim().min(1).max(120),
@@ -44,6 +54,7 @@ export const orderCreateInput = z.object({
         /** Carrier wording of the status, as read from the page/screenshot. */
         statusText: z.string().trim().max(200).optional(),
         estimatedDeliveryFrom: isoDate.optional(),
+        pickup: pickupInput.optional(),
         events: z
           .array(z.object({ description: z.string().trim().min(1).max(300), occurredAt: isoDate }))
           .max(30)
@@ -53,6 +64,45 @@ export const orderCreateInput = z.object({
     .max(5),
 });
 export type OrderCreateInput = z.infer<typeof orderCreateInput>;
+
+/** Edits to an existing order. Only the fields present are changed; null clears an optional field. */
+export const orderUpdateInput = z
+  .object({
+    merchantId: z.string().max(60).nullable().optional(),
+    merchantName: z.string().trim().min(1).max(120).optional(),
+    externalOrderId: z.string().trim().max(80).nullable().optional(),
+    purchasedAt: isoDate.nullable().optional(),
+    total: money.nullable().optional(),
+    items: z
+      .array(
+        z.object({
+          title: z.string().trim().min(1).max(200),
+          quantity: z.number().int().min(1).max(999),
+          imageUrl: z.string().url().max(2048).optional(),
+        }),
+      )
+      .max(50)
+      .optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'nothing to update' });
+export type OrderUpdateInput = z.infer<typeof orderUpdateInput>;
+
+export const shipmentInput = z.object({
+  carrier: z.string().trim().max(60).nullable().optional(),
+  trackingNumber: z.string().trim().max(60).nullable().optional(),
+  estimatedDeliveryAt: isoDate.nullable().optional(),
+  estimatedDeliveryFrom: isoDate.nullable().optional(),
+  /** Set by the user: stored as a user-supplied status, never as carrier-verified. */
+  status: shipmentStatus.optional(),
+  statusText: z.string().trim().max(200).nullable().optional(),
+  pickup: pickupInput.nullable().optional(),
+});
+export type ShipmentInput = z.infer<typeof shipmentInput>;
+
+export const shipmentCreateInput = shipmentInput.extend({
+  orderId: z.string().min(1).max(128),
+});
+export type ShipmentCreateInput = z.infer<typeof shipmentCreateInput>;
 
 export const goRequest = z.object({
   merchantId: z.string().max(60).optional(),

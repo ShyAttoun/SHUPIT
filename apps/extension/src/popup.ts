@@ -301,6 +301,19 @@ const eventIso = (v: string) => {
   return m ? `${m[1]}T${m[2] ?? '12:00'}:00.000Z` : null;
 };
 
+function pickupBody(p: NonNullable<OrderData['shipments'][number]['pickup']> | null | undefined) {
+  if (!p) return undefined;
+  const m = p.until ? /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/.exec(p.until) : null;
+  const out = {
+    ...(p.name ? { name: p.name } : {}),
+    ...(p.address ? { address: p.address } : {}),
+    ...(m ? { until: `${m[1]}T${m[2] ?? '23:59'}:00.000Z` } : {}),
+    ...(p.instructions ? { instructions: p.instructions } : {}),
+    ...(p.collectionCode ? { code: p.collectionCode } : {}),
+  };
+  return Object.keys(out).length ? out : undefined;
+}
+
 function orderBody(d: OrderData, merchantId: string | null, pageUrl: string) {
   const ship = d.shipments[0];
   const exp = d.total?.currency === 'JPY' ? 0 : 2;
@@ -337,6 +350,7 @@ function orderBody(d: OrderData, merchantId: string | null, pageUrl: string) {
             ...(isoNoon(ship.estimatedDeliveryFrom) ? { estimatedDeliveryFrom: isoNoon(ship.estimatedDeliveryFrom) } : {}),
             ...(ship.status ? { status: ship.status } : {}),
             ...(ship.statusText ? { statusText: ship.statusText } : {}),
+            ...(pickupBody(ship.pickup) ? { pickup: pickupBody(ship.pickup) } : {}),
             ...(ship.events?.length
               ? {
                   events: ship.events

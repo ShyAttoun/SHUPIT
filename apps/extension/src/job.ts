@@ -27,6 +27,13 @@ export interface OrderData {
     estimatedDeliveryFrom?: string | null;
     estimatedDelivery: string | null;
     events?: { description: string; occurredAt: string }[];
+    pickup?: {
+      name?: string | null;
+      address?: string | null;
+      until?: string | null;
+      instructions?: string | null;
+      collectionCode?: string | null;
+    } | null;
   }[];
 }
 

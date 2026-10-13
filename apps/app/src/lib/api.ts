@@ -20,7 +20,7 @@ const BASE =
 
 export async function apiFetch<T>(
   path: string,
-  init: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {},
+  init: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown } = {},
 ): Promise<T> {
   const token = await auth.currentUser?.getIdToken();
   if (!token) throw new ApiError(401, 'unauthenticated');

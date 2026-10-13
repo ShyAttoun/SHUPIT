@@ -1,17 +1,23 @@
 import { z } from 'zod';
 import { shipmentStatus } from './orders';
 
+// Model output is untrusted: a single malformed optional value must not discard the whole read,
+// so optional fields fall back to null instead of failing validation.
 const ymd = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
-  .nullable();
+  .nullable()
+  .catch(null);
 
 const amount = z
   .object({
     amount: z.number().nonnegative(),
     currency: z.string().regex(/^[A-Z]{3}$/),
   })
-  .nullable();
+  .nullable()
+  .catch(null);
+
+const EVENT_TIME = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/;
 
 const confidence = z.enum(['high', 'medium', 'low']);
 
@@ -38,20 +44,41 @@ export const extractedOrder = z.object({
         carrier: z.string().max(60).nullable(),
         trackingNumber: z.string().max(60).nullable(),
         /** Current delivery status if the screenshot shows one (progress bar or status text). */
-        status: shipmentStatus.nullable().optional(),
+        status: shipmentStatus.nullable().optional().catch(null),
         /** The carrier's own wording of the current status, verbatim. */
         statusText: z.string().max(200).nullable().optional(),
         estimatedDeliveryFrom: ymd.optional(),
         estimatedDelivery: ymd,
+        pickup: z
+          .object({
+            name: z.string().max(120).nullable().optional(),
+            address: z.string().max(300).nullable().optional(),
+            until: z.string().max(40).nullable().optional(),
+            instructions: z.string().max(500).nullable().optional(),
+            collectionCode: z.string().max(60).nullable().optional(),
+          })
+          .nullable()
+          .optional(),
         /** Tracking history shown on the page, newest first. occurredAt: YYYY-MM-DD or YYYY-MM-DDTHH:MM (local time as shown). */
+        // Invalid events are dropped individually instead of failing the whole extraction.
         events: z
-          .array(
-            z.object({
-              description: z.string().min(1).max(300),
-              occurredAt: z.string().regex(/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/),
-            }),
+          .preprocess(
+            (v) =>
+              Array.isArray(v)
+                ? v
+                    .filter(
+                      (e) =>
+                        e &&
+                        typeof e.description === 'string' &&
+                        e.description.length > 0 &&
+                        typeof e.occurredAt === 'string' &&
+                        EVENT_TIME.test(e.occurredAt),
+                    )
+                    .map((e) => ({ description: String(e.description).slice(0, 300), occurredAt: e.occurredAt }))
+                    .slice(0, 30)
+                : [],
+            z.array(z.object({ description: z.string(), occurredAt: z.string() })),
           )
-          .max(30)
           .optional(),
       }),
     )

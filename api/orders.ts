@@ -1,4 +1,5 @@
-import { getMerchant, orderCreateInput, type OrderCreateInput } from '@shupit/contracts';
+import { getMerchant, orderCreateInput, orderUpdateInput, type OrderCreateInput } from '@shupit/contracts';
+import { DuplicateError, NotFoundError, updateOrder } from './_lib/ordersService';
 import { adminDb } from './_lib/firebaseAdmin';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { orderDedupeKey } from './_lib/orderKeys';
@@ -83,6 +84,7 @@ export const POST = withAuth(async (request, user) => {
       estimatedDeliveryAt: s.estimatedDeliveryAt ?? null,
       estimatedDeliveryFrom: s.estimatedDeliveryFrom ?? null,
       statusText: s.statusText ?? null,
+      pickup: s.pickup ?? null,
       estimatedDeliverySource: s.estimatedDeliveryAt ? 'user' : null,
       lastEventAt: null,
       lastVerifiedAt: null,
@@ -98,6 +100,34 @@ export const POST = withAuth(async (request, user) => {
   await batch.commit();
 
   return json({ id: orderRef.id, shipmentIds }, 201, {}, request);
+});
+
+/** PUT ?id=<orderId> → edit an existing order (edited fields get user provenance). */
+export const PUT = withAuth(async (request, user) => {
+  const id = new URL(request.url).searchParams.get('id');
+  if (!id || id.length > 128 || id.includes('/')) return errorResponse(400, 'bad_request', 'Missing order id');
+  const parsed = orderUpdateInput.safeParse(await readJson(request));
+  if (!parsed.success) {
+    return json(
+      { error: { code: 'validation', message: 'Invalid order', fields: parsed.error.issues.map((i) => i.path.join('.')) } },
+      400,
+      {},
+      request,
+    );
+  }
+  if (parsed.data.merchantId && !getMerchant(parsed.data.merchantId)) {
+    return errorResponse(400, 'unknown_merchant', 'Unknown merchant');
+  }
+  try {
+    await updateOrder(adminDb(), user.uid, id, parsed.data);
+    return json({ ok: true }, 200, {}, request);
+  } catch (e) {
+    if (e instanceof NotFoundError) return errorResponse(404, 'not_found', 'Order not found');
+    if (e instanceof DuplicateError) {
+      return json({ error: { code: 'duplicate', message: 'Another order has this number' }, existingId: e.existingId }, 409, {}, request);
+    }
+    throw e;
+  }
 });
 
 /** DELETE ?id=<orderId> → removes the order and its shipments/events. */

@@ -86,3 +86,48 @@ describe('draftFromExtraction', () => {
     expect(unchangedAiFields(values, emptyOrderForm('USD'), aiFields)).toEqual([]);
   });
 });
+
+import { diffOrderUpdate, valuesFromOrder } from './orderForm';
+import type { Order } from '@shupit/contracts';
+
+const order: Order = {
+  id: 'o1',
+  merchantId: 'ksp',
+  merchantName: 'KSP',
+  externalOrderId: '555',
+  purchasedAt: '2026-10-01T12:00:00.000Z',
+  total: { amountMinor: 9990, currency: 'ILS' },
+  items: [{ title: 'Cable', quantity: 2, imageUrl: 'https://cdn.x/c.jpg' }],
+  importSource: 'screenshot',
+  provenance: {},
+  createdAt: '2026-10-01T12:00:00.000Z',
+  updatedAt: '2026-10-01T12:00:00.000Z',
+};
+
+describe('diffOrderUpdate', () => {
+  it('reports no change when nothing was edited', () => {
+    const r = diffOrderUpdate(order, valuesFromOrder(order, 'ILS'));
+    expect(r).toEqual({ ok: true, input: null });
+  });
+
+  it('includes only the edited fields', () => {
+    const v = { ...valuesFromOrder(order, 'ILS'), orderNumber: '556' };
+    const r = diffOrderUpdate(order, v);
+    expect(r).toEqual({ ok: true, input: { externalOrderId: '556' } });
+  });
+
+  it('keeps item pictures when only quantities change', () => {
+    const v = { ...valuesFromOrder(order, 'ILS'), items: [{ title: 'Cable', quantity: '3' }] };
+    const r = diffOrderUpdate(order, v);
+    expect(r.ok && r.input?.items).toEqual([{ title: 'Cable', quantity: 3, imageUrl: 'https://cdn.x/c.jpg' }]);
+  });
+
+  it('can clear the total and reports validation problems', () => {
+    expect(diffOrderUpdate(order, { ...valuesFromOrder(order, 'ILS'), total: '' })).toEqual({
+      ok: true,
+      input: { total: null },
+    });
+    const bad = diffOrderUpdate(order, { ...valuesFromOrder(order, 'ILS'), purchaseDate: 'x' });
+    expect(bad.ok).toBe(false);
+  });
+});

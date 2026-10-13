@@ -63,7 +63,13 @@ export const shipment = z.object({
   /** Last time a carrier source confirmed the status. */
   lastVerifiedAt: isoDate.optional(),
   pickup: z
-    .object({ name: z.string(), address: z.string().optional(), until: isoDate.optional() })
+    .object({
+      name: z.string().optional(),
+      address: z.string().optional(),
+      until: isoDate.optional(),
+      instructions: z.string().optional(),
+      code: z.string().optional(),
+    })
     .optional(),
 });
 export type Shipment = z.infer<typeof shipment>;

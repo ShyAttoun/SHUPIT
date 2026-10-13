@@ -14,7 +14,7 @@ test('firstJsonObject throws when there is no object', () => {
   assert.throws(() => firstJsonObject('{"a": 1'));
 });
 
-test('extractedOrder accepts nulls and rejects invented formats', () => {
+test('extractedOrder accepts nulls and turns invented date formats into null', () => {
   const ok = extractedOrder.safeParse({
     isOrderScreenshot: true,
     merchantName: 'KSP',
@@ -30,7 +30,8 @@ test('extractedOrder accepts nulls and rejects invented formats', () => {
     isOrderScreenshot: true, merchantName: null, orderNumber: null, purchaseDate: '01/10/2026',
     total: null, items: [], shipments: [], confidence: 'high',
   });
-  assert.equal(bad.success, false);
+  assert.equal(bad.success, true);
+  assert.equal(bad.success && bad.data.purchaseDate, null);
 });
 
 test('extractRequest needs an image with media type, or a url', () => {
@@ -44,4 +45,35 @@ test('merchantByName matches case-insensitively', () => {
   assert.equal(merchantByName(' ksp ')?.id, 'ksp');
   assert.equal(merchantByName('Unknown Shop'), undefined);
   assert.equal(merchantByName(null), undefined);
+});
+
+test('a malformed optional value does not discard the whole read', () => {
+  const r = extractedOrder.safeParse({
+    isOrderScreenshot: true,
+    merchantName: 'SHEIN',
+    orderNumber: 'G1',
+    purchaseDate: 'yesterday',
+    total: { amount: 10, currency: 'shekel' },
+    items: [{ title: 'Shirt', quantity: 1 }],
+    shipments: [
+      {
+        carrier: 'HFD',
+        trackingNumber: '1',
+        status: 'pending',
+        estimatedDelivery: '2026-13-99-nope',
+        events: [
+          { description: 'Arrived', occurredAt: '2026-10-13T16:46' },
+          { description: 'Bad date', occurredAt: 'last tuesday' },
+          { occurredAt: '2026-10-12' },
+        ],
+      },
+    ],
+    confidence: 'medium',
+  });
+  assert.equal(r.success, true);
+  if (!r.success) return;
+  assert.equal(r.data.purchaseDate, null);
+  assert.equal(r.data.total, null);
+  assert.equal(r.data.shipments[0]!.status, null);
+  assert.deepEqual(r.data.shipments[0]!.events, [{ description: 'Arrived', occurredAt: '2026-10-13T16:46' }]);
 });

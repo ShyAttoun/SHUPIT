@@ -123,7 +123,7 @@ export function useWishlistMutations() {
   });
 
   const updateProduct = useMutation({
-    mutationFn: async (p: { id: string; patch: Partial<Pick<SavedProduct, 'title' | 'note' | 'collectionIds'>> }) => {
+    mutationFn: async (p: { id: string; patch: Record<string, unknown> }) => {
       await updateDoc(doc(db, 'users', uid, 'savedProducts', p.id), {
         ...p.patch,
         updatedAt: new Date().toISOString(),

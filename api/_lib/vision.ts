@@ -45,6 +45,8 @@ const ORDER_SHAPE = `{
                  "statusText": string|null,          // the carrier's own wording of the CURRENT status, verbatim (same language as the page)
                  "estimatedDeliveryFrom": "YYYY-MM-DD"|null,   // start of a delivery window, if a range is shown
                  "estimatedDelivery": "YYYY-MM-DD"|null,       // single date, or the END of the window
+                 "pickup": {"name": string|null, "address": string|null, "until": "YYYY-MM-DD"|"YYYY-MM-DDTHH:MM"|null,
+                            "instructions": string|null, "collectionCode": string|null}|null,   // only when the parcel waits at a pickup point / locker
                  "events": [{"description": string, "occurredAt": "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM"}]   // tracking history shown, newest first, max 15
                 }],
   "confidence": "high"|"medium"|"low"

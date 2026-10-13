@@ -20,6 +20,13 @@ export type ShipmentDoc = Shipment & {
   /** The carrier's own wording of the status, as read from the page/screenshot. */
   statusText?: string | null;
   estimatedDeliveryFrom?: string | null;
+  pickup?: {
+    name?: string;
+    address?: string;
+    until?: string;
+    instructions?: string;
+    code?: string;
+  } | null;
 };
 
 export function useOrders() {

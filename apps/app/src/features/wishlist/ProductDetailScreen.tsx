@@ -116,6 +116,12 @@ export function ProductDetailScreen() {
           </View>
         ) : null}
 
+        <Button
+          variant="secondary"
+          label={t('common.edit')}
+          onPress={() => router.push(`/product/edit/${product.id}`)}
+        />
+
         <PriceWatchPanel product={product} />
 
         {(collections.data ?? []).length > 0 ? (

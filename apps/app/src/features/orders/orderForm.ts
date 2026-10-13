@@ -1,4 +1,10 @@
-import { parsePriceNumber, toMinor, type OrderCreateInput, type ShipmentStatus } from '@shupit/contracts';
+import {
+  parsePriceNumber,
+  toMinor,
+  type OrderCreateInput,
+  type PickupInput,
+  type ShipmentStatus,
+} from '@shupit/contracts';
 
 export interface OrderFormValues {
   merchantId: string | null; // catalog id, or null for "other"
@@ -18,6 +24,13 @@ export interface OrderFormValues {
     statusText?: string | null;
     estimatedDeliveryFrom?: string | null;
     events?: { description: string; occurredAt: string }[];
+    pickup?: {
+      name?: string | null;
+      address?: string | null;
+      until?: string | null;
+      instructions?: string | null;
+      collectionCode?: string | null;
+    } | null;
   };
 }
 
@@ -33,6 +46,31 @@ export function dateToIso(value: string): string | null {
   const date = new Date(Date.UTC(y, mo - 1, d, 12));
   if (date.getUTCFullYear() !== y || date.getUTCMonth() !== mo - 1 || date.getUTCDate() !== d) return null;
   return date.toISOString();
+}
+
+/** Page-read pickup details → API shape (collectionCode → code, until → ISO). */
+export function pickupPayload(
+  p:
+    | {
+        name?: string | null;
+        address?: string | null;
+        until?: string | null;
+        instructions?: string | null;
+        collectionCode?: string | null;
+      }
+    | null
+    | undefined,
+): PickupInput | undefined {
+  if (!p) return undefined;
+  const until = p.until ? eventToIso(p.until.length === 10 ? `${p.until}T23:59` : p.until) : null;
+  const out: PickupInput = {
+    ...(p.name ? { name: p.name } : {}),
+    ...(p.address ? { address: p.address } : {}),
+    ...(until ? { until } : {}),
+    ...(p.instructions ? { instructions: p.instructions } : {}),
+    ...(p.collectionCode ? { code: p.collectionCode } : {}),
+  };
+  return Object.keys(out).length ? out : undefined;
 }
 
 /** YYYY-MM-DD[THH:MM] (wall-clock as shown on the page) → ISO, or null. */
@@ -107,6 +145,7 @@ export function buildOrderInput(
               ...(eta ? { estimatedDeliveryAt: eta } : {}),
               ...(status ? { status } : {}),
               ...(v.extras?.statusText ? { statusText: v.extras.statusText } : {}),
+              ...(pickupPayload(v.extras?.pickup) ? { pickup: pickupPayload(v.extras?.pickup)! } : {}),
               ...(dateToIso(v.extras?.estimatedDeliveryFrom ?? '')
                 ? { estimatedDeliveryFrom: dateToIso(v.extras?.estimatedDeliveryFrom ?? '')! }
                 : {}),
@@ -156,6 +195,13 @@ export function draftFromExtraction(
       estimatedDeliveryFrom?: string | null;
       estimatedDelivery: string | null;
       events?: { description: string; occurredAt: string }[];
+      pickup?: {
+        name?: string | null;
+        address?: string | null;
+        until?: string | null;
+        instructions?: string | null;
+        collectionCode?: string | null;
+      } | null;
     }[];
   },
   merchant: { id: string; name: string } | null,
@@ -180,6 +226,7 @@ export function draftFromExtraction(
       statusText: ship?.statusText ?? null,
       estimatedDeliveryFrom: ship?.estimatedDeliveryFrom ?? null,
       events: ship?.events ?? [],
+      pickup: ship?.pickup ?? null,
     },
   };
   const aiFields: AiField[] = [];
@@ -205,4 +252,61 @@ export function unchangedAiFields(
     items: JSON.stringify(initial.items) === JSON.stringify(current.items),
   };
   return aiFields.filter((f) => same[f]);
+}
+
+// ------------------------------------------------------------------ editing an existing order
+
+import { fromMinor, type Order, type OrderUpdateInput } from '@shupit/contracts';
+
+export function valuesFromOrder(o: Order, fallbackCurrency: string): OrderFormValues {
+  return {
+    merchantId: o.merchantId ?? null,
+    merchantName: o.merchantName,
+    orderNumber: o.externalOrderId ?? '',
+    purchaseDate: o.purchasedAt ? o.purchasedAt.slice(0, 10) : '',
+    total: o.total ? String(fromMinor(o.total)) : '',
+    currency: o.total?.currency ?? fallbackCurrency,
+    items: o.items.length
+      ? o.items.map((i) => ({ title: i.title, quantity: String(i.quantity) }))
+      : [{ title: '', quantity: '1' }],
+    carrier: '',
+    trackingNumber: '',
+    eta: '',
+  };
+}
+
+/**
+ * Only the fields the user actually changed (so unchanged machine-read fields keep their provenance).
+ * Item pictures are preserved by position/title match.
+ */
+export function diffOrderUpdate(
+  existing: Order,
+  v: OrderFormValues,
+):
+  | { ok: true; input: OrderUpdateInput | null }
+  | { ok: false; errors: OrderFormErrors } {
+  const built = buildOrderInput({ ...v, carrier: '', trackingNumber: '', eta: '' });
+  if (!built.ok) return { ok: false, errors: built.errors };
+  const n = built.input;
+  const out: OrderUpdateInput = {};
+
+  if (n.merchantName !== existing.merchantName) out.merchantName = n.merchantName;
+  if ((n.merchantId ?? null) !== (existing.merchantId ?? null)) out.merchantId = n.merchantId ?? null;
+  if ((n.externalOrderId ?? null) !== (existing.externalOrderId ?? null)) out.externalOrderId = n.externalOrderId ?? null;
+  const prevDay = existing.purchasedAt ? existing.purchasedAt.slice(0, 10) : null;
+  if ((n.purchasedAt ? n.purchasedAt.slice(0, 10) : null) !== prevDay) out.purchasedAt = n.purchasedAt ?? null;
+  const t0 = existing.total ?? null;
+  const t1 = n.total ?? null;
+  if ((t0?.amountMinor ?? null) !== (t1?.amountMinor ?? null) || (t0?.currency ?? null) !== (t1?.currency ?? null)) {
+    out.total = t1;
+  }
+
+  const prevItems = existing.items.map((i) => ({ title: i.title, quantity: i.quantity }));
+  if (JSON.stringify(prevItems) !== JSON.stringify(n.items)) {
+    out.items = n.items.map((it) => {
+      const old = existing.items.find((o) => o.title === it.title);
+      return old?.imageUrl ? { ...it, imageUrl: old.imageUrl } : it;
+    });
+  }
+  return { ok: true, input: Object.keys(out).length ? out : null };
 }

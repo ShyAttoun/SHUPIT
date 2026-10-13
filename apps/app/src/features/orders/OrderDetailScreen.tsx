@@ -236,6 +236,12 @@ export function OrderDetailScreen() {
           </Text>
         </View>
 
+        <Button
+          variant="secondary"
+          label={t('orders.detail.editOrder')}
+          onPress={() => router.push(`/order/edit/${order.id}`)}
+        />
+
         {order.items.length > 0 ? (
           <View style={{ gap: spacing.xs }}>
             <Text variant="headline">{t('orders.detail.itemsHeading')}</Text>
@@ -305,6 +311,11 @@ export function OrderDetailScreen() {
               >
                 <StatusBadge status={s.status} />
                 {s.statusText ? kv(t('orders.detail.carrierStatus'), s.statusText) : null}
+                {s.statusSource === 'user' && s.statusAsOf ? (
+                  <Text variant="caption" color="textSecondary">
+                    {t('orders.detail.statusSetByYou', { date: formatDate(s.statusAsOf, language) ?? '' })}
+                  </Text>
+                ) : null}
                 {s.statusSource === 'ai_vision' && s.statusAsOf ? (
                   <Text variant="caption" color="textSecondary">
                     {t('orders.detail.statusFromScreenshot', { date: formatDate(s.statusAsOf, language) ?? '' })}
@@ -318,7 +329,24 @@ export function OrderDetailScreen() {
                       `${s.estimatedDeliveryFrom ? `${formatDate(s.estimatedDeliveryFrom, language)} – ` : ''}${formatDate(s.estimatedDeliveryAt, language)}${s.estimatedDeliverySource === 'user' ? ` (${t('orders.detail.etaUser')})` : ''}`,
                     )
                   : null}
+                {s.pickup && Object.values(s.pickup).some(Boolean) ? (
+                  <View style={{ gap: spacing.xs, paddingVertical: spacing.xs }}>
+                    <Text variant="label" color="textSecondary">
+                      {t('orders.detail.pickupHeading')}
+                    </Text>
+                    {s.pickup.name ? <Text variant="bodyStrong">{s.pickup.name}</Text> : null}
+                    {s.pickup.address ? <Text>{s.pickup.address}</Text> : null}
+                    {kv(t('orders.detail.pickupUntil'), formatDate(s.pickup.until, language))}
+                    {s.pickup.instructions ? <Text variant="small">{s.pickup.instructions}</Text> : null}
+                    {kv(t('orders.detail.collectionCode'), s.pickup.code)}
+                  </View>
+                ) : null}
                 {kv(t('orders.detail.lastUpdate'), formatDateTime(s.lastVerifiedAt, language))}
+                <Button
+                  variant="ghost"
+                  label={t('edit.shipment.edit')}
+                  onPress={() => router.push(`/shipment/${order.id}?id=${s.id}`)}
+                />
                 {s.status !== 'delivered' && s.status !== 'returned' ? <StatusFromScreenshot shipment={s} /> : null}
                 {s.trackingNumber && s.status !== 'delivered' && s.status !== 'returned' ? (
                   <RefreshButton shipment={s} />
@@ -330,6 +358,11 @@ export function OrderDetailScreen() {
               </View>
             ))
           )}
+          <Button
+            variant="secondary"
+            label={t('edit.shipment.add')}
+            onPress={() => router.push(`/shipment/${order.id}`)}
+          />
         </View>
 
         {deleteOrder.isError ? <Text color="danger">{t('common.saveFailed')}</Text> : null}

@@ -70,6 +70,7 @@ export const POST = withAuth(async (request, user) => {
       statusSource: 'ai_vision',
       statusAsOf: now,
       statusText: update.statusText ?? null,
+      ...(update.pickup ? { pickup: update.pickup } : {}),
       ...(update.estimatedDeliveryAt
         ? {
             estimatedDeliveryAt: update.estimatedDeliveryAt,
