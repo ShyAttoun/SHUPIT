@@ -1,6 +1,7 @@
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { adminAuth } from './firebaseAdmin';
 import { bearerToken, errorResponse, json } from './http';
+import { errorFields, hashId, log } from './log';
 import { DEFAULT_RULE, checkRate, firestoreRateStore, type RateRule, type RateStore } from './rateLimit';
 
 export type AuthedHandler = (request: Request, user: DecodedIdToken) => Promise<Response> | Response;
@@ -49,16 +50,20 @@ export function withAuth(handler: AuthedHandler, opts: AuthOptions = {}) {
           );
         }
       } catch {
-        // Fail open: a limiter outage must not take the product down. Logged without identifiers.
-        console.error('rate_limit_store_error');
+        // Fail open: a limiter outage must not take the product down.
+        log('error', 'rate_limit_store_error');
       }
     }
 
+    const started = Date.now();
+    const route = new URL(request.url).pathname;
     try {
-      return await handler(request, user);
+      const res = await handler(request, user);
+      log('info', 'request', { route, method: request.method, status: res.status, ms: Date.now() - started, uid: hashId(user.uid) });
+      return res;
     } catch (e) {
-      // Privacy-conscious: log the error class only, never request bodies, tokens or identifiers.
-      console.error('handler_error', e instanceof Error ? e.name : 'unknown');
+      // Redacted: class name and a scrubbed message, never request bodies or tokens.
+      log('error', 'handler_error', { route, method: request.method, ms: Date.now() - started, uid: hashId(user.uid), ...errorFields(e) });
       if (e instanceof SyntaxError) return errorResponse(400, 'bad_request', 'Invalid JSON');
       return errorResponse(500, 'internal', 'Unexpected error');
     }

@@ -5,6 +5,8 @@ import { withAuth } from './_lib/withAuth';
 
 export const OPTIONS = preflight;
 
+export const MAX_PRODUCTS = 1000;
+
 /** DELETE ?id= → removes a saved product with its price history and price-watch subscription. */
 export const DELETE = withAuth(async (request, user) => {
   const id = new URL(request.url).searchParams.get('id');
@@ -25,6 +27,9 @@ export const POST = withAuth(async (request, user) => {
   const urlKey = normalizeProductUrl(p.productUrl);
 
   const col = adminDb().collection('users').doc(user.uid).collection('savedProducts');
+  if ((await col.count().get()).data().count >= MAX_PRODUCTS) {
+    return errorResponse(409, 'limit_reached', 'Saved product limit reached');
+  }
   if (urlKey) {
     const existing = await col.where('urlKey', '==', urlKey).limit(1).get();
     if (!existing.empty) {

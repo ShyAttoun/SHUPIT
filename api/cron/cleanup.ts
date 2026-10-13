@@ -8,6 +8,8 @@ export const RETENTION_DAYS = {
   affiliateClicks: 90,
   usageCounters: 35,
   readNotifications: 180,
+  errorReports: 30,
+  systemCounters: 35,
 } as const;
 
 /** Deletes up to LIMIT docs matching a query; returns how many. */
@@ -45,6 +47,12 @@ export async function GET(request: Request): Promise<Response> {
   result.readNotifications = await purge(
     db.collectionGroup('notifications').where('createdAt', '<', iso(RETENTION_DAYS.readNotifications)),
     (d) => !!d.get('readAt'),
+  );
+  result.errorReports = await purge(
+    db.collection('errorReports').where('createdAt', '<', iso(RETENTION_DAYS.errorReports)),
+  );
+  result.systemCounters = await purge(
+    db.collection('system').where('updatedAt', '<', iso(RETENTION_DAYS.systemCounters)),
   );
   return json(result);
 }

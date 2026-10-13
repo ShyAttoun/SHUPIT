@@ -21,6 +21,9 @@ function provenanceFor(input: OrderCreateInput, now: string) {
 
 export const OPTIONS = preflight;
 
+/** Per-account caps protect storage and cost; generous for real use. */
+export const MAX_ORDERS = 500;
+
 /** POST → create a manual order (+ shipments). Shipments are server-written only. */
 export const POST = withAuth(async (request, user) => {
   const parsed = orderCreateInput.safeParse(await readJson(request));
@@ -40,6 +43,10 @@ export const POST = withAuth(async (request, user) => {
   const db = adminDb();
   const orders = db.collection('users').doc(user.uid).collection('orders');
   const dedupeKey = orderDedupeKey(input);
+
+  if ((await orders.count().get()).data().count >= MAX_ORDERS) {
+    return errorResponse(409, 'limit_reached', 'Order limit reached');
+  }
 
   if (dedupeKey) {
     const existing = await orders.where('dedupeKey', '==', dedupeKey).limit(1).get();

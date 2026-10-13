@@ -3,7 +3,8 @@ import { htmlFromCapture } from './_lib/page';
 import { sanitizeItemImages } from './_lib/orderEnrich';
 import { parseProductHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
-import { consumeAiQuota } from './_lib/usage';
+import { consumeAi } from './_lib/usage';
+import { aiGateResponse } from './_lib/aiGate';
 import { ExtractionFailedError, NotConfiguredError, extractOrders, extractProduct } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
 import { AI_RULE } from './_lib/rateLimit';
@@ -35,7 +36,7 @@ export const POST = withAuth(async (request, user) => {
       process.env.ANTHROPIC_API_KEY &&
       (await hasAiConsent(adminDb(), user.uid))
     ) {
-      if (await consumeAiQuota(user.uid)) {
+      if ((await consumeAi(user.uid)) === 'ok') {
         try {
           const ai = await extractProduct({ text: page.text });
           if (ai.isProductPage) {
@@ -83,7 +84,8 @@ export const POST = withAuth(async (request, user) => {
   }
   const text = (page.text ?? '').trim();
   if (text.length < 40) return errorResponse(422, 'unreadable', 'The page has no readable content');
-  if (!(await consumeAiQuota(user.uid))) return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
+  const gate = aiGateResponse(await consumeAi(user.uid));
+  if (gate) return gate;
   try {
     const result = await extractOrders({
       text,

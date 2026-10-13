@@ -35,5 +35,6 @@
       "https://shupit.vercel.app/*",
       "http://localhost:8081/*"
     ]
-  }
+  },
+  "minimum_chrome_version": "110"
 }

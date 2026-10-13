@@ -2,7 +2,8 @@ import { extractRequest, merchantByName, merchantForUrl } from '@shupit/contract
 import { fetchPageHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { UnsafeUrlError } from './_lib/ssrf';
-import { consumeAiQuota } from './_lib/usage';
+import { consumeAi } from './_lib/usage';
+import { aiGateResponse } from './_lib/aiGate';
 import {
   ExtractionFailedError,
   NotConfiguredError,
@@ -43,9 +44,8 @@ export const POST = withAuth(async (request, user) => {
   if (!(await hasAiConsent(adminDb(), user.uid))) {
     return errorResponse(403, 'consent_required', 'AI processing consent is required');
   }
-  if (!(await consumeAiQuota(user.uid))) {
-    return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
-  }
+  const gate = aiGateResponse(await consumeAi(user.uid));
+  if (gate) return gate;
 
   try {
     let input: Parameters<typeof extractOrders>[0];

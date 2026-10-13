@@ -3,5 +3,10 @@ export const APP_URL = 'https://shupit.vercel.app';
 export const API_BASE = APP_URL;
 export const FIREBASE_API_KEY = 'AIzaSyCQRoycZDqB-7sSTeTa9H-VilgfhJl_GzM';
 
-/** Origins allowed to hand a session to the extension (must match manifest externally_connectable). */
-export const ALLOWED_ORIGINS = ['https://shupit.vercel.app', 'http://localhost:8081'];
+declare const __DEV__: boolean;
+
+/**
+ * Origins allowed to hand a session to the extension. Must match manifest externally_connectable.
+ * localhost is included only in development builds (`node build.mjs --dev`).
+ */
+export const ALLOWED_ORIGINS = ['https://shupit.vercel.app', ...(__DEV__ ? ['http://localhost:8081'] : [])];

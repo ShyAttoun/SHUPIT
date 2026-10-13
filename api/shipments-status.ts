@@ -3,7 +3,8 @@ import { adminDb } from './_lib/firebaseAdmin';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { statusUpdateFrom } from './_lib/statusUpdate';
 import { toEventDocs } from './_lib/orderEnrich';
-import { consumeAiQuota } from './_lib/usage';
+import { consumeAi } from './_lib/usage';
+import { aiGateResponse } from './_lib/aiGate';
 import { ExtractionFailedError, NotConfiguredError, extractOrders } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
 import { AI_RULE } from './_lib/rateLimit';
@@ -42,7 +43,8 @@ export const POST = withAuth(async (request, user) => {
   const snap = await ref.get();
   if (!snap.exists) return errorResponse(404, 'not_found', 'Shipment not found');
 
-  if (!(await consumeAiQuota(user.uid))) return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
+  const gate = aiGateResponse(await consumeAi(user.uid));
+  if (gate) return gate;
 
   try {
     const result = await extractOrders(

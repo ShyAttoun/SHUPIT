@@ -22,6 +22,8 @@ import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import '@/i18n';
 import { useApplyLanguage } from '@/i18n/useApplyLanguage';
 import { initInstallPrompt, registerServiceWorker } from '@/lib/pwa';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { installGlobalErrorReporting } from '@/lib/errorReporting';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -30,6 +32,7 @@ void SplashScreen.preventAutoHideAsync();
 // Web/PWA: service worker + install prompt (no-ops on native).
 registerServiceWorker();
 initInstallPrompt();
+installGlobalErrorReporting();
 
 const PENDING_SHARE_KEY = 'shupit.pendingShare';
 
@@ -107,7 +110,9 @@ export default function RootLayout() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
-            <RootNavigator />
+            <ErrorBoundary>
+              <RootNavigator />
+            </ErrorBoundary>
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
