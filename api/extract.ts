@@ -6,7 +6,7 @@ import { consumeAiQuota } from './_lib/usage';
 import {
   ExtractionFailedError,
   NotConfiguredError,
-  extractOrder,
+  extractOrders,
   extractProduct,
 } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
@@ -42,7 +42,7 @@ export const POST = withAuth(async (request, user) => {
   }
 
   try {
-    let input: Parameters<typeof extractOrder>[0];
+    let input: Parameters<typeof extractOrders>[0];
     if (imageBase64 && mediaType) {
       input = { image: { base64: imageBase64, mediaType } };
     } else {
@@ -53,10 +53,19 @@ export const POST = withAuth(async (request, user) => {
     }
 
     if (kind === 'order') {
-      const data = await extractOrder(input);
-      if (!data.isOrderScreenshot) return errorResponse(422, 'not_an_order', 'No order found');
-      const merchant = merchantByName(data.merchantName) ?? (url ? merchantForUrl(url) : undefined);
-      return json({ kind, data, merchantId: merchant?.id ?? null }, 200, {}, request);
+      const result = await extractOrders(input);
+      const found = result.orders.filter((o) => o.isOrderScreenshot);
+      if (found.length === 0) return errorResponse(422, 'not_an_order', 'No order found');
+      const orders = found.map((data) => {
+        const m = merchantByName(data.merchantName) ?? (url ? merchantForUrl(url) : undefined);
+        return { data, merchantId: m?.id ?? null };
+      });
+      return json(
+        { kind, orders, data: orders[0]!.data, merchantId: orders[0]!.merchantId },
+        200,
+        {},
+        request,
+      );
     }
     const data = await extractProduct(input);
     if (!data.isProductPage) return errorResponse(422, 'not_a_product', 'No product found');

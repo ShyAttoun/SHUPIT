@@ -4,7 +4,7 @@ import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { statusUpdateFrom } from './_lib/statusUpdate';
 import { toEventDocs } from './_lib/orderEnrich';
 import { consumeAiQuota } from './_lib/usage';
-import { ExtractionFailedError, NotConfiguredError, extractOrder } from './_lib/vision';
+import { ExtractionFailedError, NotConfiguredError, extractOrders } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
 
 export const OPTIONS = preflight;
@@ -38,7 +38,7 @@ export const POST = withAuth(async (request, user) => {
   if (!(await consumeAiQuota(user.uid))) return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
 
   try {
-    const data = await extractOrder(
+    const result = await extractOrders(
       image
         ? { image }
         : {
@@ -49,8 +49,12 @@ export const POST = withAuth(async (request, user) => {
               : {}),
           },
     );
-    if (!data.isOrderScreenshot) return errorResponse(422, 'not_an_order', 'No order found');
-    const update = statusUpdateFrom(data, snap.get('trackingNumber') as string | null);
+    const found = result.orders.filter((o) => o.isOrderScreenshot);
+    if (found.length === 0) return errorResponse(422, 'not_an_order', 'No order found');
+    // The page may list several orders: use the one that has our tracking number, else the first with a status.
+    const tn = snap.get('trackingNumber') as string | null;
+    const update =
+      found.map((o) => statusUpdateFrom(o, tn)).find((u): u is NonNullable<typeof u> => u !== null) ?? null;
     if (!update) return errorResponse(422, 'no_status', 'No status visible');
 
     const now = new Date().toISOString();

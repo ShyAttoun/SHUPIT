@@ -4,7 +4,7 @@ import { sanitizeItemImages } from './_lib/orderEnrich';
 import { parseProductHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { consumeAiQuota } from './_lib/usage';
-import { ExtractionFailedError, NotConfiguredError, extractOrder, extractProduct } from './_lib/vision';
+import { ExtractionFailedError, NotConfiguredError, extractOrders, extractProduct } from './_lib/vision';
 import { withAuth } from './_lib/withAuth';
 
 export const OPTIONS = preflight;
@@ -72,16 +72,22 @@ export const POST = withAuth(async (request, user) => {
   if (text.length < 40) return errorResponse(422, 'unreadable', 'The page has no readable content');
   if (!(await consumeAiQuota(user.uid))) return errorResponse(429, 'quota_exceeded', 'Daily extraction limit reached');
   try {
-    const data = await extractOrder({
+    const result = await extractOrders({
       text,
       images: page.images,
       ...(screenshot ? { screenshot: { base64: screenshot.imageBase64, mediaType: screenshot.mediaType } } : {}),
     });
-    if (!data.isOrderScreenshot) return errorResponse(422, 'not_an_order', 'No order found');
-    // Item pictures may only be URLs that really exist on the page.
-    data.items = sanitizeItemImages(data.items, page.images?.map((i) => i.src));
-    const m = merchantByName(data.merchantName) ?? merchant;
-    return json({ kind, data, merchantId: m?.id ?? null }, 200, {}, request);
+    const found = result.orders.filter((o) => o.isOrderScreenshot);
+    if (found.length === 0) return errorResponse(422, 'not_an_order', 'No order found');
+    const allowed = page.images?.map((i) => i.src);
+    const orders = found.map((data) => {
+      // Item pictures may only be URLs that really exist on the page.
+      data.items = sanitizeItemImages(data.items, allowed);
+      const m = merchantByName(data.merchantName) ?? merchant;
+      return { data, merchantId: m?.id ?? null };
+    });
+    // `data`/`merchantId` = first order, kept for older clients.
+    return json({ kind, orders, data: orders[0]!.data, merchantId: orders[0]!.merchantId }, 200, {}, request);
   } catch (e) {
     if (e instanceof NotConfiguredError) return errorResponse(503, 'not_configured', 'AI extraction is not configured yet');
     if (e instanceof ExtractionFailedError) return errorResponse(422, 'extraction_failed', 'Could not read this');

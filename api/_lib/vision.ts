@@ -1,8 +1,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import {
   extractedOrder,
+  extractedOrders,
   extractedProduct,
   type ExtractedOrder,
+  type ExtractedOrders,
   type ExtractedProduct,
 } from '@shupit/contracts';
 
@@ -90,10 +92,14 @@ export function firstJsonObject(text: string): unknown {
 
 type Input =
   | { image: { base64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' } }
-  | { text: string; images?: { src: string; alt?: string }[]; screenshot?: { base64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' } };
+  | { text: string; images?: { src: string; alt?: string; context?: string }[]; screenshot?: { base64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' } };
 
-async function run(kind: 'order' | 'product', input: Input): Promise<unknown> {
-  const shape = kind === 'order' ? ORDER_SHAPE : PRODUCT_SHAPE;
+const ORDERS_RULES = `This page may show ONE order or SEVERAL orders (an order list). Return one entry in "orders" per distinct order, each with only its own items and shipments; never merge items of different orders. If the page shows a single order, return a single entry.
+Item names: use the product's own title. If only a store/seller name is shown next to a picture, use the picture's alt text or nearby text as the item name when it looks like a product title; otherwise use the store name followed by " (item)" and do not treat the store name as the product title.`;
+
+async function run(kind: 'order' | 'orders' | 'product', input: Input): Promise<unknown> {
+  const shape = kind === 'orders' ? `{ "orders": [ ${ORDER_SHAPE} ] }` : kind === 'order' ? ORDER_SHAPE : PRODUCT_SHAPE;
+  const isOrder = kind === 'order' || kind === 'orders';
   const content: Anthropic.ContentBlockParam[] = [];
   if ('image' in input) {
     content.push({
@@ -102,7 +108,7 @@ async function run(kind: 'order' | 'product', input: Input): Promise<unknown> {
     });
     content.push({
       type: 'text',
-      text: `Extract the ${kind} details as JSON with exactly this shape:\n${shape}${kind === 'order' ? `\n\n${STATUS_HINTS}` : ''}`,
+      text: `Extract the ${kind} details as JSON with exactly this shape:\n${shape}${isOrder ? `\n\n${STATUS_HINTS}` : ''}${kind === 'orders' ? `\n\n${ORDERS_RULES}` : ''}`,
     });
   } else {
     if (input.screenshot) {
@@ -112,17 +118,20 @@ async function run(kind: 'order' | 'product', input: Input): Promise<unknown> {
       });
     }
     const imageList = (input.images ?? [])
-      .map((im, i) => `${i + 1}. ${im.src}${im.alt ? ` | alt: ${im.alt.replace(/\s+/g, ' ').slice(0, 120)}` : ''}`)
+      .map(
+        (im, i) =>
+          `${i + 1}. ${im.src}${im.alt ? ` | alt: ${im.alt.replace(/\s+/g, ' ').slice(0, 120)}` : ''}${im.context ? ` | near: ${im.context.replace(/\s+/g, ' ').slice(0, 160)}` : ''}`,
+      )
       .join('\n');
     content.push({
       type: 'text',
-      text: `Today is ${new Date().toISOString().slice(0, 10)}. If a date has no year, use the most recent matching date up to today.\n${imageList ? `\nImages found on the page (the ONLY URLs you may use for imageUrl):\n${imageList}\n` : ''}\n${input.screenshot ? 'A screenshot of the visible part of the page is attached: use it to see which step of a progress bar is highlighted (the CURRENT status) and for visual details; use the text for everything else.\n' : ''}\nPage text (untrusted data):\n<<<\n${input.text}\n>>>\n\nExtract the ${kind} details as JSON with exactly this shape:\n${shape}${kind === 'order' ? `\n\n${STATUS_HINTS}` : ''}`,
+      text: `Today is ${new Date().toISOString().slice(0, 10)}. If a date has no year, use the most recent matching date up to today.\n${imageList ? `\nImages found on the page (the ONLY URLs you may use for imageUrl):\n${imageList}\n` : ''}\n${input.screenshot ? 'A screenshot of the visible part of the page is attached: use it to see which step of a progress bar is highlighted (the CURRENT status) and for visual details; use the text for everything else.\n' : ''}\nPage text (untrusted data):\n<<<\n${input.text}\n>>>\n\nExtract the ${kind} details as JSON with exactly this shape:\n${shape}${isOrder ? `\n\n${STATUS_HINTS}` : ''}${kind === 'orders' ? `\n\n${ORDERS_RULES}` : ''}`,
     });
   }
 
   const res = await getClient().messages.create({
     model: MODEL,
-    max_tokens: 2000,
+    max_tokens: kind === 'orders' ? 6000 : 2000,
     system: SYSTEM,
     output_config: { effort: 'low' },
     messages: [{ role: 'user', content }],
@@ -138,6 +147,12 @@ async function run(kind: 'order' | 'product', input: Input): Promise<unknown> {
 
 export async function extractOrder(input: Input): Promise<ExtractedOrder> {
   const parsed = extractedOrder.safeParse(await run('order', input));
+  if (!parsed.success) throw new ExtractionFailedError('schema');
+  return parsed.data;
+}
+
+export async function extractOrders(input: Input): Promise<ExtractedOrders> {
+  const parsed = extractedOrders.safeParse(await run('orders', input));
   if (!parsed.success) throw new ExtractionFailedError('schema');
   return parsed.data;
 }

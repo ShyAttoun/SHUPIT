@@ -4,7 +4,7 @@ export interface PageCapture {
   metas?: Record<string, string>;
   jsonLd?: string[];
   text?: string;
-  images?: { src: string; alt?: string }[];
+  images?: { src: string; alt?: string; context?: string }[];
 }
 
 /**
@@ -26,29 +26,48 @@ export function readPage(): PageCapture {
     .slice(0, 5);
   const text = (document.body?.innerText ?? '').replace(/\s+/g, ' ').trim().slice(0, 30_000);
 
-  // Visible content images (not icons), so the server can attach item pictures without guessing URLs.
+  // Visible content images (not icons), with the nearest block of text so each picture can be
+  // matched to its item without guessing URLs.
   const seen = new Set<string>();
-  const images: { src: string; alt?: string }[] = [];
+  const images: { src: string; alt?: string; context?: string }[] = [];
   for (const img of Array.from(document.images)) {
     const src = img.currentSrc || img.src;
     if (!src || !/^https?:/.test(src) || seen.has(src) || src.length > 2048) continue;
     if (img.naturalWidth < 80 || img.naturalHeight < 80) continue;
     seen.add(src);
-    images.push({ src, ...(img.alt ? { alt: img.alt.slice(0, 200) } : {}) });
+
+    let context = '';
+    let node: HTMLElement | null = img.parentElement;
+    for (let depth = 0; node && depth < 5; depth++, node = node.parentElement) {
+      const t = (node.innerText ?? '').replace(/\s+/g, ' ').trim();
+      if (t.length >= 15) {
+        context = t.slice(0, 300);
+        break;
+      }
+    }
+    images.push({
+      src,
+      ...(img.alt ? { alt: img.alt.slice(0, 200) } : {}),
+      ...(context ? { context } : {}),
+    });
     if (images.length >= 40) break;
   }
   return { url: location.href, title: document.title.slice(0, 500), metas, jsonLd, text, images };
 }
 
 /**
- * Screenshot of the visible area of the active tab (activeTab permission, only after a user click).
- * Returns null if it can't be taken; the text capture still works without it.
+ * Screenshot of the visible area of a window's active tab (activeTab permission, only after a user
+ * click). Returns null if it can't be taken; the text capture still works without it.
  */
-export async function visibleScreenshot(): Promise<{ imageBase64: string; mediaType: 'image/jpeg' } | null> {
+export async function visibleScreenshot(
+  windowId?: number,
+): Promise<{ imageBase64: string; mediaType: 'image/jpeg' } | null> {
   try {
-    const dataUrl = await chrome.tabs.captureVisibleTab({ format: 'jpeg', quality: 60 });
+    const dataUrl = await chrome.tabs.captureVisibleTab(windowId ?? chrome.windows.WINDOW_ID_CURRENT, {
+      format: 'jpeg',
+      quality: 60,
+    });
     const base64 = dataUrl.split(',')[1];
-    // Keep well under the request limit.
     if (!base64 || base64.length > 3_000_000) return null;
     return { imageBase64: base64, mediaType: 'image/jpeg' };
   } catch {

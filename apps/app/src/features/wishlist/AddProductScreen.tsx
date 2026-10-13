@@ -14,7 +14,8 @@ import { Chip } from '@/components/Chip';
 import { Button, Screen, Text, TextField, useTheme } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { apiFetch } from '@/lib/api';
-import { pickScreenshot } from '@/lib/imagePicker';
+import { ImageDropZone } from '@/components/ImageDropZone';
+import type { PickedImage } from '@/lib/imagePicker';
 import { ApiError } from '@/lib/api';
 import { findDuplicate, useCollections, useSavedProducts, useWishlistMutations } from './hooks';
 
@@ -90,16 +91,7 @@ export function AddProductScreen() {
     }
   };
 
-  const fromScreenshot = async () => {
-    let picked;
-    try {
-      picked = await pickScreenshot();
-    } catch {
-      setNotice(t('wishlist.add.shotFailed'));
-      setShowForm(true);
-      return;
-    }
-    if (!picked) return;
+  const fromScreenshot = async (picked: PickedImage) => {
     setShotBusy(true);
     setNotice(t('wishlist.add.readingShot'));
     setShowForm(true);
@@ -184,11 +176,14 @@ export function AddProductScreen() {
             loading={fetching}
             onPress={() => void fetchDetails()}
           />
-          <Button
-            variant={blocked ? 'primary' : 'secondary'}
-            label={t('wishlist.add.screenshot')}
-            loading={shotBusy}
-            onPress={() => void fromScreenshot()}
+          <ImageDropZone
+            label={t('wishlist.add.dropLabel')}
+            busy={shotBusy}
+            onImage={(img) => void fromScreenshot(img)}
+            onError={() => {
+              setNotice(t('wishlist.add.shotFailed'));
+              setShowForm(true);
+            }}
           />
           {!showForm ? (
             <Button variant="ghost" label={t('wishlist.add.orManual')} onPress={() => setShowForm(true)} />

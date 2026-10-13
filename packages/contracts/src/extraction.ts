@@ -60,6 +60,12 @@ export const extractedOrder = z.object({
 });
 export type ExtractedOrder = z.infer<typeof extractedOrder>;
 
+/** A page may list several orders (e.g. an order-history page); one entry per distinct order. */
+export const extractedOrders = z.object({
+  orders: z.array(extractedOrder).max(10),
+});
+export type ExtractedOrders = z.infer<typeof extractedOrders>;
+
 export const extractedProduct = z.object({
   isProductPage: z.boolean(),
   title: z.string().max(300).nullable(),
@@ -90,7 +96,14 @@ export const pageCapture = z.object({
   text: z.string().max(30_000).optional(),
   /** Images visible on the page, so item pictures can be matched without guessing URLs. */
   images: z
-    .array(z.object({ src: z.string().url().max(2048), alt: z.string().max(200).optional() }))
+    .array(
+      z.object({
+        src: z.string().url().max(2048),
+        alt: z.string().max(200).optional(),
+        /** Text of the nearest enclosing block (item/row), to match a picture to its item. */
+        context: z.string().max(300).optional(),
+      }),
+    )
     .max(40)
     .optional(),
 });

@@ -1,6 +1,6 @@
 import { merchantCatalog, getMerchant, type ExtractedOrder } from '@shupit/contracts';
 import { useRouter } from 'expo-router';
-import { Camera, Link2 } from 'lucide-react-native';
+import { Link2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Chip } from '@/components/Chip';
@@ -9,7 +9,8 @@ import { Button, LoadingState, Screen, Text, TextField, useTheme } from '@/desig
 import { useFavoriteStores } from '@/features/stores/hooks';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { ApiError, apiFetch } from '@/lib/api';
-import { pickScreenshot } from '@/lib/imagePicker';
+import { ImageDropZone } from '@/components/ImageDropZone';
+import type { PickedImage } from '@/lib/imagePicker';
 import { isHttpUrl } from '@shupit/contracts';
 import { useOrderMutations } from './hooks';
 import {
@@ -29,6 +30,7 @@ interface ExtractResponse {
   kind: 'order';
   data: ExtractedOrder;
   merchantId: string | null;
+  orders?: { data: ExtractedOrder; merchantId: string | null }[];
 }
 
 function errorKey(e: unknown): 'notOrder' | 'unreadableLink' | 'notConfigured' | 'quota' | 'generic' {
@@ -59,6 +61,7 @@ export function AddOrderScreen() {
   const [initial, setInitial] = useState<OrderFormValues | null>(null);
   const [aiFields, setAiFields] = useState<AiField[]>([]);
   const [lowConfidence, setLowConfidence] = useState(false);
+  const [moreOrders, setMoreOrders] = useState(0);
   const [errors, setErrors] = useState<OrderFormErrors>({});
   const [failKey, setFailKey] = useState<ReturnType<typeof errorKey>>('generic');
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
@@ -74,20 +77,12 @@ export function AddOrderScreen() {
     setInitial(draft.values);
     setAiFields(draft.aiFields);
     setLowConfidence(res.data.confidence !== 'high');
+    setMoreOrders(Math.max(0, (res.orders?.length ?? 1) - 1));
     setSource(from);
     setStep('review');
   };
 
-  const fromScreenshot = async () => {
-    let picked;
-    try {
-      picked = await pickScreenshot();
-    } catch {
-      setFailKey('generic');
-      setStep('error');
-      return;
-    }
-    if (!picked) return;
+  const fromScreenshot = async (picked: PickedImage) => {
     setStep('reading');
     try {
       const res = await apiFetch<ExtractResponse>('/api/extract', {
@@ -248,12 +243,15 @@ export function AddOrderScreen() {
           <Text variant="title" accessibilityRole="header">
             {t('orders.import.chooseTitle')}
           </Text>
-          {bigOption({
-            icon: <Camera size={26} color={colors.accentText} />,
-            title: t('orders.import.screenshot'),
-            hint: t('orders.import.screenshotHint'),
-            onPress: () => void fromScreenshot(),
-          })}
+          <ImageDropZone
+            label={t('orders.import.dropLabel')}
+            hint={t('orders.import.dropHint')}
+            onImage={(img) => void fromScreenshot(img)}
+            onError={() => {
+              setFailKey('generic');
+              setStep('error');
+            }}
+          />
           {bigOption({
             icon: <Link2 size={26} color={colors.accentText} />,
             title: t('orders.import.link'),
@@ -304,6 +302,11 @@ export function AddOrderScreen() {
           {source !== 'manual' ? (
             <Text color="textSecondary" variant="small">
               {t('orders.import.reviewHint')}
+            </Text>
+          ) : null}
+          {moreOrders > 0 ? (
+            <Text color="warning" variant="small" accessibilityLiveRegion="polite">
+              {t('orders.import.moreOrders', { count: moreOrders })}
             </Text>
           ) : null}
           {lowConfidence ? (
