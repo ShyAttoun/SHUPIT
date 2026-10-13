@@ -1,7 +1,8 @@
 import { merchantCatalog, getMerchant, type ExtractedOrder } from '@shupit/contracts';
 import { useRouter } from 'expo-router';
-import { Link2 } from 'lucide-react-native';
-import { useState } from 'react';
+import { ClipboardPaste, Link2 } from 'lucide-react-native';
+import { useEffect, useState } from 'react';
+import { useShareInbox } from '@/lib/shareInbox';
 import { Pressable, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -70,6 +71,9 @@ function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
   const [step, setStep] = useState<Step>('choose');
   const [source, setSource] = useState<Source>('manual');
   const [linkOpen, setLinkOpen] = useState(false);
+  const [textOpen, setTextOpen] = useState(false);
+  const [pasted, setPasted] = useState('');
+  const [pastedError, setPastedError] = useState<string | null>(null);
   const [link, setLink] = useState('');
   const [linkError, setLinkError] = useState<string | null>(null);
   const [values, setValues] = useState<OrderFormValues>(emptyOrderForm(defaultCurrency));
@@ -112,8 +116,29 @@ function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
     }
   };
 
-  const fromLink = async () => {
-    const url = link.trim();
+  const fromText = async (override?: string) => {
+    const text = (override ?? pasted).trim();
+    if (text.length < 20) {
+      setPastedError(t('orders.import.textTooShort'));
+      return;
+    }
+    setPastedError(null);
+    if (!(await ensure())) return;
+    setStep('reading');
+    try {
+      const res = await apiFetch<ExtractResponse>('/api/extract', {
+        method: 'POST',
+        body: { kind: 'order', text },
+      });
+      applyExtraction(res, 'link');
+    } catch (e) {
+      setFailKey(errorKey(e));
+      setStep('error');
+    }
+  };
+
+  const fromLink = async (override?: string) => {
+    const url = (override ?? link).trim();
     if (!isHttpUrl(url)) {
       setLinkError(t('wishlist.add.invalidUrl'));
       return;
@@ -132,6 +157,22 @@ function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
       setStep('error');
     }
   };
+
+  // Content shared into the app (PWA share target / share screen).
+  const takeInbox = useShareInbox((s) => s.take);
+  useEffect(() => {
+    const shared = takeInbox();
+    if (!shared) return;
+    if (shared.image) void fromScreenshot(shared.image);
+    else if (shared.url) {
+      setLink(shared.url);
+      void fromLink(shared.url);
+    } else if (shared.text) {
+      setPasted(shared.text);
+      void fromText(shared.text);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const manual = () => {
     setValues(emptyOrderForm(defaultCurrency));
@@ -275,6 +316,29 @@ function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
             hint: t('orders.import.linkHint'),
             onPress: () => setLinkOpen((o) => !o),
           })}
+
+          {bigOption({
+            icon: <ClipboardPaste size={26} color={colors.accentText} />,
+            title: t('orders.import.pasteText'),
+            hint: t('orders.import.pasteTextHint'),
+            onPress: () => setTextOpen((o) => !o),
+          })}
+
+          {textOpen ? (
+            <View style={{ gap: spacing.sm }}>
+              <TextField
+                label={t('orders.import.pasteText')}
+                value={pasted}
+                onChangeText={setPasted}
+                placeholder={t('orders.import.textPlaceholder')}
+                multiline
+                numberOfLines={6}
+                style={{ minHeight: 140, textAlignVertical: 'top', paddingTop: spacing.sm }}
+                error={pastedError ?? undefined}
+              />
+              <Button label={t('orders.import.readText')} onPress={() => void fromText()} />
+            </View>
+          ) : null}
 
           {linkOpen ? (
             <View style={{ gap: spacing.sm }}>

@@ -21,13 +21,42 @@ import { ThemeProvider, useTheme } from '@/design';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import '@/i18n';
 import { useApplyLanguage } from '@/i18n/useApplyLanguage';
+import { initInstallPrompt, registerServiceWorker } from '@/lib/pwa';
+import { Platform } from 'react-native';
+import { useRouter } from 'expo-router';
 
 void SplashScreen.preventAutoHideAsync();
+
+// Web/PWA: service worker + install prompt (no-ops on native).
+registerServiceWorker();
+initInstallPrompt();
+
+const PENDING_SHARE_KEY = 'shupit.pendingShare';
 
 function RootNavigator() {
   const { status } = useAuth();
   const { mode } = useTheme();
+  const router = useRouter();
   useApplyLanguage();
+
+  // A share can arrive before the user is signed in. Remember it, then resume after sign-in.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    try {
+      if (window.location.pathname === '/share' && status !== 'signedIn') {
+        window.sessionStorage.setItem(PENDING_SHARE_KEY, window.location.search);
+      }
+      if (status === 'signedIn') {
+        const pending = window.sessionStorage.getItem(PENDING_SHARE_KEY);
+        if (pending !== null) {
+          window.sessionStorage.removeItem(PENDING_SHARE_KEY);
+          router.replace(`/share${pending}` as never);
+        }
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+  }, [status, router]);
 
   useEffect(() => {
     if (status !== 'loading') void SplashScreen.hideAsync();

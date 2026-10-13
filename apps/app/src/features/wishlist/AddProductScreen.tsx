@@ -8,7 +8,8 @@ import {
   type ProductDraft,
 } from '@shupit/contracts';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useShareInbox } from '@/lib/shareInbox';
 import { View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Button, Screen, Text, TextField, useTheme } from '@/design';
@@ -67,8 +68,9 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
   const dup = findDuplicate(products.data ?? [], canonicalUrl ?? (isHttpUrl(typedUrl) ? typedUrl : undefined));
   const merchant = getMerchant(merchantForUrl(canonicalUrl ?? typedUrl)?.id);
 
-  const fetchDetails = async () => {
-    if (!isHttpUrl(typedUrl)) {
+  const fetchDetails = async (override?: string) => {
+    const target = (override ?? typedUrl).trim();
+    if (!isHttpUrl(target)) {
       setUrlError(t('wishlist.add.invalidUrl'));
       return;
     }
@@ -78,7 +80,7 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
     try {
       const res = await apiFetch<PreviewResponse>('/api/products-preview', {
         method: 'POST',
-        body: { url: typedUrl },
+        body: { url: target },
       });
       const d = res.draft;
       setCanonicalUrl(d.canonicalUrl);
@@ -93,7 +95,7 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
       setNotice(res.unreadable ? t('wishlist.add.blocked') : d.missing.length ? t('wishlist.add.partial') : null);
       setShowForm(true);
     } catch {
-      setCanonicalUrl(typedUrl);
+      setCanonicalUrl(target);
       setBlocked(true);
       setNotice(t('wishlist.add.blocked'));
       setShowForm(true);
@@ -142,6 +144,20 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
       setShotBusy(false);
     }
   };
+
+  // Content shared into the app (PWA share target / share screen).
+  const takeInbox = useShareInbox((s) => s.take);
+  useEffect(() => {
+    const shared = takeInbox();
+    if (!shared) return;
+    if (shared.url) {
+      setUrl(shared.url);
+      void fetchDetails(shared.url);
+    } else if (shared.image) {
+      void fromScreenshot(shared.image);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const save = async () => {
     const errors: { title?: string; price?: string } = {};

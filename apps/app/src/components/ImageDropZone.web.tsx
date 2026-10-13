@@ -1,28 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTheme } from '@/design';
-import type { PickedImage } from '@/lib/imagePicker';
+import { fileToPicked } from '@/lib/imageFile';
 import type { ImageDropZoneProps } from './ImageDropZone';
-
-const MAX_WIDTH = 1280;
-const MAX_BASE64_CHARS = 3_500_000;
-
-/** Resizes an image file to JPEG ≤ 1280px wide and returns base64. Throws if it can't. */
-async function fileToPicked(file: File): Promise<PickedImage> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_WIDTH / bitmap.width);
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('no canvas');
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close?.();
-  for (const q of [0.7, 0.5, 0.35]) {
-    const base64 = canvas.toDataURL('image/jpeg', q).split(',')[1];
-    if (base64 && base64.length <= MAX_BASE64_CHARS) return { base64, mediaType: 'image/jpeg' };
-  }
-  throw new Error('too large');
-}
 
 /** Web: drag & drop, paste (Ctrl/Cmd+V) or click to choose a screenshot. */
 export function ImageDropZone({ label, hint, busy, onImage, onError }: ImageDropZoneProps) {

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SHUPIT — offline</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; font-family: system-ui, -apple-system, 'Segoe UI', Heebo, Roboto, sans-serif; background: #071625; color: #f7f9fa; }
+    main { max-width: 420px; padding: 24px; text-align: center; }
+    h1 { margin: 16px 0 8px; font-size: 24px; }
+    p { margin: 8px 0; color: #94a3b8; line-height: 1.5; }
+    button { margin-top: 20px; min-height: 48px; padding: 0 24px; border: 0; border-radius: 12px; background: #00b8b0; color: #071625; font: inherit; font-weight: 700; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #f7f9fa; outline-offset: 3px; }
+    img { width: 72px; height: 72px; border-radius: 16px; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/icons/icon-192.png" alt="" />
+    <h1>You’re offline</h1>
+    <p>SHUPIT needs a connection to load your stores, wishlist and orders. Check your network and try again.</p>
+    <h1 dir="rtl" lang="he">אין חיבור לאינטרנט</h1>
+    <p dir="rtl" lang="he">SHUPIT צריך חיבור כדי לטעון את החנויות, רשימת המשאלות וההזמנות שלכם. בדקו את הרשת ונסו שוב.</p>
+    <button onclick="location.reload()">Try again · נסו שוב</button>
+  </main>
+</body>
+</html>

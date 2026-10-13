@@ -81,9 +81,11 @@ export const extractRequest = z
     imageBase64: z.string().max(4_000_000).optional(),
     mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp']).optional(),
     url: z.string().url().max(2048).optional(),
+    /** Pasted or shared text (e.g. a copied order confirmation email). */
+    text: z.string().trim().min(20).max(30_000).optional(),
   })
-  .refine((v) => (v.imageBase64 && v.mediaType) || v.url, {
-    message: 'image or url required',
+  .refine((v) => (v.imageBase64 && v.mediaType) || v.url || v.text, {
+    message: 'image, url or text required',
   });
 export type ExtractRequest = z.infer<typeof extractRequest>;
 

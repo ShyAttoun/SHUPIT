@@ -35,7 +35,7 @@ function htmlToText(html: string): string {
 export const POST = withAuth(async (request, user) => {
   const parsed = extractRequest.safeParse(await readJson(request, 4_400_000));
   if (!parsed.success) return errorResponse(400, 'bad_request', 'Invalid request');
-  const { kind, imageBase64, mediaType, url } = parsed.data;
+  const { kind, imageBase64, mediaType, url, text: pastedText } = parsed.data;
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return errorResponse(503, 'not_configured', 'AI extraction is not configured yet');
@@ -51,6 +51,8 @@ export const POST = withAuth(async (request, user) => {
     let input: Parameters<typeof extractOrders>[0];
     if (imageBase64 && mediaType) {
       input = { image: { base64: imageBase64, mediaType } };
+    } else if (pastedText && !url) {
+      input = { text: pastedText };
     } else {
       const { html } = await fetchPageHtml(url!);
       const text = htmlToText(html);
@@ -84,7 +86,7 @@ export const POST = withAuth(async (request, user) => {
     if (e instanceof UnsafeUrlError) return errorResponse(400, 'unsafe_url', 'This URL cannot be fetched');
     if (e instanceof ExtractionFailedError) return errorResponse(422, 'extraction_failed', 'Could not read this');
     // Fetch/network errors on link mode: the site blocked us.
-    if (url && !imageBase64) return errorResponse(422, 'unreadable', 'The page could not be read');
+    if (url && !imageBase64 && !pastedText) return errorResponse(422, 'unreadable', 'The page could not be read');
     throw e;
   }
 }, { rate: AI_RULE });

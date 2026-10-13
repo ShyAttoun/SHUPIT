@@ -9,6 +9,7 @@ import { Platform } from 'react-native';
 import { useState } from 'react';
 import { connectExtension, disconnectExtension, type ConnectResult } from '@/lib/extension';
 import { PrivacySection } from '@/features/privacy/PrivacySection';
+import { useInstall } from '@/lib/pwa';
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
@@ -18,6 +19,7 @@ export default function SettingsScreen() {
   const { needsRestart } = useApplyLanguage();
   const router = useRouter();
   const [extState, setExtState] = useState<ConnectResult | null>(null);
+  const install = useInstall();
 
   const options: { value: LanguagePreference; label: string }[] = [
     { value: 'system', label: t('settings.languageSystem') },
@@ -83,6 +85,30 @@ export default function SettingsScreen() {
           label={t('settings.reopenStoresOnboarding')}
           onPress={() => router.push('/stores?pick=1')}
         />
+
+        {Platform.OS === 'web' ? (
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text variant="label" color="textSecondary">
+              {t('install.title')}
+            </Text>
+            {install.standalone ? (
+              <Text variant="small" color="success">
+                {t('install.installed')}
+              </Text>
+            ) : (
+              <>
+                <Text variant="small" color="textSecondary">
+                  {t('install.body')}
+                </Text>
+                {install.canPrompt ? (
+                  <Button variant="secondary" label={t('install.button')} onPress={() => void install.prompt()} />
+                ) : install.ios ? (
+                  <Text variant="small">{t('install.ios')}</Text>
+                ) : null}
+              </>
+            )}
+          </View>
+        ) : null}
 
         {Platform.OS === 'web' ? (
           <View style={{ gap: theme.spacing.xs }}>
