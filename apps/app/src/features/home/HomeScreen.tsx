@@ -1,5 +1,9 @@
 import type { Order } from '@shupit/contracts';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { useFavoriteStores } from '@/features/stores/hooks';
+import { shouldPromptStores, useFirstRunStore } from '@/features/stores/firstRun';
 import { Home, PackagePlus, PlusCircle } from 'lucide-react-native';
 import { View } from 'react-native';
 import { ListRow } from '@/components/ListRow';
@@ -19,6 +23,24 @@ export function HomeScreen() {
   const router = useRouter();
   const orders = useOrders();
   const shipments = useShipments();
+  const { user } = useAuth();
+  const favorites = useFavoriteStores();
+  const { promptedFor, markPrompted } = useFirstRunStore();
+
+  // First entry to the app with no favorite stores: take the user to store selection once.
+  useEffect(() => {
+    if (
+      shouldPromptStores({
+        loaded: favorites.isSuccess,
+        favoriteCount: favorites.data?.length ?? 0,
+        promptedFor,
+        uid: user?.uid,
+      })
+    ) {
+      markPrompted(user!.uid);
+      router.replace('/stores');
+    }
+  }, [favorites.isSuccess, favorites.data, promptedFor, user, markPrompted, router]);
   const notifications = useNotifications();
   const { markRead } = useNotificationActions();
 
