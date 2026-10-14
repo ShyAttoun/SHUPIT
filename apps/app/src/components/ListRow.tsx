@@ -8,6 +8,7 @@ export function ListRow({
   subtitle,
   meta,
   trailing,
+  footer,
   onPress,
   accessibilityLabel,
 }: {
@@ -16,6 +17,8 @@ export function ListRow({
   subtitle?: string | null;
   meta?: ReactNode;
   trailing?: ReactNode;
+  /** Secondary action shown under the row (outside the row's own press target). */
+  footer?: ReactNode;
   onPress?: () => void;
   accessibilityLabel?: string;
 }) {
@@ -50,8 +53,7 @@ export function ListRow({
       {trailing}
     </View>
   );
-  if (!onPress) return body;
-  return (
+  const row = onPress ? (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
@@ -60,5 +62,14 @@ export function ListRow({
     >
       {body}
     </Pressable>
+  ) : (
+    body
+  );
+  if (!footer) return row;
+  return (
+    <View style={{ gap: spacing.xs }}>
+      {row}
+      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>{footer}</View>
+    </View>
   );
 }

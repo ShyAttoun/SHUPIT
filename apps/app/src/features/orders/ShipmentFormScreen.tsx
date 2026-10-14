@@ -89,6 +89,7 @@ export function ShipmentFormScreen() {
 
   const [f, setF] = useState<Form>(empty);
   const [loaded, setLoaded] = useState(!id);
+  const [manualPickup, setManualPickup] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<'etaFrom' | 'etaTo' | 'pickupUntil', string>>>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -231,6 +232,16 @@ export function ShipmentFormScreen() {
         />
 
         <Text variant="headline">{t('edit.shipment.pickup')}</Text>
+        {!manualPickup ? (
+          <>
+            <Text variant="small" color="textSecondary">
+              {t('orders.receive.pickupHint')}
+            </Text>
+            <Button variant="secondary" label={t('orders.receive.manual')} onPress={() => setManualPickup(true)} />
+          </>
+        ) : null}
+        {manualPickup ? (
+          <>
         <TextField label={t('edit.shipment.pickupName')} value={f.pickupName} onChangeText={(v) => set('pickupName', v)} maxLength={120} />
         <TextField label={t('edit.shipment.pickupAddress')} value={f.pickupAddress} onChangeText={(v) => set('pickupAddress', v)} maxLength={300} />
         <TextField
@@ -255,6 +266,8 @@ export function ShipmentFormScreen() {
           autoCapitalize="characters"
           maxLength={60}
         />
+          </>
+        ) : null}
 
         {failed ? (
           <Text color="danger" accessibilityLiveRegion="polite">

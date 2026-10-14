@@ -85,6 +85,8 @@ export const orderUpdateInput = z
       )
       .max(50)
       .optional(),
+    /** true: move to the archive (package received); false: restore. */
+    archived: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'nothing to update' });
 export type OrderUpdateInput = z.infer<typeof orderUpdateInput>;

@@ -1,11 +1,14 @@
 import { Stack } from 'expo-router';
 import { useTheme } from '@/design';
 import { useTranslation } from '@/i18n';
+import { Walkthrough } from '@/features/walkthrough/Walkthrough';
 
 export default function AppLayout() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   return (
+    <>
+    <Walkthrough />
     <Stack
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
@@ -23,5 +26,6 @@ export default function AppLayout() {
       <Stack.Screen name="order/add" options={{ title: t('orders.form.title') }} />
       <Stack.Screen name="order/[id]" options={{ title: t('orders.title') }} />
     </Stack>
+    </>
   );
 }

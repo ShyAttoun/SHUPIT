@@ -181,6 +181,15 @@ try {
     // The terms agreement switch is required.
     await clickInput('I agree to the');
     await clickBtn('Create account');
+    // First entry: the welcome tour appears. Walk it to the end (also covers the extension step).
+    await waitText('Shop everywhere. Keep it here.', 40_000);
+    await waitText('Step 1 of 8');
+    for (let n = 2; n <= 8; n++) {
+      await clickBtn('Next');
+      await waitText(`Step ${n} of 8`);
+    }
+    await waitText('The Chrome extension', 1000).catch(() => {}); // step 6 was passed
+    await clickBtn("Let's go");
     await waitText('Where do you love to shop?', 40_000);
   });
 

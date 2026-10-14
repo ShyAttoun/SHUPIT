@@ -76,7 +76,25 @@ export function useOrderMutations() {
     onSuccess: refresh,
   });
 
-  return { createOrder, deleteOrder };
+  /** "Package received": closes every open shipment as delivered (set by the user) and archives the order. */
+  const markReceived = useMutation({
+    mutationFn: async (input: { orderId: string; shipments: Pick<Shipment, 'id' | 'status'>[] }) => {
+      for (const s of input.shipments) {
+        if (s.status === 'delivered') continue;
+        await apiFetch(`/api/shipments?id=${encodeURIComponent(s.id)}`, { method: 'PUT', body: { status: 'delivered' } });
+      }
+      await apiFetch(`/api/orders?id=${encodeURIComponent(input.orderId)}`, { method: 'PUT', body: { archived: true } });
+    },
+    onSuccess: refresh,
+  });
+
+  const restore = useMutation({
+    mutationFn: (orderId: string) =>
+      apiFetch(`/api/orders?id=${encodeURIComponent(orderId)}`, { method: 'PUT', body: { archived: false } }),
+    onSuccess: refresh,
+  });
+
+  return { createOrder, deleteOrder, markReceived, restore };
 }
 
 /** Statuses that mean the shipment is still on its way (or unknown, so still worth watching). */
@@ -96,3 +114,5 @@ export function arrivingSoon(shipments: ShipmentDoc[], now: Date, days = 3): Shi
     return Number.isFinite(t) && t >= now.getTime() - 86_400_000 && t <= limit;
   });
 }
+
+export const isArchived = (o: Pick<Order, 'archivedAt'>) => !!o.archivedAt;

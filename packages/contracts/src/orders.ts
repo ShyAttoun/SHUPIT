@@ -47,6 +47,8 @@ export const order = z.object({
   provenance: z.record(z.string(), fieldProvenance),
   /** Conservative duplicate key: merchant + external order id (+ date). */
   dedupeKey: z.string().optional(),
+  /** Set when the user marks the package as received; archived orders leave the main list. */
+  archivedAt: isoDate.nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
 });

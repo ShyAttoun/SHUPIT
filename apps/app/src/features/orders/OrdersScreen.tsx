@@ -16,9 +16,9 @@ import { formatDate, formatPrice } from '@/lib/format';
 import { MapPin } from 'lucide-react-native';
 import { formatDistance } from '@/lib/distance';
 import { distanceFrom, useDeviceLocation, usePickupCoords } from './pickupDistance';
-import { orderIsDelivered, useOrders, useShipments, type ShipmentDoc } from './hooks';
+import { isArchived, orderIsDelivered, useOrderMutations, useOrders, useShipments, type ShipmentDoc } from './hooks';
 
-type Filter = 'all' | 'active' | 'delivered';
+type Filter = 'all' | 'active' | 'delivered' | 'archived';
 
 function PickupInfo({
   shipment,
@@ -66,6 +66,7 @@ export function OrdersScreen() {
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const device = useDeviceLocation();
+  const { markReceived, restore } = useOrderMutations();
 
   const shipmentsByOrder = useMemo(() => {
     const map = new Map<string, ShipmentDoc[]>();
@@ -77,6 +78,9 @@ export function OrdersScreen() {
     const q = query.trim().toLowerCase();
     return (orders.data ?? []).filter((o) => {
       const delivered = orderIsDelivered(shipmentsByOrder.get(o.id) ?? []);
+      if (filter === 'archived') {
+        if (!isArchived(o)) return false;
+      } else if (isArchived(o)) return false;
       if (filter === 'active' && delivered) return false;
       if (filter === 'delivered' && !delivered) return false;
       if (!q) return true;
@@ -140,12 +144,16 @@ export function OrdersScreen() {
         {addButton}
         <SearchField value={query} onChangeText={setQuery} placeholder={t('orders.searchPlaceholder')} />
         <View style={{ flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' }}>
-          {(['all', 'active', 'delivered'] as const).map((f) => (
+          {(['all', 'active', 'delivered', 'archived'] as const).map((f) => (
             <Chip
               key={f}
               selected={filter === f}
               onPress={() => setFilter(f)}
-              label={t(`orders.filter${f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Delivered'}`)}
+              label={
+                f === 'archived'
+                  ? t('orders.receive.archived')
+                  : t(`orders.filter${f === 'all' ? 'All' : f === 'active' ? 'Active' : 'Delivered'}`)
+              }
             />
           ))}
         </View>
@@ -220,6 +228,23 @@ export function OrdersScreen() {
                   </View>
                 }
                 onPress={() => router.push(`/order/${o.id}`)}
+                footer={
+                  isArchived(o) ? (
+                    <Button
+                      variant="ghost"
+                      label={t('orders.receive.restore')}
+                      loading={restore.isPending}
+                      onPress={() => restore.mutate(o.id)}
+                    />
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      label={t('orders.receive.received')}
+                      loading={markReceived.isPending && markReceived.variables?.orderId === o.id}
+                      onPress={() => markReceived.mutate({ orderId: o.id, shipments: ships })}
+                    />
+                  )
+                }
               />
             );
           })}</Grid>

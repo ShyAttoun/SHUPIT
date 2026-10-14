@@ -9,7 +9,7 @@ import { View } from 'react-native';
 import type { TrackingEvent } from '@shupit/contracts';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ShipmentProgress } from '@/components/ShipmentProgress';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
+import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, TextField, useTheme, useToast } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { db } from '@/lib/firebase';
@@ -114,6 +114,92 @@ function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
   );
 }
 
+function PickupFromMessage({ shipment }: { shipment: ShipmentDoc }) {
+  const { t } = useTranslation();
+  const consent = useAiConsent();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [message, setMessage] = useState<string | null>(null);
+  const [pasting, setPasting] = useState(false);
+  const [text, setText] = useState('');
+
+  const send = useMutation({
+    mutationFn: async (source: 'text' | 'image') => {
+      if (!(await consent.ensure())) return null;
+      if (source === 'text') {
+        return apiFetch(`/api/shipments-pickup?id=${encodeURIComponent(shipment.id)}`, {
+          method: 'POST',
+          body: { kind: 'order', text: text.trim() },
+        });
+      }
+      const picked = await pickScreenshot();
+      if (!picked) return null;
+      return apiFetch(`/api/shipments-pickup?id=${encodeURIComponent(shipment.id)}`, {
+        method: 'POST',
+        body: { kind: 'order', imageBase64: picked.base64, mediaType: picked.mediaType },
+      });
+    },
+    onSuccess: async (res) => {
+      if (!res) return;
+      setMessage(t('orders.receive.pickupSaved'));
+      setPasting(false);
+      setText('');
+      await qc.invalidateQueries({ queryKey: ['shipments', user?.uid] });
+    },
+    onError: (e) => {
+      setMessage(
+        e instanceof ApiError && e.code === 'consent_required'
+          ? t('orders.import.consentRequired')
+          : e instanceof ApiError && e.code === 'no_pickup'
+            ? t('orders.receive.noPickup')
+            : e instanceof ApiError && e.code === 'not_configured'
+              ? t('orders.import.notConfigured')
+              : e instanceof ApiError && e.code === 'quota_exceeded'
+                ? t('orders.import.quota')
+                : t('orders.import.generic'),
+      );
+    },
+  });
+
+  return (
+    <View style={{ gap: 8 }}>
+      {consent.modal}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <Button variant="secondary" label={t('orders.receive.pickPaste')} onPress={() => setPasting((v) => !v)} />
+        <Button
+          variant="secondary"
+          label={t('orders.receive.pickShot')}
+          loading={send.isPending && send.variables === 'image'}
+          onPress={() => send.mutate('image')}
+        />
+      </View>
+      {pasting ? (
+        <View style={{ gap: 8 }}>
+          <TextField
+            label={t('orders.receive.pasteTitle')}
+            placeholder={t('orders.receive.pastePlaceholder')}
+            value={text}
+            onChangeText={setText}
+            multiline
+            maxLength={2000}
+          />
+          <Button
+            label={send.isPending ? t('orders.receive.reading') : t('orders.receive.read')}
+            disabled={text.trim().length < 10}
+            loading={send.isPending && send.variables === 'text'}
+            onPress={() => send.mutate('text')}
+          />
+        </View>
+      ) : null}
+      {message ? (
+        <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
+          {message}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
 function Timeline({ shipment }: { shipment: ShipmentDoc }) {
   const { t } = useTranslation();
   const { language } = useAppLanguage();
@@ -166,7 +252,8 @@ export function OrderDetailScreen() {
   const router = useRouter();
   const orders = useOrders();
   const shipments = useShipments();
-  const { deleteOrder } = useOrderMutations();
+  const { deleteOrder, markReceived, restore } = useOrderMutations();
+  const toast = useToast();
 
   if (orders.isLoading || shipments.isLoading) {
     return (
@@ -237,6 +324,34 @@ export function OrderDetailScreen() {
             {t('orders.detail.importedFrom')} {t('orders.detail.sourceManual')}
           </Text>
         </View>
+
+        {order.archivedAt ? (
+          <View style={{ gap: spacing.xs }}>
+            <Text color="textSecondary">{t('orders.receive.archivedNote')}</Text>
+            <Button
+              variant="secondary"
+              label={t('orders.receive.restore')}
+              loading={restore.isPending}
+              onPress={() => restore.mutate(order.id)}
+            />
+          </View>
+        ) : (
+          <Button
+            label={t('orders.receive.received')}
+            loading={markReceived.isPending}
+            onPress={() =>
+              markReceived.mutate(
+                { orderId: order.id, shipments: ships },
+                {
+                  onSuccess: () => {
+                    toast.show(t('orders.receive.receivedDone'));
+                    router.replace('/orders');
+                  },
+                },
+              )
+            }
+          />
+        )}
 
         <Button
           variant="secondary"
@@ -352,6 +467,7 @@ export function OrderDetailScreen() {
                     {kv(t('orders.detail.collectionCode'), s.pickup.code)}
                   </View>
                 ) : null}
+                {s.status !== 'delivered' && s.status !== 'returned' ? <PickupFromMessage shipment={s} /> : null}
                 {kv(t('orders.detail.lastUpdate'), formatDateTime(s.lastVerifiedAt, language))}
                 <Button
                   variant="ghost"

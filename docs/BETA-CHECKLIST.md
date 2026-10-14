@@ -92,3 +92,10 @@ notification unread/open/read → data export → Hebrew/RTL check and account d
 - Orders, Stores, Wishlist: responsive grids; Orders/Detail show shipment stage progress.
 - Also added: Toast, BottomSheet (coupon form), reduced-motion-aware skeletons, featured favorites row on Stores, Home sections in a responsive grid.
 - Not done: store categories/filters (the merchant catalog has no category data), page transitions, desktop side panels, price-history chart rework, screenshot review with real data per breakpoint.
+
+## Addendum: received/archive, pickup from message, walkthrough, CSP
+- "Package received" (list + detail): marks open shipments delivered (set by user) and archives the order; "Archived" filter with Restore. Archived orders are hidden from All/Active/Delivered.
+- Pickup details come from a pasted SMS/message or a screenshot (`POST /api/shipments-pickup`, consent + quota like other AI reads; status is never changed). Manual entry is hidden behind a button.
+- First-run welcome tour (8 steps incl. the Chrome extension), replayable from Settings; keyboard + RTL.
+- CSP header added (script-src 'self', no inline scripts). Verified locally: 12/12 journeys and 0 console violations. Not yet verified on the live domain: service worker + push after deploy.
+- Unverified until production: live AI read of a real pickup SMS.

@@ -48,6 +48,11 @@ async function signIn(page) {
   const [btn] = await page.$$('xpath/.//*[@role="button"][.//text()[contains(.,"Sign in") or contains(.,"התחברות")]]');
   await btn.click();
   await page.waitForFunction(() => !document.querySelector('input[type="password"]'), { timeout: 30_000 });
+  // Dismiss the first-run welcome tour (remembered per user afterwards).
+  const skip = await page
+    .waitForSelector('[aria-label="Skip"], [aria-label="דלג"]', { timeout: 8000 })
+    .catch(() => null);
+  if (skip) await skip.click();
 }
 
 async function audit(page, route, tag) {

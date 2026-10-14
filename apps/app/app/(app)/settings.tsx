@@ -7,6 +7,7 @@ import { useLanguageStore, type LanguagePreference } from '@/i18n/store';
 import { useApplyLanguage } from '@/i18n/useApplyLanguage';
 import { Platform } from 'react-native';
 import { useState } from 'react';
+import { useWalkthroughStore } from '@/features/walkthrough/store';
 import { connectExtension, disconnectExtension, type ConnectResult } from '@/lib/extension';
 import { PrivacySection } from '@/features/privacy/PrivacySection';
 import { useInstall } from '@/lib/pwa';
@@ -111,6 +112,12 @@ export default function SettingsScreen() {
             )}
           </View>
         ) : null}
+
+        <Button
+          variant="secondary"
+          label={t('walkthrough.replay')}
+          onPress={() => useWalkthroughStore.getState().replay()}
+        />
 
         {Platform.OS === 'web' ? (
           <View style={{ gap: theme.spacing.xs }}>

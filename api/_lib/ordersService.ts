@@ -72,6 +72,7 @@ export async function updateOrder(
       purchasedAt: input.purchasedAt,
       total: input.total,
       items: input.items,
+      archivedAt: input.archived === undefined ? undefined : input.archived ? now : null,
       dedupeKey,
       provenance,
       updatedAt: now,
