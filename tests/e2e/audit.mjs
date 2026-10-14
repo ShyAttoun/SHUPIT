@@ -7,11 +7,12 @@ import puppeteer from 'puppeteer-core';
 const require = createRequire(import.meta.url);
 const AXE = readFileSync(require.resolve('axe-core/axe.min.js'), 'utf8');
 const BASE = process.argv[2] ?? 'https://shupit.vercel.app';
-const OUT = process.argv[3] ?? 'tests/e2e/out';
+const OUT = process.argv[3] ?? `tests/e2e/out`;
 const KEY = process.env.FIREBASE_WEB_API_KEY;
 const CHROME = process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 mkdirSync(OUT, { recursive: true });
 
+const THEME = process.env.THEME ?? 'system';
 const ROUTES = ['/', '/stores', '/wishlist', '/orders', '/notifications', '/settings', '/order/add', '/product/add', '/legal/privacy'];
 const VIEWPORTS = [
   { name: 'phone-small', width: 360, height: 640, isMobile: true, hasTouch: true },
@@ -35,6 +36,11 @@ const findings = { axe: new Map(), overflow: [], rtl: [] };
 const browser = await puppeteer.launch({ executablePath: CHROME, headless: 'new', args: ['--no-sandbox'], protocolTimeout: 90_000 });
 
 async function signIn(page) {
+  await page.evaluateOnNewDocument((theme) => {
+    try {
+      if (theme !== 'system') localStorage.setItem('shupit.theme', JSON.stringify({ state: { preference: theme }, version: 0 }));
+    } catch {}
+  }, THEME);
   await page.goto(BASE + '/', { waitUntil: 'networkidle2', timeout: 60_000 });
   await page.waitForSelector('input[aria-label="Email"], input[aria-label="אימייל"]', { timeout: 20_000 });
   await page.type('input[aria-label="Email"], input[aria-label="אימייל"]', email);
