@@ -12,7 +12,8 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set) => ({
-      preference: 'system',
+      // Light is the default; users can still pick dark or follow the system in Settings.
+      preference: 'light',
       setPreference: (preference) => set({ preference }),
     }),
     {
