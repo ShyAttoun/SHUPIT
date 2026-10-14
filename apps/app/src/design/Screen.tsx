@@ -8,8 +8,6 @@ export interface ScreenProps extends ViewProps {
   topInset?: boolean;
 }
 
-const MAX_WIDTH = 720;
-
 export function Screen({ scroll = false, topInset = false, style, children, ...rest }: ScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -22,9 +20,9 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
         {
           flexGrow: 1,
           width: '100%',
-          maxWidth: MAX_WIDTH,
+          maxWidth: theme.contentMaxWidth,
           alignSelf: 'center',
-          paddingHorizontal: theme.spacing.md,
+          paddingHorizontal: theme.isWide ? theme.spacing.xl : theme.spacing.md,
           paddingTop: topInset ? insets.top + theme.spacing.md : theme.spacing.md,
           paddingBottom: theme.spacing.lg,
         },

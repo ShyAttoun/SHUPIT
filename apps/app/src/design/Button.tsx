@@ -46,7 +46,9 @@ export function Button({
           justifyContent: 'center',
           flexDirection: 'row',
           gap: theme.spacing.xs,
-          opacity: isDisabled ? 0.5 : state.pressed ? 0.85 : 1,
+          opacity: isDisabled ? 0.5 : 1,
+          transform: [{ scale: state.pressed && !isDisabled ? 0.97 : 1 }],
+          ...(variant === 'primary' && !isDisabled ? theme.elevation(1) : {}),
         },
         typeof style === 'function' ? style(state) : style,
       ]}

@@ -1,16 +1,21 @@
 import {
+  breakpointFor,
+  contentWidth,
+  elevation,
+  gradients,
   hitTarget,
   motion,
   radius,
   spacing,
   textStyles,
   themes,
+  type Breakpoint,
   type ColorTokens,
   type FontWeight,
   type TextVariant,
 } from '@shupit/tokens';
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
-import { Platform, useColorScheme, type TextStyle } from 'react-native';
+import { Platform, useColorScheme, useWindowDimensions, type TextStyle } from 'react-native';
 import { useAppLanguage } from '@/i18n';
 import { useThemeStore } from './themeStore';
 
@@ -40,6 +45,12 @@ export interface Theme {
   radius: typeof radius;
   motion: typeof motion;
   hitTarget: number;
+  breakpoint: Breakpoint;
+  /** True on laptop-and-up widths, where navigation moves to a side rail. */
+  isWide: boolean;
+  contentMaxWidth: number;
+  elevation: (level: 0 | 1 | 2 | 3) => ReturnType<typeof elevation>;
+  gradients: typeof gradients;
   textStyle: (variant: TextVariant) => TextStyle;
 }
 
@@ -49,6 +60,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
   const preference = useThemeStore((s) => s.preference);
   const { language, isRTL } = useAppLanguage();
+  const { width } = useWindowDimensions();
+  const breakpoint = breakpointFor(width);
   const mode = preference === 'system' ? (scheme === 'dark' ? 'dark' : 'light') : preference;
 
   // Web: keep the page behind the app and the browser chrome in the active theme.
@@ -70,6 +83,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       radius,
       motion,
       hitTarget,
+      breakpoint,
+      isWide: breakpoint === 'laptop' || breakpoint === 'desktop',
+      contentMaxWidth: contentWidth[breakpoint],
+      elevation: (level) => elevation(level, mode),
+      gradients,
       textStyle: (variant) => {
         const s = textStyles[variant];
         return {
@@ -79,7 +97,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         };
       },
     }),
-    [mode, language, isRTL],
+    [mode, language, isRTL, breakpoint],
   );
 
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;

@@ -116,6 +116,58 @@ export const motion = {
   slow: 320,
 } as const;
 
+/** CSS easing curves for web; native uses the platform defaults. */
+export const easing = {
+  standard: 'cubic-bezier(0.2, 0, 0, 1)',
+  enter: 'cubic-bezier(0, 0, 0, 1)',
+  exit: 'cubic-bezier(0.3, 0, 1, 1)',
+} as const;
+
+/** Layout breakpoints (px of viewport width). */
+export const breakpoints = {
+  tablet: 768,
+  laptop: 1024,
+  desktop: 1440,
+} as const;
+
+export type Breakpoint = 'phone' | 'tablet' | 'laptop' | 'desktop';
+
+export function breakpointFor(width: number): Breakpoint {
+  if (width >= breakpoints.desktop) return 'desktop';
+  if (width >= breakpoints.laptop) return 'laptop';
+  if (width >= breakpoints.tablet) return 'tablet';
+  return 'phone';
+}
+
+/** Content max width per breakpoint. */
+export const contentWidth: Record<Breakpoint, number> = {
+  phone: 720,
+  tablet: 760,
+  laptop: 1040,
+  desktop: 1240,
+};
+
+/** Restrained elevation: a single soft shadow per level, stronger in dark mode. */
+export function elevation(level: 0 | 1 | 2 | 3, mode: 'light' | 'dark') {
+  if (level === 0) return {};
+  const o = (mode === 'dark' ? [0, 0.35, 0.45, 0.55] : [0, 0.06, 0.1, 0.14])[level]!;
+  const y = [0, 2, 6, 14][level]!;
+  const blur = [0, 8, 18, 32][level]!;
+  return {
+    shadowColor: '#000000',
+    shadowOpacity: o,
+    shadowRadius: blur / 2,
+    shadowOffset: { width: 0, height: y },
+    elevation: level * 2,
+  } as const;
+}
+
+/** Brand gradients (use sparingly: hero surfaces and primary highlights only). */
+export const gradients = {
+  hero: { light: ['#E7FAF8', '#FFFFFF'], dark: ['#0B2F36', '#071625'] },
+  accent: { light: ['#00B8B0', '#008F89'], dark: ['#00B8B0', '#008F89'] },
+} as const;
+
 /** Minimum interactive size (px), per platform accessibility guidance. */
 export const hitTarget = 44;
 
