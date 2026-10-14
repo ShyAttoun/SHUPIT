@@ -1,4 +1,6 @@
-import { ScrollView, View, type ViewProps } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef } from 'react';
+import { AccessibilityInfo, Animated, ScrollView, View, type ViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from './theme';
 
@@ -11,6 +13,22 @@ export interface ScreenProps extends ViewProps {
 export function Screen({ scroll = false, topInset = false, style, children, ...rest }: ScreenProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const enter = useRef(new Animated.Value(1)).current;
+
+  // Short fade/slide each time the screen becomes the focused one (skipped with reduced motion).
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+        if (!alive || reduce) return;
+        enter.setValue(0);
+        Animated.timing(enter, { toValue: 1, duration: theme.motion.base, useNativeDriver: true }).start();
+      });
+      return () => {
+        alive = false;
+      };
+    }, [enter, theme.motion.base]),
+  );
 
   const content = (
     <View
@@ -34,7 +52,14 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <Animated.View
+      style={{
+        flex: 1,
+        backgroundColor: theme.colors.background,
+        opacity: enter,
+        transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
+      }}
+    >
       {scroll ? (
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
@@ -47,6 +72,6 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
       ) : (
         content
       )}
-    </View>
+    </Animated.View>
   );
 }

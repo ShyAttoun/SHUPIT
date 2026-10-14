@@ -1,4 +1,7 @@
 import { Stack } from 'expo-router';
+import { useEffect } from 'react';
+import { ensureHomeBeneath } from '@/lib/backGuard';
+import { HeaderBack } from '@/design/HeaderBack';
 import { useTheme } from '@/design';
 import { useTranslation } from '@/i18n';
 import { Walkthrough } from '@/features/walkthrough/Walkthrough';
@@ -6,6 +9,9 @@ import { Walkthrough } from '@/features/walkthrough/Walkthrough';
 export default function AppLayout() {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  useEffect(() => {
+    ensureHomeBeneath();
+  }, []);
   return (
     <>
     <Walkthrough />
@@ -16,6 +22,7 @@ export default function AppLayout() {
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.background },
         headerBackTitle: t('common.back'),
+        headerLeft: () => <HeaderBack />,
       }}
     >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
