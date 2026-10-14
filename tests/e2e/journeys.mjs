@@ -330,7 +330,7 @@ try {
     await clickBtn('Notifications (1)');
     await waitText('price dropped');
     await waitText('New');
-    await clickBtn('price dropped', { nth: 0 });
+    await clickBtn('My iPhone pick', { nth: 0 });
     await waitText('Buy at store', 20_000);
     await go('/notifications');
     await waitGone('New', 10_000).catch(() => {
