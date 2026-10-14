@@ -180,7 +180,7 @@ try {
     await fill('Password', password);
     // The terms agreement switch is required.
     await clickInput('I agree to the');
-    await clickBtn('Create account');
+    await clickBtn('Create my account');
     // First entry: the welcome tour (3 intro steps, then store selection with a 3-store minimum).
     await waitText('Shop everywhere. All in one place.', 40_000);
     await clickBtn('Next');

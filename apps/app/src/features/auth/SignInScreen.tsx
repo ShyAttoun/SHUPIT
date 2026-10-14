@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { z } from 'zod';
 import { Button, LogoMark, Screen, Text, TextField, useTheme } from '@/design';
 import { Switch } from 'react-native';
@@ -10,6 +10,7 @@ import { setConsents } from '@/lib/account';
 import { useTranslation } from '@/i18n';
 import { useAuth } from './AuthProvider';
 import { authErrorKey } from './errors';
+import { GoogleButton } from './GoogleButton';
 
 type FormValues = { email: string; password: string };
 
@@ -84,6 +85,47 @@ export function SignInScreen() {
           </Text>
         </View>
 
+        {/* Sign in / Create account: always visible and clearly a choice, not a small text link. */}
+        <View
+          accessibilityRole="tablist"
+          style={{
+            flexDirection: 'row',
+            padding: 4,
+            gap: 4,
+            borderRadius: theme.radius.full,
+            backgroundColor: theme.colors.surface,
+            borderWidth: 1,
+            borderColor: theme.colors.border,
+          }}
+        >
+          {(['signIn', 'signUp'] as const).map((m) => {
+            const active = mode === m;
+            return (
+              <Pressable
+                key={m}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                onPress={() => {
+                  setFormError(null);
+                  setMode(m);
+                }}
+                style={{
+                  flex: 1,
+                  minHeight: 44,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: theme.radius.full,
+                  backgroundColor: active ? theme.colors.accent : 'transparent',
+                }}
+              >
+                <Text variant="bodyStrong" color={active ? 'onAccent' : 'text'}>
+                  {m === 'signIn' ? t('auth.signIn') : t('auth.signUp')}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <Text variant="title">
           {mode === 'signIn' ? t('auth.signInTitle') : t('auth.signUpTitle')}
         </Text>
@@ -146,7 +188,7 @@ export function SignInScreen() {
             </Text>
           ) : null}
           <Button
-            label={mode === 'signIn' ? t('auth.signIn') : t('auth.signUp')}
+            label={mode === 'signIn' ? t('auth.signInSubmit') : t('auth.signUpSubmit')}
             onPress={onSubmit}
             loading={isSubmitting}
           />
@@ -157,32 +199,26 @@ export function SignInScreen() {
             <Text color="textSecondary" style={{ textAlign: 'center' }}>
               {t('auth.or')}
             </Text>
-            <Button
-              variant="secondary"
-              label={t('auth.continueWithGoogle')}
-              onPress={onGoogle}
-              loading={googleBusy}
-            />
+            <GoogleButton label={t('auth.continueWithGoogle')} onPress={onGoogle} loading={googleBusy} />
+            <Text variant="caption" color="textSecondary" style={{ textAlign: 'center' }}>
+              {t('auth.googleAgree')}
+            </Text>
+            <LegalLinks center />
           </View>
         ) : null}
 
-        {mode === 'signIn' ? <LegalLinks center /> : null}
-
-        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: theme.spacing.xs, flexWrap: 'wrap' }}>
-          <Text color="textSecondary">
+        <View style={{ gap: theme.spacing.xs, alignItems: 'stretch' }}>
+          <Text color="textSecondary" style={{ textAlign: 'center' }}>
             {mode === 'signIn' ? t('auth.noAccount') : t('auth.haveAccount')}
           </Text>
-          <Text
-            color="accentText"
-            variant="bodyStrong"
-            accessibilityRole="button"
+          <Button
+            variant="secondary"
+            label={mode === 'signIn' ? t('auth.createFree') : t('auth.backToSignIn')}
             onPress={() => {
               setFormError(null);
               setMode(mode === 'signIn' ? 'signUp' : 'signIn');
             }}
-          >
-            {mode === 'signIn' ? t('auth.signUp') : t('auth.signIn')}
-          </Text>
+          />
         </View>
       </View>
     </Screen>
