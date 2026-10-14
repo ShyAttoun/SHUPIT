@@ -33,3 +33,7 @@ export const useWalkthroughStore = create<State>()(
 export function shouldShowWalkthrough(opts: { uid: string | null | undefined; seenFor: string | null; replaying: boolean }) {
   return !!opts.uid && (opts.replaying || opts.seenFor !== opts.uid);
 }
+
+/** Favorite stores required to finish the tour. */
+export const MIN_STORES = 3;
+export const canFinishStores = (count: number) => count >= MIN_STORES;

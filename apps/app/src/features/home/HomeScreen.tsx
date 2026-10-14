@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useFavoriteStores } from '@/features/stores/hooks';
 import { shouldPromptStores, useFirstRunStore } from '@/features/stores/firstRun';
+import { shouldShowWalkthrough, useWalkthroughStore } from '@/features/walkthrough/store';
 import { Home, PackagePlus, PlusCircle } from 'lucide-react-native';
 import { View } from 'react-native';
 import { ListRow } from '@/components/ListRow';
@@ -33,12 +34,15 @@ export function HomeScreen() {
   const { user } = useAuth();
   const favorites = useFavoriteStores();
   const { promptedFor, markPrompted } = useFirstRunStore();
+  const { seenFor, replaying } = useWalkthroughStore();
+  // The welcome tour owns first-run store selection; the redirect only applies once it is out of the way.
+  const tourPending = shouldShowWalkthrough({ uid: user?.uid, seenFor, replaying });
 
   // First entry to the app with no favorite stores: take the user to store selection once.
   useEffect(() => {
     if (
       shouldPromptStores({
-        loaded: favorites.isSuccess,
+        loaded: favorites.isSuccess && !tourPending,
         favoriteCount: favorites.data?.length ?? 0,
         promptedFor,
         uid: user?.uid,
@@ -47,7 +51,7 @@ export function HomeScreen() {
       markPrompted(user!.uid);
       router.replace('/stores');
     }
-  }, [favorites.isSuccess, favorites.data, promptedFor, user, markPrompted, router]);
+  }, [favorites.isSuccess, favorites.data, promptedFor, user, markPrompted, router, tourPending]);
   const saved = useSavedProducts();
   const notifications = useNotifications();
   const { markRead } = useNotificationActions();

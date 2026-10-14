@@ -50,7 +50,7 @@ async function signIn(page) {
   await page.waitForFunction(() => !document.querySelector('input[type="password"]'), { timeout: 30_000 });
   // Dismiss the first-run welcome tour (remembered per user afterwards).
   const skip = await page
-    .waitForSelector('[aria-label="Skip"], [aria-label="דלג"]', { timeout: 8000 })
+    .waitForSelector('[aria-label="Close"], [aria-label="סגירה"]', { timeout: 8000 })
     .catch(() => null);
   if (skip) await skip.click();
 }

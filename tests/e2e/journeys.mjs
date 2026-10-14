@@ -96,7 +96,7 @@ async function visible(handles) {
 }
 
 async function clickBtn(label, { nth = 0, timeout = 20_000 } = {}) {
-  const xp = `xpath/.//*[(@role="button" or self::button or @role="link" or @role="checkbox" or @role="radio")][normalize-space(.)="${esc(label)}" or @aria-label="${esc(label)}" or starts-with(normalize-space(.), "${esc(label)}")]`;
+  const xp = `xpath/.//*[(@role="button" or self::button or @role="link" or @role="checkbox" or @role="radio" or @role="tab")][normalize-space(.)="${esc(label)}" or @aria-label="${esc(label)}" or starts-with(normalize-space(.), "${esc(label)}")]`;
   await page.waitForFunction(() => true);
   const deadline = Date.now() + timeout;
   let els = [];
@@ -181,24 +181,32 @@ try {
     // The terms agreement switch is required.
     await clickInput('I agree to the');
     await clickBtn('Create account');
-    // First entry: the welcome tour appears. Walk it to the end (also covers the extension step).
-    await waitText('Shop everywhere. Keep it here.', 40_000);
-    await waitText('Step 1 of 8');
-    for (let n = 2; n <= 8; n++) {
-      await clickBtn('Next');
-      await waitText(`Step ${n} of 8`);
-    }
-    await waitText('The Chrome extension', 1000).catch(() => {}); // step 6 was passed
-    await clickBtn("Let's go");
-    await waitText('Where do you love to shop?', 40_000);
+    // First entry: the welcome tour (3 intro steps, then store selection with a 3-store minimum).
+    await waitText('Shop everywhere. All in one place.', 40_000);
+    await clickBtn('Next');
+    await waitText('Love it? Save it!');
+    await clickBtn('Next');
+    await waitText('All your orders. None of the mess.');
+    await clickBtn('Next');
+    await waitText('Where do you love to shop?');
+    // The final CTA stays disabled below 3 stores.
+    await clickBtn('Nike');
+    await clickBtn('KSP');
+    await waitText('2 selected (at least 3)');
+    const early = await page.evaluate(() => {
+      const b = [...document.querySelectorAll('[role="button"]')].find((e) => e.innerText?.trim() === "Let's go!");
+      return b ? b.getAttribute('aria-disabled') : 'missing';
+    });
+    if (early !== 'true') throw new Error(`final CTA should be disabled with 2 stores, got ${early}`);
+    await clickBtn('Amazon');
+    await waitText('3 selected (at least 3)');
+    await clickBtn("Let's go!");
+    await waitText('Nothing on its way yet', 40_000); // lands on Home, selection saved
   });
 
   // 2 ───────── favorite stores
-  await step('2  Pick favorite stores and open one', async () => {
-    await clickBtn('Nike');
-    await clickBtn('KSP');
-    await waitText('2 stores selected');
-    await clickBtn('Save my stores');
+  await step('2  Favorite stores from the tour are listed and open', async () => {
+    await clickBtn('Stores');
     await waitText('Add more stores');
     const t = await text();
     if (!t.includes('Nike') || !t.includes('KSP')) throw new Error('favorites not listed');

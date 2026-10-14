@@ -36,7 +36,7 @@ export function HomeHero({
     >
       <View style={{ flex: 1, gap: spacing.xxs }}>
         <Text variant="title">{name ? t('home.hero.hello', { name }) : t('home.hero.helloAnon')}</Text>
-        <Text color="textSecondary">{summary}</Text>
+        <Text>{summary}</Text>
         <Text variant="caption" color="accentText">
           {t('home.hero.tagline')}
         </Text>
