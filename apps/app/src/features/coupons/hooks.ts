@@ -36,13 +36,14 @@ export function useCouponActions() {
   const qc = useQueryClient();
   const invalidate = () => qc.invalidateQueries({ queryKey: ['coupons', uid] });
   const add = useMutation({
-    mutationFn: async (input: { merchantId: string; code: string; description?: string }) => {
+    mutationFn: async (input: { merchantId: string; code: string; description?: string; expiresAt?: string }) => {
       const ref = doc(collection(db, 'users', uid, 'coupons'));
       const coupon: StoreCoupon = {
         id: ref.id,
         merchantId: input.merchantId,
         code: input.code.trim(),
         ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+        ...(input.expiresAt ? { expiresAt: input.expiresAt } : {}),
         createdAt: new Date().toISOString(),
       };
       await setDoc(ref, coupon);

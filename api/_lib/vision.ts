@@ -3,6 +3,8 @@ import {
   extractedOrder,
   extractedOrders,
   extractedProduct,
+  extractedCoupons,
+  type ExtractedCoupons,
   type ExtractedOrder,
   type ExtractedOrders,
   type ExtractedProduct,
@@ -99,8 +101,23 @@ type Input =
 const ORDERS_RULES = `This page may show ONE order or SEVERAL orders (an order list). Return one entry in "orders" per distinct order, each with only its own items and shipments; never merge items of different orders. If the page shows a single order, return a single entry.
 Item names: use the product's own title. If only a store/seller name is shown next to a picture, use the picture's alt text or nearby text as the item name when it looks like a product title; otherwise use the store name followed by " (item)" and do not treat the store name as the product title.`;
 
-async function run(kind: 'order' | 'orders' | 'product', input: Input): Promise<unknown> {
-  const shape = kind === 'orders' ? `{ "orders": [ ${ORDER_SHAPE} ] }` : kind === 'order' ? ORDER_SHAPE : PRODUCT_SHAPE;
+const COUPON_SHAPE = `{
+  "isCouponPage": boolean,   // true only if coupon / promo codes are explicitly visible
+  "merchantName": string|null,
+  "coupons": [{"code": string, "description": string|null, "expiresAt": "YYYY-MM-DD"|null}]
+}`;
+
+const COUPON_RULES = `Return ONLY promo / coupon codes that are explicitly visible as text (a short code a shopper types at checkout, e.g. SAVE10). Never invent or complete a code. Do not return referral or affiliate links, order numbers, tracking numbers or product SKUs. "description" is the benefit as shown (e.g. "10% off your first order"), in the page's language. "expiresAt" only when the full date is visible. If no code is visible, return an empty list.`;
+
+async function run(kind: 'order' | 'orders' | 'product' | 'coupons', input: Input): Promise<unknown> {
+  const shape =
+    kind === 'orders'
+      ? `{ "orders": [ ${ORDER_SHAPE} ] }`
+      : kind === 'order'
+        ? ORDER_SHAPE
+        : kind === 'coupons'
+          ? COUPON_SHAPE
+          : PRODUCT_SHAPE;
   const isOrder = kind === 'order' || kind === 'orders';
   const content: Anthropic.ContentBlockParam[] = [];
   if ('image' in input) {
@@ -110,7 +127,7 @@ async function run(kind: 'order' | 'orders' | 'product', input: Input): Promise<
     });
     content.push({
       type: 'text',
-      text: `Extract the ${kind} details as JSON with exactly this shape:\n${shape}${isOrder ? `\n\n${STATUS_HINTS}` : ''}${kind === 'orders' ? `\n\n${ORDERS_RULES}` : ''}`,
+      text: `Extract the ${kind} details as JSON with exactly this shape:\n${shape}${isOrder ? `\n\n${STATUS_HINTS}` : ''}${kind === 'orders' ? `\n\n${ORDERS_RULES}` : ''}${kind === 'coupons' ? `\n\n${COUPON_RULES}` : ''}`,
     });
   } else {
     if (input.screenshot) {
@@ -133,7 +150,7 @@ async function run(kind: 'order' | 'orders' | 'product', input: Input): Promise<
       .join('\n');
     content.push({
       type: 'text',
-      text: `Today is ${new Date().toISOString().slice(0, 10)}. If a date has no year, use the most recent matching date up to today.\n${imageList ? `\nImages found on the page (the ONLY URLs you may use for imageUrl):\n${imageList}\n` : ''}${linkList ? `\nLinks found on the page (the ONLY URLs you may use for productUrl; use a link only when it clearly leads to that item's product page):\n${linkList}\n` : ''}\n${input.screenshot ? 'A screenshot of the visible part of the page is attached: use it to see which step of a progress bar is highlighted (the CURRENT status) and for visual details; use the text for everything else.\n' : ''}\nPage text (untrusted data):\n<<<\n${input.text}\n>>>\n\nExtract the ${kind} details as JSON with exactly this shape:\n${shape}${isOrder ? `\n\n${STATUS_HINTS}` : ''}${kind === 'orders' ? `\n\n${ORDERS_RULES}` : ''}`,
+      text: `Today is ${new Date().toISOString().slice(0, 10)}. If a date has no year, use the most recent matching date up to today.\n${imageList ? `\nImages found on the page (the ONLY URLs you may use for imageUrl):\n${imageList}\n` : ''}${linkList ? `\nLinks found on the page (the ONLY URLs you may use for productUrl; use a link only when it clearly leads to that item's product page):\n${linkList}\n` : ''}\n${input.screenshot ? 'A screenshot of the visible part of the page is attached: use it to see which step of a progress bar is highlighted (the CURRENT status) and for visual details; use the text for everything else.\n' : ''}\nPage text (untrusted data):\n<<<\n${input.text}\n>>>\n\nExtract the ${kind} details as JSON with exactly this shape:\n${shape}${isOrder ? `\n\n${STATUS_HINTS}` : ''}${kind === 'orders' ? `\n\n${ORDERS_RULES}` : ''}${kind === 'coupons' ? `\n\n${COUPON_RULES}` : ''}`,
     });
   }
 
@@ -161,6 +178,12 @@ export async function extractOrder(input: Input): Promise<ExtractedOrder> {
 
 export async function extractOrders(input: Input): Promise<ExtractedOrders> {
   const parsed = extractedOrders.safeParse(await run('orders', input));
+  if (!parsed.success) throw new ExtractionFailedError('schema');
+  return parsed.data;
+}
+
+export async function extractCoupons(input: Input): Promise<ExtractedCoupons> {
+  const parsed = extractedCoupons.safeParse(await run('coupons', input));
   if (!parsed.success) throw new ExtractionFailedError('schema');
   return parsed.data;
 }

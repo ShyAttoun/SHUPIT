@@ -6,6 +6,7 @@ import { Chip } from '@/components/Chip';
 import { MerchantLogo } from '@/components/MerchantLogo';
 import { Section } from '@/components/Section';
 import { BottomSheet, Button, Text, TextField, useTheme, useToast } from '@/design';
+import { CouponImportSheet } from '@/features/coupons/CouponImportSheet';
 import { couponsForFavorites, useCouponActions, useCoupons } from '@/features/coupons/hooks';
 import { useTranslation } from '@/i18n';
 
@@ -16,6 +17,7 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
   const coupons = useCoupons();
   const { add, remove } = useCouponActions();
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [store, setStore] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
@@ -93,6 +95,11 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
           </View>
         );
       })}
+
+      <View style={{ alignSelf: 'flex-start' }}>
+        <Button variant="ghost" label={t('home.coupons.import.fromImport')} onPress={() => setImporting(true)} />
+      </View>
+      <CouponImportSheet visible={importing} onClose={() => setImporting(false)} merchantChoices={favoriteIds} />
 
       <BottomSheet visible={adding} title={t('home.coupons.add')} onClose={() => setAdding(false)}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>

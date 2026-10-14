@@ -105,9 +105,27 @@ export const extractedProduct = z.object({
 });
 export type ExtractedProduct = z.infer<typeof extractedProduct>;
 
+/** Coupon / promo codes visible on a page or screenshot. Codes are never invented. */
+export const extractedCoupons = z.object({
+  isCouponPage: z.boolean().optional().catch(false),
+  merchantName: z.string().max(120).nullable().optional().catch(null),
+  coupons: z
+    .array(
+      z.object({
+        code: z.string().min(3).max(40),
+        description: z.string().max(200).nullable().optional().catch(null),
+        /** YYYY-MM-DD only when the full date is visible. */
+        expiresAt: z.string().max(10).nullable().optional().catch(null),
+      }),
+    )
+    .max(20)
+    .catch([]),
+});
+export type ExtractedCoupons = z.infer<typeof extractedCoupons>;
+
 export const extractRequest = z
   .object({
-    kind: z.enum(['order', 'product']),
+    kind: z.enum(['order', 'product', 'coupons']),
     imageBase64: z.string().max(4_000_000).optional(),
     mediaType: z.enum(['image/jpeg', 'image/png', 'image/webp']).optional(),
     url: z.string().url().max(2048).optional(),

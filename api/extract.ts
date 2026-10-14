@@ -1,4 +1,5 @@
 import { extractRequest, merchantByName, merchantForUrl } from '@shupit/contracts';
+import { sanitizeCoupons } from './_lib/coupons';
 import { fetchPageHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { UnsafeUrlError } from './_lib/ssrf';
@@ -7,6 +8,7 @@ import { aiGateResponse } from './_lib/aiGate';
 import {
   ExtractionFailedError,
   NotConfiguredError,
+  extractCoupons,
   extractOrders,
   extractProduct,
 } from './_lib/vision';
@@ -58,6 +60,13 @@ export const POST = withAuth(async (request, user) => {
       const text = htmlToText(html);
       if (text.length < 40) return errorResponse(422, 'unreadable', 'The page has no readable content');
       input = { text };
+    }
+
+    if (kind === 'coupons') {
+      const data = await extractCoupons(input);
+      const m = merchantByName(data.merchantName) ?? (url ? merchantForUrl(url) : undefined);
+      const coupons = sanitizeCoupons(data.coupons, 'text' in input ? input.text : null);
+      return json({ kind, coupons, merchantId: m?.id ?? null }, 200, {}, request);
     }
 
     if (kind === 'order') {

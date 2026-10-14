@@ -1,3 +1,4 @@
+import { ProductCoupons } from '@/features/coupons/ProductCoupons';
 import { getMerchant } from '@shupit/contracts';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
@@ -86,6 +87,8 @@ export function ProductDetailScreen() {
             {merchant ? <Text color="textSecondary">{merchant.name}</Text> : null}
           </View>
         </View>
+
+        {product.merchantId ? <ProductCoupons merchantId={product.merchantId} productUrl={product.productUrl} /> : null}
 
         <View style={{ gap: spacing.xxs }}>
           <Text variant="label" color="textSecondary">
