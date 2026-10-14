@@ -15,6 +15,9 @@ Operator identity, contact email and governing law are placeholders to complete 
 | Rate-limit counters | Firestore `rateLimits` | purged hourly-daily (expireAt) |
 | Read notifications | Firestore `users/{uid}/notifications` | purged after ~180 days |
 | Screenshots / page text submitted for AI reading | **not stored** (processed in memory, sent to Anthropic) | n/a |
+| Browser push subscriptions (endpoint + device keys) | Firestore `users/{uid}/pushSubscriptions` (server-only; keys never exported) | until the user turns push off, the push service reports the device gone, or the account is deleted |
+| Client error reports (redacted message/stack, path without query, hashed user id) | Firestore `errorReports` (server-only) | purged after **30 days** |
+| Global AI usage counter (no personal data) | Firestore `system/ai-YYYYMMDD` | purged after ~35 days |
 | Extension session | `chrome.storage.local` in the user's browser | until disconnect/uninstall; refresh token revoked on account deletion |
 
 ## Controls
