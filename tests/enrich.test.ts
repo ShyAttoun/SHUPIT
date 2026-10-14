@@ -61,3 +61,17 @@ test('status update carries wording, delivery window and events', () => {
   assert.equal(r?.estimatedDeliveryAt, '2026-10-25T12:00:00.000Z');
   assert.equal(r?.events.length, 1);
 });
+
+import { sanitizeItemLinks } from '../api/_lib/orderEnrich';
+
+test('product links are kept only when they exist on the page', () => {
+  const items = [
+    { title: 'A', productUrl: 'https://shop.example/p/1' },
+    { title: 'B', productUrl: 'https://evil.example/phish' },
+    { title: 'C', productUrl: null },
+  ];
+  const out = sanitizeItemLinks(items, ['https://shop.example/p/1']);
+  assert.equal(out[0]!.productUrl, 'https://shop.example/p/1');
+  assert.equal('productUrl' in out[1]!, false);
+  assert.equal('productUrl' in out[2]!, false);
+});

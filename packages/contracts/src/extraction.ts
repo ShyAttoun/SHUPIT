@@ -36,6 +36,8 @@ export const extractedOrder = z.object({
         quantity: z.number().int().min(1).max(999),
         /** Must be one of the image URLs found on the page; null when unsure. */
         imageUrl: z.string().url().max(2048).nullable().optional(),
+        /** Must be one of the links found on the page; null when unsure. */
+        productUrl: z.string().url().max(2048).nullable().optional().catch(null),
       }),
     )
     .max(30),
@@ -135,6 +137,17 @@ export const pageCapture = z.object({
       }),
     )
     .max(40)
+    .optional(),
+  /** Links visible on the page, so an item's product page can be matched without guessing URLs. */
+  links: z
+    .array(
+      z.object({
+        href: z.string().url().max(2048),
+        text: z.string().max(200).optional(),
+        context: z.string().max(300).optional(),
+      }),
+    )
+    .max(60)
     .optional(),
 });
 export type PageCapture = z.infer<typeof pageCapture>;

@@ -5,10 +5,12 @@ import { ApiError, apiFetch } from '@/lib/api';
 import { pickScreenshot } from '@/lib/imagePicker';
 import { useAiConsent } from '@/features/privacy/AiConsent';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { merchantByName } from '@shupit/contracts';
 import type { TrackingEvent } from '@shupit/contracts';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ShipmentProgress } from '@/components/ShipmentProgress';
+import { useShopNow } from '@/features/stores/useShopNow';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, TextField, useTheme, useToast } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useAppLanguage, useTranslation } from '@/i18n';
@@ -254,6 +256,7 @@ export function OrderDetailScreen() {
   const shipments = useShipments();
   const { deleteOrder, markReceived, restore } = useOrderMutations();
   const toast = useToast();
+  const { shop, busyKey, failed: shopFailed } = useShopNow();
 
   if (orders.isLoading || shipments.isLoading) {
     return (
@@ -353,6 +356,20 @@ export function OrderDetailScreen() {
           />
         )}
 
+        {order.merchantId || merchantByName(order.merchantName) ? (
+          <Button
+            variant="secondary"
+            label={t('orders.detail.openStore', { store: order.merchantName })}
+            loading={busyKey === (order.merchantId ?? merchantByName(order.merchantName)?.id)}
+            onPress={() => void shop({ merchantId: order.merchantId ?? merchantByName(order.merchantName)?.id })}
+          />
+        ) : null}
+        {shopFailed ? (
+          <Text color="danger" accessibilityLiveRegion="polite">
+            {t('wishlist.detail.openFailed')}
+          </Text>
+        ) : null}
+
         <Button
           variant="secondary"
           label={t('orders.detail.editOrder')}
@@ -404,9 +421,23 @@ export function OrderDetailScreen() {
                   <View style={{ width: 56, alignItems: 'center' }}>
                     <Thumb imageUrl={it.imageUrl} fallbackName={it.title} size={48} />
                   </View>
-                  <Text style={{ flex: 1 }} numberOfLines={3}>
-                    {it.title}
-                  </Text>
+                  {it.productUrl ? (
+                    <Pressable
+                      accessibilityRole="link"
+                      accessibilityLabel={`${t('orders.detail.openItem')}: ${it.title}`}
+                      onPress={() => void shop({ merchantId: order.merchantId, productUrl: it.productUrl })}
+                      style={{ flex: 1, gap: 2 }}
+                    >
+                      <Text numberOfLines={3}>{it.title}</Text>
+                      <Text variant="caption" color="accentText">
+                        {t('orders.detail.openItem')}
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={{ flex: 1 }} numberOfLines={3}>
+                      {it.title}
+                    </Text>
+                  )}
                   <Text variant="bodyStrong" style={{ width: 44, textAlign: 'center' }}>
                     {it.quantity}
                   </Text>

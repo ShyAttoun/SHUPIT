@@ -372,6 +372,7 @@ function orderBody(d: OrderData, merchantId: string | null, pageUrl: string) {
       title: it.title,
       quantity: it.quantity,
       ...(it.imageUrl ? { imageUrl: it.imageUrl } : {}),
+      ...(it.productUrl ? { productUrl: it.productUrl } : {}),
     })),
     shipments: ship
       ? [

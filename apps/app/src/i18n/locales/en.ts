@@ -344,6 +344,8 @@ export const en = {
       shotFailed: 'We couldn’t read that screenshot. Try another one or fill the details in.',
     },
     detail: {
+      openItem: 'Open in the store',
+      openStore: 'Open in {{store}}',
       buyAtStore: 'Buy at store',
       opening: 'Opening…',
       savedPrice: 'Price when saved',

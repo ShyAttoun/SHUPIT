@@ -42,6 +42,7 @@ export const orderCreateInput = z.object({
         title: z.string().trim().min(1).max(200),
         quantity: z.number().int().min(1).max(999),
         imageUrl: z.string().url().max(2048).optional(),
+        productUrl: z.string().url().max(2048).optional(),
       }),
     )
     .max(50),
@@ -81,6 +82,7 @@ export const orderUpdateInput = z
           title: z.string().trim().min(1).max(200),
           quantity: z.number().int().min(1).max(999),
           imageUrl: z.string().url().max(2048).optional(),
+          productUrl: z.string().url().max(2048).optional(),
         }),
       )
       .max(50)

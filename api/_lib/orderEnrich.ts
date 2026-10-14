@@ -12,6 +12,18 @@ export function sanitizeItemImages<T extends { imageUrl?: string | null }>(
   });
 }
 
+/** productUrl may only be one of the links actually present on the page; anything else is dropped. */
+export function sanitizeItemLinks<T extends { productUrl?: string | null }>(
+  items: T[],
+  allowed: string[] | undefined,
+): (T & { productUrl?: string })[] {
+  const set = new Set(allowed ?? []);
+  return items.map((it) => {
+    const { productUrl, ...rest } = it;
+    return (productUrl && set.has(productUrl) ? { ...rest, productUrl } : rest) as T & { productUrl?: string };
+  });
+}
+
 /**
  * Page events carry no time zone. We keep the wall-clock time exactly as shown by
  * storing it as UTC; the UI renders these with timeZone=UTC so it reads as written.

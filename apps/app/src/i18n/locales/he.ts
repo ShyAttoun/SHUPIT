@@ -346,6 +346,8 @@ export const he: Translations = {
       shotFailed: 'לא הצלחנו לקרוא את צילום המסך. נסו אחר או מלאו את הפרטים.',
     },
     detail: {
+      openItem: 'פתח בחנות',
+      openStore: 'פתח ב-{{store}}',
       buyAtStore: 'לקנות בחנות',
       opening: 'פותח…',
       savedPrice: 'המחיר בעת השמירה',

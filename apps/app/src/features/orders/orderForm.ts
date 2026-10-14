@@ -305,7 +305,11 @@ export function diffOrderUpdate(
   if (JSON.stringify(prevItems) !== JSON.stringify(n.items)) {
     out.items = n.items.map((it) => {
       const old = existing.items.find((o) => o.title === it.title);
-      return old?.imageUrl ? { ...it, imageUrl: old.imageUrl } : it;
+      return {
+        ...it,
+        ...(old?.imageUrl ? { imageUrl: old.imageUrl } : {}),
+        ...(old?.productUrl ? { productUrl: old.productUrl } : {}),
+      };
     });
   }
   return { ok: true, input: Object.keys(out).length ? out : null };

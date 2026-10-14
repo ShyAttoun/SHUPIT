@@ -5,6 +5,7 @@ export interface PageCapture {
   jsonLd?: string[];
   text?: string;
   images?: { src: string; alt?: string; context?: string }[];
+  links?: { href: string; text?: string; context?: string }[];
 }
 
 /**
@@ -52,7 +53,36 @@ export function readPage(): PageCapture {
     });
     if (images.length >= 40) break;
   }
-  return { url: location.href, title: document.title.slice(0, 500), metas, jsonLd, text, images };
+  // Visible links with their text/nearby text, so an item's product page can be matched. Links that look
+  // like they carry a session or secret are left out, and URL fragments are dropped.
+  const SECRET = /[?&](token|session|sess|auth|password|pwd|key|sig|signature|code|otp)=/i;
+  const linkSeen = new Set<string>();
+  const links: { href: string; text?: string; context?: string }[] = [];
+  for (const a of Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href]'))) {
+    let href = a.href;
+    if (!/^https?:/.test(href)) continue;
+    href = href.split('#')[0]!;
+    if (!href || href.length > 2048 || SECRET.test(href) || linkSeen.has(href)) continue;
+    const text = (a.innerText || a.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+    let context = '';
+    let node: HTMLElement | null = a.parentElement;
+    for (let depth = 0; node && depth < 4; depth++, node = node.parentElement) {
+      const t = (node.innerText ?? '').replace(/\s+/g, ' ').trim();
+      if (t.length >= 15) {
+        context = t.slice(0, 300);
+        break;
+      }
+    }
+    if (!text && !context) continue;
+    linkSeen.add(href);
+    links.push({
+      href,
+      ...(text ? { text: text.slice(0, 200) } : {}),
+      ...(context ? { context } : {}),
+    });
+    if (links.length >= 60) break;
+  }
+  return { url: location.href, title: document.title.slice(0, 500), metas, jsonLd, text, images, links };
 }
 
 /**

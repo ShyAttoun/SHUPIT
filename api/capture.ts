@@ -1,6 +1,6 @@
 import { captureRequest, merchantByName, merchantForUrl, normalizeProductUrl, fromMinor } from '@shupit/contracts';
 import { htmlFromCapture } from './_lib/page';
-import { sanitizeItemImages } from './_lib/orderEnrich';
+import { sanitizeItemImages, sanitizeItemLinks } from './_lib/orderEnrich';
 import { parseProductHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { consumeAi } from './_lib/usage';
@@ -91,6 +91,7 @@ export const POST = withAuth(async (request, user) => {
     const result = await extractOrders({
       text,
       images: page.images,
+      links: page.links,
       ...(screenshot ? { screenshot: { base64: screenshot.imageBase64, mediaType: screenshot.mediaType } } : {}),
     });
     const found = result.orders.filter((o) => o.isOrderScreenshot);
@@ -98,7 +99,10 @@ export const POST = withAuth(async (request, user) => {
     const allowed = page.images?.map((i) => i.src);
     const orders = found.map((data) => {
       // Item pictures may only be URLs that really exist on the page.
-      data.items = sanitizeItemImages(data.items, allowed);
+      data.items = sanitizeItemLinks(
+        sanitizeItemImages(data.items, allowed),
+        page.links?.map((l) => l.href),
+      );
       const m = merchantByName(data.merchantName) ?? merchant;
       return { data, merchantId: m?.id ?? null };
     });
