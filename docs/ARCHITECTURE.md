@@ -31,3 +31,6 @@
 - Hebrew copy is a draft pending review.
 - App icon / favicon PNGs must be redrawn as vectors from the brand mark.
 - Vercel project link, env vars and first deploy are pending user approval.
+
+## Store routing policy
+Opening a store always resolves to the affiliate route when a program is configured and verified, otherwise to the plain web URL. App deep links (`app_deep_link`) are intentionally not used: they do not reliably preserve affiliate attribution, and the business priority is to earn the partner commission. Revisit only after an app + attribution flow is verified on real devices for a specific store.
