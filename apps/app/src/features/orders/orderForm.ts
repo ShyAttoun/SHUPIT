@@ -185,7 +185,7 @@ export function draftFromExtraction(
     merchantName: string | null;
     orderNumber: string | null;
     purchaseDate: string | null;
-    total: { amount: number; currency: string } | null;
+    total: { amount: number; currency: string | null } | null;
     items: { title: string; quantity: number }[];
     shipments: {
       carrier: string | null;

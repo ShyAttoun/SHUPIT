@@ -34,7 +34,7 @@ export interface OrderData {
   merchantName: string | null;
   orderNumber: string | null;
   purchaseDate: string | null;
-  total: { amount: number; currency: string } | null;
+  total: { amount: number; currency: string | null } | null;
   items: { title: string; quantity: number; imageUrl?: string | null }[];
   shipments: {
     carrier: string | null;

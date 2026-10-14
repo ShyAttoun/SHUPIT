@@ -73,7 +73,7 @@ test('a malformed optional value does not discard the whole read', () => {
   assert.equal(r.success, true);
   if (!r.success) return;
   assert.equal(r.data.purchaseDate, null);
-  assert.equal(r.data.total, null);
+  assert.deepEqual(r.data.total, { amount: 10, currency: null }); // amount kept, unknown currency not guessed
   assert.equal(r.data.shipments[0]!.status, null);
   assert.deepEqual(r.data.shipments[0]!.events, [{ description: 'Arrived', occurredAt: '2026-10-13T16:46' }]);
 });

@@ -115,7 +115,7 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
     setShowForm(true);
     try {
       const res = await apiFetch<{
-        data: { title: string | null; price: { amount: number; currency: string } | null };
+        data: { title: string | null; price: { amount: number; currency: string | null } | null };
         merchantId: string | null;
       }>('/api/extract', {
         method: 'POST',
@@ -124,7 +124,8 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
       if (res.data.title) setTitle(res.data.title);
       if (res.data.price) {
         setPrice(String(res.data.price.amount));
-        setCurrency(res.data.price.currency);
+        // Keep the default currency when the screenshot only showed an ambiguous symbol.
+        if (res.data.price.currency) setCurrency(res.data.price.currency);
       }
       // Screenshot values are AI-read, not page-verified: they stay "user-confirmed" provenance-wise.
       setFromPage((f) => ({ ...f, title: false, price: false }));

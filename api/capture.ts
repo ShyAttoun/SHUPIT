@@ -42,7 +42,8 @@ export const POST = withAuth(async (request, user) => {
           if (ai.isProductPage) {
             usedAi = true;
             title = title ?? ai.title ?? undefined;
-            if (!price && ai.price) {
+            // An amount without a currency is not a price we can verify.
+            if (!price && ai.price && ai.price.currency) {
               // AI-read price: caller shows it as "please confirm".
               const exp = ai.price.currency === 'JPY' ? 0 : 2;
               price = { amountMinor: Math.round(ai.price.amount * 10 ** exp), currency: ai.price.currency };

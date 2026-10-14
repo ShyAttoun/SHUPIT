@@ -364,7 +364,10 @@ function orderBody(d: OrderData, merchantId: string | null, pageUrl: string) {
     merchantName: d.merchantName ?? host,
     ...(d.orderNumber ? { externalOrderId: d.orderNumber } : {}),
     ...(isoNoon(d.purchaseDate) ? { purchasedAt: isoNoon(d.purchaseDate) } : {}),
-    ...(d.total ? { total: { amountMinor: Math.round(d.total.amount * 10 ** exp), currency: d.total.currency } } : {}),
+    // A total whose currency was not shown is left out rather than guessed.
+    ...(d.total && d.total.currency
+      ? { total: { amountMinor: Math.round(d.total.amount * 10 ** exp), currency: d.total.currency } }
+      : {}),
     items: d.items.map((it) => ({
       title: it.title,
       quantity: it.quantity,
@@ -422,7 +425,7 @@ function renderOrders(job: Job) {
       ...[
         orders.length > 1 ? null : row(T.store, d.merchantName),
         orders.length > 1 ? null : row(T.orderNumber, d.orderNumber),
-        row(T.total, d.total ? `${d.total.amount} ${d.total.currency}` : null),
+        row(T.total, d.total ? `${d.total.amount} ${d.total.currency ?? '?'}` : null),
         row(T.items, d.items.length ? String(d.items.length) : null),
         row(T.tracking, [ship?.carrier, ship?.trackingNumber].filter(Boolean).join(' · ') || null),
         row(T.statusLabel, ship?.statusText ?? ship?.status ?? null),

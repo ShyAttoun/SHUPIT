@@ -82,10 +82,29 @@ const waitText = (t, timeout = 30_000) =>
 const waitGone = (t, timeout = 30_000) =>
   page.waitForFunction((s) => !document.body.innerText.includes(s), { timeout }, t);
 const esc = (s) => s.replace(/"/g, '\\"');
+async function visible(handles) {
+  const out = [];
+  for (const h of handles) {
+    const ok = await h.evaluate((e) => {
+      const r = e.getBoundingClientRect();
+      const st = getComputedStyle(e);
+      return r.width > 0 && r.height > 0 && st.visibility !== 'hidden' && st.display !== 'none' && !e.closest('[aria-hidden="true"]');
+    });
+    if (ok) out.push(h);
+  }
+  return out;
+}
+
 async function clickBtn(label, { nth = 0, timeout = 20_000 } = {}) {
   const xp = `xpath/.//*[(@role="button" or self::button or @role="link" or @role="checkbox" or @role="radio")][normalize-space(.)="${esc(label)}" or @aria-label="${esc(label)}" or starts-with(normalize-space(.), "${esc(label)}")]`;
-  await page.waitForSelector(xp, { timeout });
-  const els = await page.$$(xp);
+  await page.waitForFunction(() => true);
+  const deadline = Date.now() + timeout;
+  let els = [];
+  while (Date.now() < deadline) {
+    els = await visible(await page.$$(xp));
+    if (els[nth]) break;
+    await sleep(250);
+  }
   if (!els[nth]) throw new Error(`button not found: ${label}`);
   // Centre it first so sticky bars/headers never sit on top of the target.
   await els[nth].evaluate((e) => e.scrollIntoView({ block: 'center', inline: 'center' }));
@@ -98,12 +117,32 @@ async function clickBtn(label, { nth = 0, timeout = 20_000 } = {}) {
 }
 async function fill(label, value) {
   const sel = `input[aria-label="${esc(label)}"], textarea[aria-label="${esc(label)}"]`;
-  await page.waitForSelector(sel, { timeout: 15_000 });
-  const el = await page.$(sel);
+  const deadline = Date.now() + 15_000;
+  let el = null;
+  while (Date.now() < deadline && !el) {
+    el = (await visible(await page.$$(sel)))[0] ?? null;
+    if (!el) await sleep(250);
+  }
+  if (!el) throw new Error(`field not found: ${label}`);
   await el.click({ clickCount: 3 });
   await page.keyboard.press('Backspace');
   await el.type(value);
 }
+async function clickInput(label) {
+  const sel = `input[aria-label="${esc(label)}"]`;
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    const el = (await visible(await page.$$(sel)))[0];
+    if (el) {
+      await el.evaluate((e) => e.scrollIntoView({ block: 'center' }));
+      await el.click();
+      return;
+    }
+    await sleep(250);
+  }
+  throw new Error(`input not found: ${label}`);
+}
+
 async function go(path) {
   await page.goto(BASE + path, { waitUntil: 'networkidle2', timeout: 60_000 });
   await sleep(600);
@@ -140,7 +179,7 @@ try {
     await fill('Email', email);
     await fill('Password', password);
     // The terms agreement switch is required.
-    await page.click('input[aria-label="I agree to the"]');
+    await clickInput('I agree to the');
     await clickBtn('Create account');
     await waitText('Where do you love to shop?', 40_000);
   });
@@ -194,7 +233,7 @@ try {
     await clickBtn('Paste order text');
     await fill('Paste order text', ORDER_TEXT);
     await clickBtn('Read the text');
-    await waitText('Check everything before saving', 60_000);
+    await waitText('check everything before saving', 60_000);
     await clickBtn('Save order');
     await waitText('JRN-4471', 30_000);
     await clickBtn('Edit order');
@@ -233,7 +272,7 @@ try {
     await clickBtn('Paste order text');
     await fill('Paste order text', ORDER_TEXT.replace('JRN-4471', 'JRN-4472'));
     await clickBtn('Read the text');
-    await waitText('Check everything before saving', 60_000);
+    await waitText('check everything before saving', 60_000);
     await clickBtn('Save order');
     await waitText('You already added this order.', 30_000);
   });
@@ -250,7 +289,7 @@ try {
       },
       { timeout: 20_000 },
     );
-    await page.click('input[aria-label="Track price"]');
+    await clickInput('Track price');
     await page.waitForFunction(
       () => document.querySelector('input[aria-label="Track price"]')?.checked === true,
       { timeout: 15_000 },
@@ -311,7 +350,7 @@ try {
     await go('/settings');
     await clickBtn('Delete my account');
     await waitText('Delete your account?');
-    await page.click('input[aria-label="I understand this is permanent"]');
+    await clickInput('I understand this is permanent');
     await fill('Password', password);
     await clickBtn('Permanently delete my account');
     await waitText('Welcome back', 60_000);

@@ -12,7 +12,8 @@ const ymd = z
 const amount = z
   .object({
     amount: z.number().nonnegative(),
-    currency: z.string().regex(/^[A-Z]{3}$/),
+    /** ISO code, or null when the page only shows an ambiguous symbol (e.g. "$"). */
+    currency: z.string().regex(/^[A-Z]{3}$/).nullable().catch(null),
   })
   .nullable()
   .catch(null);
