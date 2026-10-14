@@ -76,3 +76,12 @@ notification unread/open/read → data export → Hebrew/RTL check and account d
 6. Decide whether to connect a tracking provider / price sources, or keep manual verification.
 7. Add a Content-Security-Policy (currently nosniff, frame-deny, referrer policy only).
 8. Visual redesign from the approved mockups (deliberately not started).
+
+## Addendum: RTL, brand grouping, pickup distance, Home carousel and coupons
+- Hebrew UI text is right-aligned/RTL everywhere (theme `isRTL`/`endAlign`; `Text`, `TextField`, `SearchField`). Audit: all pages `dir=rtl`, no overflow.
+- Wishlist is grouped by brand, split by site inside a brand, each item has a "Take me to the store" CTA.
+- Orders list shows pickup point + address; "distance from you" appears only after the user taps "Show distance from me" (browser geolocation, computed on device, never sent). Address → coordinates via server-side geocoding (Nominatim), cached in `geocodeCache` (180 days).
+- Home: auto-advancing wishlist carousel (pauses on hover/touch, off with reduced motion) and a coupons rubric for favorite stores.
+  - **Coupons have no automatic feed.** They are codes the user saves (`users/{uid}/coupons`) plus an empty, server-managed `partnerCoupons` collection.
+- Evidence: api unit 72/72, emulator 26/26, rules 13/13, app jest 49/49, UI journeys 12/12 (local build against production API), axe 0 critical/serious.
+- Not yet verified: real-device geolocation prompt, Nominatim live lookup (needs the deployed `/api/geocode`).

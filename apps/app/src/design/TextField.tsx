@@ -23,6 +23,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
         ref={ref}
         accessibilityLabel={label}
         placeholderTextColor={colors.textSecondary}
+        {...(({ dir: theme.isRTL ? 'rtl' : 'auto' }) as object)}
         {...rest}
         style={[
           theme.textStyle('body'),
@@ -34,7 +35,8 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
             borderColor: error ? colors.danger : colors.border,
             backgroundColor: colors.surface,
             color: colors.text,
-            textAlign: 'auto',
+            textAlign: theme.isRTL ? 'right' : 'auto',
+            ...(theme.isRTL ? { writingDirection: 'rtl' as const } : null),
           },
           style,
         ]}

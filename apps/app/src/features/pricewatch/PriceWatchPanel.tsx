@@ -21,7 +21,8 @@ const DROP_OPTIONS = [5, 10, 20];
 export function PriceWatchPanel({ product }: { product: SavedProduct }) {
   const { t } = useTranslation();
   const { language } = useAppLanguage();
-  const { colors, spacing, radius } = useTheme();
+  const theme = useTheme();
+  const { colors, spacing, radius } = theme;
   const merchant = getMerchant(product.merchantId);
   const availability = monitoringAvailability(merchant);
 
@@ -58,7 +59,7 @@ export function PriceWatchPanel({ product }: { product: SavedProduct }) {
   const row = (label: string, value: string) => (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
       <Text color="textSecondary">{label}</Text>
-      <Text variant="bodyStrong" style={{ flexShrink: 1, textAlign: 'right' }}>
+      <Text variant="bodyStrong" style={{ flexShrink: 1, textAlign: theme.endAlign }}>
         {value}
       </Text>
     </View>

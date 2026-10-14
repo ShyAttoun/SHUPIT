@@ -33,11 +33,12 @@ export function SearchField({
         onChangeText={onChangeText}
         placeholder={placeholder}
         accessibilityLabel={placeholder}
+        {...(({ dir: theme.isRTL ? 'rtl' : 'auto' }) as object)}
         placeholderTextColor={colors.textSecondary}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
-        style={[theme.textStyle('body'), { flex: 1, color: colors.text, paddingVertical: 10, textAlign: 'auto' }]}
+        style={[theme.textStyle('body'), { flex: 1, color: colors.text, paddingVertical: 10, textAlign: theme.isRTL ? 'right' : 'auto' }]}
       />
     </View>
   );

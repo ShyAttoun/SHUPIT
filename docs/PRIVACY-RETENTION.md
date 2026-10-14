@@ -40,3 +40,8 @@ Collection-group queries need the field overrides in `firestore.indexes.json`.
 ## Not covered / open
 - Sentry-style error monitoring is not connected yet (needs an account); server logs deliberately contain only error class names.
 - Hosting-provider request logs include IP addresses; retention follows Vercel's settings.
+
+## Pickup distance (geocoding)
+- A pickup address you saved is sent (address text only, no identifier) from our server to OpenStreetMap Nominatim to find its coordinates.
+- Results, including "not found", are cached in `geocodeCache` (server-only) and purged after 180 days; coordinates are also stored on the shipment.
+- Your own location is read in the browser only when you choose "Show distance from me"; it is used on the device to compute the distance and is **not sent to or stored by SHUPIT**.

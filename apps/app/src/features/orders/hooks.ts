@@ -26,6 +26,8 @@ export type ShipmentDoc = Shipment & {
     until?: string;
     instructions?: string;
     code?: string;
+    lat?: number;
+    lng?: number;
   } | null;
 };
 

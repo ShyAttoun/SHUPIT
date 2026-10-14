@@ -9,6 +9,7 @@ export const RETENTION_DAYS = {
   usageCounters: 35,
   readNotifications: 180,
   errorReports: 30,
+  geocodeCache: 180,
   systemCounters: 35,
 } as const;
 
@@ -53,6 +54,9 @@ export async function GET(request: Request): Promise<Response> {
   );
   result.systemCounters = await purge(
     db.collection('system').where('updatedAt', '<', iso(RETENTION_DAYS.systemCounters)),
+  );
+  result.geocodeCache = await purge(
+    db.collection('geocodeCache').where('updatedAt', '<', iso(RETENTION_DAYS.geocodeCache)),
   );
   return json(result);
 }

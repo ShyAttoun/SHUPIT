@@ -31,6 +31,14 @@ service cloud.firestore {
       match /collections/{id} {
         allow read, write: if isOwner(uid);
       }
+      // Coupon codes the user saved for their stores.
+      match /coupons/{id} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && noServerFields()
+          && request.resource.data.code is string
+          && request.resource.data.code.size() > 0 && request.resource.data.code.size() <= 60
+          && request.resource.data.merchantId is string;
+      }
       match /savedProducts/{id} {
         allow read, delete: if isOwner(uid);
         allow create, update: if isOwner(uid) && noServerFields();
@@ -73,6 +81,11 @@ service cloud.firestore {
 
     // ---- Shared reference data -----------------------------------------
     match /merchants/{id} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+    // Partner coupons are published by SHUPIT only (no automatic source yet).
+    match /partnerCoupons/{id} {
       allow read: if signedIn();
       allow write: if false;
     }

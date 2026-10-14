@@ -166,6 +166,16 @@ export const en = {
     darkTheme: 'Switch to dark theme',
   },
   home: {
+    coupons: {
+      title: 'Coupons for your stores',
+      add: 'Add a coupon',
+      empty: 'No coupons saved for your stores yet. Add a code you have and it will wait here.',
+      copy: 'Copy',
+      copied: 'Copied',
+      code: 'Coupon code',
+      note: 'Note (optional)',
+    },
+    liked: 'Products you liked',
     emptyTitle: 'Nothing on its way yet',
     emptyBody: 'Add an order and we’ll track it right here.',
     activeDeliveries: 'Active deliveries',
@@ -220,6 +230,11 @@ export const en = {
     deleteCollectionTitle: 'Delete this collection?',
     deleteCollectionBody: 'Products stay in your wishlist; they just leave this collection.',
     searchPlaceholder: 'Search your wishlist',
+    takeMeToStore: 'Take me to the store',
+    otherStores: 'Other stores',
+    brandCount_one: '{{count}} item',
+    brandCount_other: '{{count}} items',
+    siteHeading: 'From {{site}}',
     noResults: 'Nothing matches your search',
     add: {
       title: 'Save a product',
@@ -296,6 +311,14 @@ export const en = {
     historyEmpty: 'History appears once there are at least two verified prices.',
   },
   orders: {
+    pickup: {
+      title: 'Pickup point',
+      showDistance: 'Show distance from me',
+      locating: 'Locating…',
+      denied: 'Location permission denied',
+      unavailable: 'Location unavailable',
+      away: '{{distance}} from you',
+    },
     title: 'Orders',
     emptyTitle: 'Where’s that thing you bought?',
     emptyBody: 'Every order. Every update. Right here.',

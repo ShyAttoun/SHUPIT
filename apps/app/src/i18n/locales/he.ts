@@ -168,6 +168,16 @@ export const he: Translations = {
     darkTheme: 'מעבר לתצוגה כהה',
   },
   home: {
+    coupons: {
+      title: 'קופונים לחנויות שלך',
+      add: 'הוסף קופון',
+      empty: 'עדיין אין קופונים שמורים לחנויות שסימנת. הוסף קוד שיש לך והוא יחכה כאן.',
+      copy: 'העתק',
+      copied: 'הועתק',
+      code: 'קוד קופון',
+      note: 'הערה (לא חובה)',
+    },
+    liked: 'מוצרים שאהבת',
     emptyTitle: 'עדיין אין משהו בדרך',
     emptyBody: 'הוסיפו הזמנה ואנחנו נעקוב אחריה כאן.',
     activeDeliveries: 'משלוחים פעילים',
@@ -222,6 +232,11 @@ export const he: Translations = {
     deleteCollectionTitle: 'למחוק את האוסף?',
     deleteCollectionBody: 'המוצרים יישארו ברשימה, רק יצאו מהאוסף הזה.',
     searchPlaceholder: 'חיפוש ברשימה',
+    takeMeToStore: 'קח אותי לחנות',
+    otherStores: 'חנויות אחרות',
+    brandCount_one: 'פריט אחד',
+    brandCount_other: '{{count}} פריטים',
+    siteHeading: 'מהאתר {{site}}',
     noResults: 'לא נמצא דבר שמתאים לחיפוש',
     add: {
       title: 'שמירת מוצר',
@@ -298,6 +313,14 @@ export const he: Translations = {
     historyEmpty: 'ההיסטוריה תופיע כשיהיו לפחות שני מחירים מאומתים.',
   },
   orders: {
+    pickup: {
+      title: 'נקודת איסוף',
+      showDistance: 'הצג מרחק ממני',
+      locating: 'מאתר מיקום…',
+      denied: 'ההרשאה למיקום נדחתה',
+      unavailable: 'לא ניתן לאתר מיקום',
+      away: '{{distance}} ממך',
+    },
     title: 'הזמנות',
     emptyTitle: 'איפה הדבר הזה שקניתם?',
     emptyBody: 'כל הזמנה. כל עדכון. כאן.',

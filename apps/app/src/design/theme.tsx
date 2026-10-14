@@ -31,6 +31,10 @@ const fontFamilies = {
 
 export interface Theme {
   mode: 'light' | 'dark';
+  /** True when the UI language is right-to-left (Hebrew). */
+  isRTL: boolean;
+  /** Text alignment toward the end edge of a row (right in LTR, left in RTL). */
+  endAlign: 'left' | 'right';
   colors: ColorTokens;
   spacing: typeof spacing;
   radius: typeof radius;
@@ -44,7 +48,7 @@ const ThemeContext = createContext<Theme | null>(null);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
   const preference = useThemeStore((s) => s.preference);
-  const { language } = useAppLanguage();
+  const { language, isRTL } = useAppLanguage();
   const mode = preference === 'system' ? (scheme === 'dark' ? 'dark' : 'light') : preference;
 
   // Web: keep the page behind the app and the browser chrome in the active theme.
@@ -59,6 +63,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const theme = useMemo<Theme>(
     () => ({
       mode,
+      isRTL,
+      endAlign: isRTL ? 'left' : 'right',
       colors: themes[mode],
       spacing,
       radius,
@@ -73,7 +79,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         };
       },
     }),
-    [mode, language],
+    [mode, language, isRTL],
   );
 
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;

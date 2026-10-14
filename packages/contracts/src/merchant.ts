@@ -25,3 +25,14 @@ export const favoriteStore = z.object({
   addedAt: z.string(),
 });
 export type FavoriteStore = z.infer<typeof favoriteStore>;
+
+/** A coupon code the user saved for one of their stores (or a partner coupon published by SHUPIT). */
+export const storeCoupon = z.object({
+  id: z.string().min(1),
+  merchantId: z.string().min(1),
+  code: z.string().min(1).max(60),
+  description: z.string().max(200).optional(),
+  expiresAt: z.string().optional(),
+  createdAt: z.string(),
+});
+export type StoreCoupon = z.infer<typeof storeCoupon>;

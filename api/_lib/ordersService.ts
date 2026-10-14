@@ -126,6 +126,12 @@ export async function updateShipment(
   const cur = snap.data() as Record<string, unknown>;
 
   const status = (input.status ?? cur.status) as string;
+  // Editing the pickup details keeps resolved coordinates only while the address is unchanged.
+  const prevPickup = (cur.pickup as { address?: string; lat?: number; lng?: number } | null) ?? null;
+  const nextPickup =
+    input.pickup && prevPickup?.address && input.pickup.address === prevPickup.address && prevPickup.lat !== undefined
+      ? { ...input.pickup, lat: prevPickup.lat, lng: prevPickup.lng }
+      : input.pickup;
   const trackingNumber =
     input.trackingNumber !== undefined ? input.trackingNumber : (cur.trackingNumber as string | null);
 
@@ -141,7 +147,7 @@ export async function updateShipment(
       statusSource: input.status ? 'user' : undefined,
       statusAsOf: input.status ? now : undefined,
       statusText: input.statusText,
-      pickup: input.pickup,
+      pickup: nextPickup,
       trackable: !!trackingNumber && !TERMINAL.has(status),
       nextCheckAt: !!trackingNumber && !TERMINAL.has(status) ? ((cur.nextCheckAt as string | null) ?? now) : null,
     }),

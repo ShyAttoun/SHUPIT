@@ -14,6 +14,9 @@ import { arrivingSoon, isActiveShipment, useOrders, useShipments, type ShipmentD
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate } from '@/lib/format';
 import { notificationRoute, notificationTitle } from '@/features/notifications/format';
+import { CouponsSection } from './CouponsSection';
+import { WishlistCarousel } from './WishlistCarousel';
+import { useSavedProducts } from '@/features/wishlist/hooks';
 import { useNotificationActions, useNotifications } from '@/features/notifications/hooks';
 
 export function HomeScreen() {
@@ -41,6 +44,7 @@ export function HomeScreen() {
       router.replace('/stores');
     }
   }, [favorites.isSuccess, favorites.data, promptedFor, user, markPrompted, router]);
+  const saved = useSavedProducts();
   const notifications = useNotifications();
   const { markRead } = useNotificationActions();
 
@@ -76,6 +80,9 @@ export function HomeScreen() {
   const recent = orderList.slice(0, 3);
   const updates = (notifications.data ?? []).filter((n) => !n.readAt).slice(0, 5);
 
+  const liked = (saved.data ?? []).slice(0, 12);
+  const favoriteIds = (favorites.data ?? []).map((f) => f.merchantId);
+
   const quickActions = (
     <Section title={t('home.quickActions')}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
@@ -102,6 +109,12 @@ export function HomeScreen() {
           title={t('home.emptyTitle')}
           body={t('home.emptyBody')}
         />
+        {liked.length > 0 ? (
+          <Section title={t('home.liked')}>
+            <WishlistCarousel products={liked} onOpen={(p) => router.push(`/product/${p.id}`)} />
+          </Section>
+        ) : null}
+        <CouponsSection favoriteIds={favoriteIds} />
         {quickActions}
       </Screen>
     );
@@ -160,6 +173,15 @@ export function HomeScreen() {
             ))}
           </Section>
         ) : null}
+        {liked.length > 0 ? (
+          <Section
+            title={t('home.liked')}
+            action={<Button variant="ghost" label={t('home.seeAll')} onPress={() => router.push('/wishlist')} />}
+          >
+            <WishlistCarousel products={liked} onOpen={(p) => router.push(`/product/${p.id}`)} />
+          </Section>
+        ) : null}
+        <CouponsSection favoriteIds={favoriteIds} />
         {pickup.length > 0 ? <Section title={t('home.readyForPickup')}>{pickup.map(shipmentRow)}</Section> : null}
         {soon.length > 0 ? <Section title={t('home.arrivingSoon')}>{soon.map(shipmentRow)}</Section> : null}
         {active.length > 0 ? (

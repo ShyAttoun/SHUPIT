@@ -12,9 +12,48 @@ import { Thumb } from '@/components/Thumb';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate, formatPrice } from '@/lib/format';
+import { MapPin } from 'lucide-react-native';
+import { formatDistance } from '@/lib/distance';
+import { distanceFrom, useDeviceLocation, usePickupCoords } from './pickupDistance';
 import { orderIsDelivered, useOrders, useShipments, type ShipmentDoc } from './hooks';
 
 type Filter = 'all' | 'active' | 'delivered';
+
+function PickupInfo({
+  shipment,
+  position,
+}: {
+  shipment: ShipmentDoc;
+  position: { lat: number; lng: number } | null;
+}) {
+  const { t } = useTranslation();
+  const { language } = useAppLanguage();
+  const { colors } = useTheme();
+  const coords = usePickupCoords(shipment, position !== null);
+  const km = distanceFrom(position, coords);
+  const p = shipment.pickup;
+  if (!p || (!p.name && !p.address)) return null;
+  return (
+    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'flex-start' }}>
+      <MapPin size={14} color={colors.textSecondary} />
+      <View style={{ flex: 1 }}>
+        <Text variant="caption" color="textSecondary">
+          {[t('orders.pickup.title'), p.name].filter(Boolean).join(': ')}
+        </Text>
+        {p.address ? (
+          <Text variant="caption" color="textSecondary">
+            {p.address}
+          </Text>
+        ) : null}
+        {km !== null ? (
+          <Text variant="caption" color="accentText">
+            {t('orders.pickup.away', { distance: formatDistance(km, language) })}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
 
 export function OrdersScreen() {
   const { t } = useTranslation();
@@ -25,6 +64,7 @@ export function OrdersScreen() {
   const shipments = useShipments();
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
+  const device = useDeviceLocation();
 
   const shipmentsByOrder = useMemo(() => {
     const map = new Map<string, ShipmentDoc[]>();
@@ -46,6 +86,8 @@ export function OrdersScreen() {
         .includes(q);
     });
   }, [orders.data, shipmentsByOrder, filter, query]);
+
+  const hasPickups = (shipments.data ?? []).some((s) => s.pickup?.address);
 
   if (orders.isLoading || shipments.isLoading) {
     return (
@@ -107,6 +149,20 @@ export function OrdersScreen() {
           ))}
         </View>
 
+        {hasPickups && device.supported && !device.position ? (
+          <Button
+            variant="secondary"
+            label={device.state === 'asking' ? t('orders.pickup.locating') : t('orders.pickup.showDistance')}
+            disabled={device.state === 'asking'}
+            onPress={device.request}
+          />
+        ) : null}
+        {device.state === 'denied' || device.state === 'unavailable' ? (
+          <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
+            {device.state === 'denied' ? t('orders.pickup.denied') : t('orders.pickup.unavailable')}
+          </Text>
+        ) : null}
+
         {visible.length === 0 ? (
           <Text color="textSecondary">{t('orders.noResults')}</Text>
         ) : (
@@ -148,6 +204,12 @@ export function OrdersScreen() {
                 meta={
                   <View style={{ marginTop: 4, gap: 4 }}>
                     {first ? <StatusBadge status={first.status} /> : null}
+                    {ships
+                      .filter((s) => s.pickup && (s.pickup.name || s.pickup.address))
+                      .slice(0, 2)
+                      .map((s) => (
+                        <PickupInfo key={s.id} shipment={s} position={device.position} />
+                      ))}
                     {o.items.length > 0 ? (
                       <Text variant="caption" color="textSecondary">
                         {t('orders.items', { count: o.items.length })}

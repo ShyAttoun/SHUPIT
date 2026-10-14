@@ -69,6 +69,9 @@ export const shipment = z.object({
       until: isoDate.optional(),
       instructions: z.string().optional(),
       code: z.string().optional(),
+      /** Resolved from the address (server-side geocoding); used for "distance from you". */
+      lat: z.number().optional(),
+      lng: z.number().optional(),
     })
     .optional(),
 });

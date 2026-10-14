@@ -64,6 +64,32 @@ describe('user-owned data', () => {
   });
 });
 
+describe('coupons', () => {
+  it('owner can save and read a coupon; others cannot', async () => {
+    const ref = doc(alice(), 'users/alice/coupons/c1');
+    await assertSucceeds(setDoc(ref, { merchantId: 'nike', code: 'SAVE10' }));
+    await assertSucceeds(getDoc(ref));
+    await assertFails(getDoc(doc(bob(), 'users/alice/coupons/c1')));
+    await assertFails(setDoc(doc(bob(), 'users/alice/coupons/c2'), { merchantId: 'nike', code: 'X' }));
+  });
+
+  it('rejects empty or oversized codes', async () => {
+    await assertFails(setDoc(doc(alice(), 'users/alice/coupons/c1'), { merchantId: 'nike', code: '' }));
+    await assertFails(
+      setDoc(doc(alice(), 'users/alice/coupons/c1'), { merchantId: 'nike', code: 'x'.repeat(61) }),
+    );
+  });
+
+  it('partner coupons are readable when signed in and never client-writable', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'partnerCoupons/p1'), { merchantId: 'nike', code: 'PARTNER' });
+    });
+    await assertSucceeds(getDoc(doc(alice(), 'partnerCoupons/p1')));
+    await assertFails(getDoc(doc(anon(), 'partnerCoupons/p1')));
+    await assertFails(setDoc(doc(alice(), 'partnerCoupons/p2'), { merchantId: 'nike', code: 'X' }));
+  });
+});
+
 describe('price history', () => {
   it('owner can read verified observations but never write them', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {

@@ -4,18 +4,19 @@ import { Heart, Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Chip } from '@/components/Chip';
-import { ListRow } from '@/components/ListRow';
+import { MerchantLogo } from '@/components/MerchantLogo';
+import { useShopNow } from '@/features/stores/useShopNow';
+import { groupByBrand } from './grouping';
+import { ProductCard } from './ProductCard';
 import { SearchField } from '@/components/SearchField';
-import { Thumb } from '@/components/Thumb';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
-import { useAppLanguage, useTranslation } from '@/i18n';
-import { formatPrice } from '@/lib/format';
+import { useTranslation } from '@/i18n';
 import { confirmAction } from '@/lib/platform';
 import { useCollections, useSavedProducts, useWishlistMutations } from './hooks';
 
 export function WishlistScreen() {
   const { t } = useTranslation();
-  const { language } = useAppLanguage();
+  const { shop, busyKey, failed: shopFailed } = useShopNow();
   const { colors, spacing, hitTarget } = useTheme();
   const router = useRouter();
   const products = useSavedProducts();
@@ -35,6 +36,7 @@ export function WishlistScreen() {
         (!q || p.title.toLowerCase().includes(q) || getMerchant(p.merchantId)?.name.toLowerCase().includes(q)),
     );
   }, [products.data, active, query]);
+  const brandGroups = useMemo(() => groupByBrand(visible), [visible]);
 
   if (products.isLoading || collections.isLoading) {
     return (
@@ -172,21 +174,53 @@ export function WishlistScreen() {
           </View>
         ) : null}
 
+        {shopFailed ? (
+          <Text color="danger" accessibilityLiveRegion="polite">
+            {t('wishlist.detail.openFailed')}
+          </Text>
+        ) : null}
+
         {visible.length === 0 ? (
           <Text color="textSecondary">{t('wishlist.noResults')}</Text>
         ) : (
-          visible.map((p) => {
-            const merchant = getMerchant(p.merchantId);
-            return (
-              <ListRow
-                key={p.id}
-                leading={<Thumb imageUrl={p.imageUrl} fallbackName={p.title} />}
-                title={p.title}
-                subtitle={[merchant?.name, formatPrice(p.savedPrice, language)].filter(Boolean).join(' · ') || null}
-                onPress={() => router.push(`/product/${p.id}`)}
-              />
-            );
-          })
+          brandGroups.map((g) => (
+            <View key={g.key} style={{ gap: spacing.sm }} accessibilityRole="summary">
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <MerchantLogo name={g.name ?? t('wishlist.otherStores')} domain={g.domain ?? undefined} size={44} />
+                <View style={{ flex: 1 }}>
+                  <Text variant="headline" accessibilityRole="header">
+                    {g.name ?? t('wishlist.otherStores')}
+                  </Text>
+                  <Text variant="small" color="textSecondary">
+                    {t('wishlist.brandCount', { count: g.count })}
+                  </Text>
+                </View>
+              </View>
+
+              {g.sites.map((site) => (
+                <View key={site.host ?? 'none'} style={{ gap: spacing.sm }}>
+                  {g.sites.length > 1 && site.host ? (
+                    <Text variant="label" color="textSecondary">
+                      {t('wishlist.siteHeading', { site: site.host })}
+                    </Text>
+                  ) : null}
+                  {site.items.map((p) => (
+                    <ProductCard
+                      key={p.id}
+                      product={p}
+                      onOpen={() => router.push(`/product/${p.id}`)}
+                      onShop={
+                        p.productUrl || p.merchantId
+                          ? () => void shop({ merchantId: p.merchantId, productUrl: p.productUrl })
+                          : undefined
+                      }
+                      shopping={busyKey === (p.productUrl ?? p.merchantId ?? '')}
+                    />
+                  ))}
+                </View>
+              ))}
+            </View>
+          ))
         )}
       </View>
     </Screen>
