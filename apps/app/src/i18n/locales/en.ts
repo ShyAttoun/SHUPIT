@@ -114,6 +114,12 @@ export const en = {
     installFirst: 'Install SHUPIT on your phone first (Settings → Install) so it shows up in the Share menu.',
     ios: 'iPhone and iPad don’t support sharing into web apps yet. Copy the product link and paste it in “Add a product”.',
   },
+  wait: {
+    uploading: 'Sending…',
+    reading: 'Reading it — usually under 20 seconds',
+    finishing: 'Almost done…',
+    slow: 'Taking longer than usual. You can keep this open; it will finish.',
+  },
   install: {
     title: 'Install the app',
     body: 'Add SHUPIT to your home screen for quick access and sharing from other apps.',

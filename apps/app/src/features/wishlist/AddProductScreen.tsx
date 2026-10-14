@@ -18,6 +18,7 @@ import { apiFetch } from '@/lib/api';
 import { ImageDropZone } from '@/components/ImageDropZone';
 import type { PickedImage } from '@/lib/imagePicker';
 import { ApiError } from '@/lib/api';
+import { AiWait } from '@/components/AiWait';
 import { ShareTip } from '@/features/share/ShareTip';
 import { useAiConsent } from '@/features/privacy/AiConsent';
 import { findDuplicate, useCollections, useSavedProducts, useWishlistMutations } from './hooks';
@@ -222,6 +223,7 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
               setShowForm(true);
             }}
           />
+          <AiWait active={fetching || shotBusy} />
           {!showForm ? (
             <Button variant="ghost" label={t('wishlist.add.orManual')} onPress={() => setShowForm(true)} />
           ) : null}

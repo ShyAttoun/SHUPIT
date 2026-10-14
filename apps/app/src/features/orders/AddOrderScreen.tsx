@@ -6,6 +6,7 @@ import { useShareInbox } from '@/lib/shareInbox';
 import { Pressable, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { StatusBadge } from '@/components/StatusBadge';
+import { AiWait } from '@/components/AiWait';
 import { Button, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
 import { useFavoriteStores } from '@/features/stores/hooks';
 import { useAiConsent } from '@/features/privacy/AiConsent';
@@ -271,7 +272,8 @@ function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
           <Text variant="headline" accessibilityLiveRegion="polite">
             {t('orders.import.reading')}
           </Text>
-          <LoadingState rows={3} />
+          <AiWait active />
+          <LoadingState rows={2} />
         </View>
       </Screen>
     );

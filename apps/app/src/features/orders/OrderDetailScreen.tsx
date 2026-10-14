@@ -10,6 +10,7 @@ import { merchantByName } from '@shupit/contracts';
 import type { TrackingEvent } from '@shupit/contracts';
 import { StatusBadge } from '@/components/StatusBadge';
 import { ShipmentProgress } from '@/components/ShipmentProgress';
+import { AiWait } from '@/components/AiWait';
 import { useShopNow } from '@/features/stores/useShopNow';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, TextField, useTheme, useToast } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -107,6 +108,7 @@ function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
         loading={update.isPending}
         onPress={() => update.mutate()}
       />
+      <AiWait active={update.isPending} />
       {message ? (
         <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
           {message}
@@ -175,6 +177,7 @@ function PickupFromMessage({ shipment }: { shipment: ShipmentDoc }) {
           onPress={() => send.mutate('image')}
         />
       </View>
+      <AiWait active={send.isPending} />
       {pasting ? (
         <View style={{ gap: 8 }}>
           <TextField
