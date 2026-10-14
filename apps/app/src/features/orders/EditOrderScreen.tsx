@@ -71,14 +71,14 @@ export function EditOrderScreen() {
     }
     setErrors({});
     if (!r.input) {
-      router.back();
+      router.replace(`/order/${order.id}`);
       return;
     }
     setBusy(true);
     try {
       await apiFetch(`/api/orders?id=${encodeURIComponent(order.id)}`, { method: 'PUT', body: r.input });
       await qc.invalidateQueries({ queryKey: ['orders', user?.uid] });
-      router.back();
+      router.replace(`/order/${order.id}`);
     } catch (e) {
       if (e instanceof ApiError && e.code === 'duplicate') setDuplicate(true);
       else setFailed(true);

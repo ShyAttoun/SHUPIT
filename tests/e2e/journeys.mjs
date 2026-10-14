@@ -51,6 +51,12 @@ await page.setViewport({ width: 420, height: 900, isMobile: true, hasTouch: true
 await page.setExtraHTTPHeaders({ 'accept-language': 'en-US,en;q=0.9' });
 await page.evaluateOnNewDocument(() => {
   try {
+    // Record window.open instead of spawning tabs (a background tab throttles the page under test).
+    window.__opened = [];
+    window.open = (u) => {
+      window.__opened.push(String(u));
+      return null;
+    };
     if (!localStorage.getItem('shupit.language')) {
       localStorage.setItem('shupit.language', JSON.stringify({ state: { preference: 'en' }, version: 0 }));
     }
@@ -81,7 +87,14 @@ async function clickBtn(label, { nth = 0, timeout = 20_000 } = {}) {
   await page.waitForSelector(xp, { timeout });
   const els = await page.$$(xp);
   if (!els[nth]) throw new Error(`button not found: ${label}`);
-  await els[nth].click();
+  // Centre it first so sticky bars/headers never sit on top of the target.
+  await els[nth].evaluate((e) => e.scrollIntoView({ block: 'center', inline: 'center' }));
+  await sleep(150);
+  try {
+    await els[nth].click();
+  } catch {
+    await els[nth].evaluate((e) => e.click());
+  }
 }
 async function fill(label, value) {
   const sel = `input[aria-label="${esc(label)}"], textarea[aria-label="${esc(label)}"]`;
@@ -141,12 +154,10 @@ try {
     await waitText('Add more stores');
     const t = await text();
     if (!t.includes('Nike') || !t.includes('KSP')) throw new Error('favorites not listed');
-    const before = (await browser.pages()).length;
     await clickBtn('Shop now', { nth: 0 });
-    await sleep(2500);
-    const after = (await browser.pages()).length;
-    if (after <= before) throw new Error('store did not open in a new tab');
-    for (const p of await browser.pages()) if (p !== page && !p.url().startsWith(BASE)) await p.close().catch(() => {});
+    await page.waitForFunction(() => window.__opened.length > 0, { timeout: 15_000 });
+    const opened = await page.evaluate(() => window.__opened);
+    if (!/nike\.com|ksp\.co\.il/.test(opened[0])) throw new Error(`unexpected destination: ${opened[0]}`);
   });
 
   // 3 ───────── save + edit product from a link

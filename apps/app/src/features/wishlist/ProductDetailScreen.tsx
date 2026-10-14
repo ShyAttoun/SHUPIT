@@ -72,7 +72,7 @@ export function ProductDetailScreen() {
     });
     if (!ok) return;
     await deleteProduct.mutateAsync(product.id);
-    router.back();
+    router.replace('/wishlist');
   };
 
   return (

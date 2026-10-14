@@ -146,7 +146,7 @@ export function ShipmentFormScreen() {
         await apiFetch('/api/shipments', { method: 'POST', body: { ...built.input, orderId } });
       }
       await refresh();
-      router.back();
+      router.replace(`/order/${orderId}`);
     } catch (e) {
       void e;
       setFailed(true);
@@ -168,7 +168,7 @@ export function ShipmentFormScreen() {
     try {
       await apiFetch(`/api/shipments?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       await refresh();
-      router.back();
+      router.replace(`/order/${orderId}`);
     } catch {
       setFailed(true);
     } finally {

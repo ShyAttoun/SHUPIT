@@ -207,7 +207,7 @@ export function OrderDetailScreen() {
     });
     if (!ok) return;
     await deleteOrder.mutateAsync(order.id);
-    router.back();
+    router.replace('/orders');
   };
 
   const kv = (label: string, value: string | null | undefined) =>

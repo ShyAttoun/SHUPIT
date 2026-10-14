@@ -69,12 +69,12 @@ export function EditProductScreen() {
       return;
     }
     if (r.value.changed.length === 0) {
-      router.back();
+      router.replace(`/product/${product.id}`);
       return;
     }
     try {
       await updateProduct.mutateAsync({ id: product.id, patch: r.value.patch });
-      router.back();
+      router.replace(`/product/${product.id}`);
     } catch {
       setFailed(true);
     }
