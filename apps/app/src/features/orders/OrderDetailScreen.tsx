@@ -1,34 +1,251 @@
-import { collection, getDocs } from 'firebase/firestore';
+import { merchantByName, type TrackingEvent } from '@shupit/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { ApiError, apiFetch } from '@/lib/api';
-import { pickScreenshot } from '@/lib/imagePicker';
-import { useAiConsent } from '@/features/privacy/AiConsent';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, View } from 'react-native';
-import { merchantByName } from '@shupit/contracts';
-import type { TrackingEvent } from '@shupit/contracts';
-import { StatusBadge } from '@/components/StatusBadge';
-import { ShipmentProgress } from '@/components/ShipmentProgress';
+import { collection, getDocs } from 'firebase/firestore';
+import {
+  CalendarDays,
+  Camera,
+  Check,
+  ClipboardPaste,
+  Copy,
+  FilePenLine,
+  MapPin,
+  MoreHorizontal,
+  Navigation,
+  PackagePlus,
+  Pencil,
+  RefreshCw,
+  Store,
+  Trash2,
+  Undo2,
+} from 'lucide-react-native';
+import { useState, type ReactNode } from 'react';
+import { Platform, Pressable, View } from 'react-native';
 import { AiWait } from '@/components/AiWait';
-import { useShopNow } from '@/features/stores/useShopNow';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, TextField, useTheme, useToast } from '@/design';
+import { MerchantLogo } from '@/components/MerchantLogo';
+import { ShipmentProgress } from '@/components/ShipmentProgress';
+import { StatusBadge } from '@/components/StatusBadge';
+import { Thumb } from '@/components/Thumb';
+import {
+  BottomSheet,
+  Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Screen,
+  Text,
+  TextField,
+  useTheme,
+  useToast,
+} from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useAiConsent } from '@/features/privacy/AiConsent';
+import { useShopNow } from '@/features/stores/useShopNow';
 import { useAppLanguage, useTranslation } from '@/i18n';
+import { ApiError, apiFetch } from '@/lib/api';
 import { db } from '@/lib/firebase';
 import { formatDate, formatDateTime, formatDateTimeWall, formatPrice } from '@/lib/format';
-import { Thumb } from '@/components/Thumb';
+import { pickScreenshot } from '@/lib/imagePicker';
 import { confirmAction } from '@/lib/platform';
+import { openWaze } from '@/lib/waze';
 import { useOrderMutations, useOrders, useShipments, type ShipmentDoc } from './hooks';
 
-function RefreshButton({ shipment }: { shipment: ShipmentDoc }) {
+type Tr = (key: string, opts?: Record<string, unknown>) => string;
+
+function aiErrorMessage(e: unknown, t: Tr, specific?: Record<string, string>): string {
+  if (e instanceof ApiError) {
+    if (specific?.[e.code]) return specific[e.code]!;
+    if (e.code === 'consent_required') return t('orders.import.consentRequired');
+    if (e.code === 'not_configured') return t('orders.import.notConfigured');
+    if (e.code === 'quota_exceeded') return t('orders.import.quota');
+  }
+  return t('orders.import.generic');
+}
+
+async function copyText(value: string): Promise<boolean> {
+  try {
+    if (Platform.OS === 'web' && navigator.clipboard) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+  } catch {
+    // clipboard unavailable
+  }
+  return false;
+}
+
+/** Small round icon button with a text label for assistive tech. */
+function IconButton({ label, onPress, children }: { label: string; onPress: () => void; children: ReactNode }) {
+  const { colors, hitTarget } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => ({
+        width: hitTarget,
+        height: hitTarget,
+        borderRadius: hitTarget / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: pressed ? colors.accentSoft : 'transparent',
+      })}
+    >
+      {children}
+    </Pressable>
+  );
+}
+
+/** One row of an actions sheet. */
+function MenuRow({
+  icon,
+  label,
+  onPress,
+  danger,
+}: {
+  icon: ReactNode;
+  label: string;
+  onPress: () => void;
+  danger?: boolean;
+}) {
+  const { colors, spacing, radius, hitTarget } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: spacing.sm,
+        minHeight: hitTarget + 4,
+        paddingHorizontal: spacing.sm,
+        borderRadius: radius.md,
+        backgroundColor: pressed ? colors.accentSoft : 'transparent',
+      })}
+    >
+      {icon}
+      <Text variant="bodyStrong" color={danger ? 'danger' : 'text'}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Timeline({ shipment }: { shipment: ShipmentDoc }) {
   const { t } = useTranslation();
+  const { language } = useAppLanguage();
+  const { user } = useAuth();
+  const { colors, spacing } = useTheme();
+  const [all, setAll] = useState(false);
+  const events = useQuery({
+    queryKey: ['trackingEvents', user?.uid, shipment.id],
+    enabled: !!user,
+    queryFn: async (): Promise<(TrackingEvent & { timeIsWallClock?: boolean; source?: string })[]> => {
+      const snap = await getDocs(collection(db, 'users', user!.uid, 'shipments', shipment.id, 'trackingEvents'));
+      return snap.docs
+        .map((d) => d.data() as TrackingEvent & { timeIsWallClock?: boolean; source?: string })
+        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+    },
+  });
+
+  if (events.isLoading) return <LoadingState rows={1} />;
+  const list = events.data ?? [];
+  if (events.isError || list.length === 0) {
+    return (
+      <Text variant="small" color="textSecondary">
+        {t('orders.detail.noEvents')}
+      </Text>
+    );
+  }
+  const shown = all ? list : list.slice(0, 3);
+  return (
+    <View style={{ gap: spacing.xs }}>
+      {shown.map((e, i) => {
+        const verified = e.source === 'carrier';
+        return (
+          <View key={e.id} style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <View style={{ alignItems: 'center', width: 14 }}>
+              <View
+                style={{
+                  width: 12,
+                  height: 12,
+                  borderRadius: 6,
+                  marginTop: 5,
+                  backgroundColor: i === 0 ? colors.accent : colors.border,
+                  borderWidth: i === 0 ? 0 : 2,
+                  borderColor: colors.accent,
+                }}
+              />
+              {i < shown.length - 1 ? <View style={{ flex: 1, width: 2, backgroundColor: colors.border }} /> : null}
+            </View>
+            <View style={{ flex: 1, paddingBottom: spacing.sm, gap: 2 }}>
+              <Text variant="bodyStrong">{e.description || t(`orders.status.${e.status}`)}</Text>
+              <Text variant="caption" color="textSecondary">
+                {e.timeIsWallClock ? formatDateTimeWall(e.occurredAt, language) : formatDateTime(e.occurredAt, language)}
+                {e.location?.text ? ` · ${e.location.text}` : ''}
+              </Text>
+              <Text variant="caption" color={verified ? 'success' : 'textSecondary'}>
+                {verified ? t('orders.detail.eventVerified') : t('orders.detail.eventPage')}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+      {list.length > 3 ? (
+        <Button
+          variant="ghost"
+          label={all ? t('orders.detail.showLess') : t('orders.detail.showAll', { count: list.length })}
+          onPress={() => setAll((v) => !v)}
+        />
+      ) : null}
+    </View>
+  );
+}
+
+function ShipmentCard({
+  order,
+  shipment,
+  index,
+  total,
+  archived,
+  onReceived,
+  receiving,
+}: {
+  order: { id: string; merchantId?: string; merchantName: string };
+  shipment: ShipmentDoc;
+  index: number;
+  total: number;
+  archived: boolean;
+  onReceived: () => void;
+  receiving: boolean;
+}) {
+  const { t } = useTranslation();
+  const { language } = useAppLanguage();
+  const router = useRouter();
+  const toast = useToast();
   const { user } = useAuth();
   const qc = useQueryClient();
+  const consent = useAiConsent();
+  const { colors, spacing, radius, elevation } = useTheme();
+  const [menu, setMenu] = useState(false);
+  const [pickupSheet, setPickupSheet] = useState(false);
+  const [pasting, setPasting] = useState(false);
+  const [text, setText] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+
+  const s = shipment;
+  const finished = s.status === 'delivered' || s.status === 'returned';
+  const refreshAll = () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: ['shipments', user?.uid] }),
+      qc.invalidateQueries({ queryKey: ['trackingEvents', user?.uid, s.id] }),
+      qc.invalidateQueries({ queryKey: ['notifications', user?.uid] }),
+    ]);
+
   const refresh = useMutation({
     mutationFn: () =>
-      apiFetch<{ outcome: string }>(`/api/shipments-refresh?id=${encodeURIComponent(shipment.id)}`, { method: 'POST' }),
+      apiFetch<{ outcome: string }>(`/api/shipments-refresh?id=${encodeURIComponent(s.id)}`, { method: 'POST' }),
     onSuccess: async (res) => {
       setMessage(
         res.outcome === 'not_configured'
@@ -39,43 +256,17 @@ function RefreshButton({ shipment }: { shipment: ShipmentDoc }) {
               ? t('orders.detail.refreshFailed')
               : t('orders.detail.refreshed'),
       );
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ['shipments', user?.uid] }),
-        qc.invalidateQueries({ queryKey: ['trackingEvents', user?.uid, shipment.id] }),
-        qc.invalidateQueries({ queryKey: ['notifications', user?.uid] }),
-      ]);
+      await refreshAll();
     },
     onError: () => setMessage(t('orders.detail.refreshFailed')),
   });
-  return (
-    <View style={{ gap: 4 }}>
-      <Button
-        variant="secondary"
-        label={refresh.isPending ? t('orders.detail.checking') : t('orders.detail.checkUpdates')}
-        loading={refresh.isPending}
-        onPress={() => refresh.mutate()}
-      />
-      {message ? (
-        <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
-          {message}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
 
-function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
-  const { t } = useTranslation();
-  const consent = useAiConsent();
-  const { user } = useAuth();
-  const qc = useQueryClient();
-  const [message, setMessage] = useState<string | null>(null);
-  const update = useMutation({
+  const statusShot = useMutation({
     mutationFn: async () => {
       if (!(await consent.ensure())) return null;
       const picked = await pickScreenshot();
       if (!picked) return null;
-      return apiFetch<{ status: string }>(`/api/shipments-status?id=${encodeURIComponent(shipment.id)}`, {
+      return apiFetch(`/api/shipments-status?id=${encodeURIComponent(s.id)}`, {
         method: 'POST',
         body: { kind: 'order', imageBase64: picked.base64, mediaType: picked.mediaType },
       });
@@ -83,167 +274,304 @@ function StatusFromScreenshot({ shipment }: { shipment: ShipmentDoc }) {
     onSuccess: async (res) => {
       if (!res) return;
       setMessage(t('orders.detail.updated'));
-      await qc.invalidateQueries({ queryKey: ['shipments', user?.uid] });
+      await refreshAll();
     },
-    onError: (e) => {
-      setMessage(
-        e instanceof ApiError && e.code === 'consent_required'
-          ? t('orders.import.consentRequired')
-          : e instanceof ApiError && e.code === 'no_status'
-          ? t('orders.detail.noStatus')
-          : e instanceof ApiError && e.code === 'not_configured'
-            ? t('orders.import.notConfigured')
-            : e instanceof ApiError && e.code === 'quota_exceeded'
-              ? t('orders.import.quota')
-              : t('orders.import.generic'),
-      );
-    },
+    onError: (e) => setMessage(aiErrorMessage(e, t as Tr, { no_status: t('orders.detail.noStatus') })),
   });
-  return (
-    <View style={{ gap: 4 }}>
-      {consent.modal}
-      <Button
-        variant="secondary"
-        label={update.isPending ? t('orders.detail.updating') : t('orders.detail.updateFromScreenshot')}
-        loading={update.isPending}
-        onPress={() => update.mutate()}
-      />
-      <AiWait active={update.isPending} />
-      {message ? (
-        <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
-          {message}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
 
-function PickupFromMessage({ shipment }: { shipment: ShipmentDoc }) {
-  const { t } = useTranslation();
-  const consent = useAiConsent();
-  const { user } = useAuth();
-  const qc = useQueryClient();
-  const [message, setMessage] = useState<string | null>(null);
-  const [pasting, setPasting] = useState(false);
-  const [text, setText] = useState('');
-
-  const send = useMutation({
+  const pickup = useMutation({
     mutationFn: async (source: 'text' | 'image') => {
       if (!(await consent.ensure())) return null;
-      if (source === 'text') {
-        return apiFetch(`/api/shipments-pickup?id=${encodeURIComponent(shipment.id)}`, {
-          method: 'POST',
-          body: { kind: 'order', text: text.trim() },
-        });
-      }
+      const url = `/api/shipments-pickup?id=${encodeURIComponent(s.id)}`;
+      if (source === 'text') return apiFetch(url, { method: 'POST', body: { kind: 'order', text: text.trim() } });
       const picked = await pickScreenshot();
       if (!picked) return null;
-      return apiFetch(`/api/shipments-pickup?id=${encodeURIComponent(shipment.id)}`, {
+      return apiFetch(url, {
         method: 'POST',
         body: { kind: 'order', imageBase64: picked.base64, mediaType: picked.mediaType },
       });
     },
     onSuccess: async (res) => {
       if (!res) return;
-      setMessage(t('orders.receive.pickupSaved'));
+      setPickupSheet(false);
       setPasting(false);
       setText('');
-      await qc.invalidateQueries({ queryKey: ['shipments', user?.uid] });
+      toast.show(t('orders.receive.pickupSaved'));
+      await refreshAll();
     },
-    onError: (e) => {
-      setMessage(
-        e instanceof ApiError && e.code === 'consent_required'
-          ? t('orders.import.consentRequired')
-          : e instanceof ApiError && e.code === 'no_pickup'
-            ? t('orders.receive.noPickup')
-            : e instanceof ApiError && e.code === 'not_configured'
-              ? t('orders.import.notConfigured')
-              : e instanceof ApiError && e.code === 'quota_exceeded'
-                ? t('orders.import.quota')
-                : t('orders.import.generic'),
-      );
-    },
+    onError: (e) => setMessage(aiErrorMessage(e, t as Tr, { no_pickup: t('orders.receive.noPickup') })),
   });
 
+  const hasPickup = !!s.pickup && Object.values(s.pickup).some((v) => v !== undefined && v !== null && v !== '');
+  const eta = s.estimatedDeliveryAt
+    ? `${s.estimatedDeliveryFrom ? `${formatDate(s.estimatedDeliveryFrom, language)} – ` : ''}${formatDate(s.estimatedDeliveryAt, language)}`
+    : null;
+  const carrierLine = [s.carrier, s.trackingNumber].filter(Boolean).join(' · ');
+
+  // One primary action that fits the current state; everything else lives in the ⋯ menu.
+  const primary: { label: string; onPress: () => void; loading?: boolean } | null = archived
+    ? null
+    : s.status === 'ready_for_pickup' && !hasPickup
+      ? { label: t('orders.detail.addPickup'), onPress: () => setPickupSheet(true) }
+      : s.status === 'ready_for_pickup' || s.status === 'delivered'
+        ? { label: t('orders.receive.received'), onPress: onReceived, loading: receiving }
+        : s.trackingNumber && !finished
+          ? { label: t('orders.detail.checkUpdates'), onPress: () => refresh.mutate(), loading: refresh.isPending }
+          : !finished
+            ? { label: t('orders.detail.updateFromScreenshot'), onPress: () => statusShot.mutate(), loading: statusShot.isPending }
+            : null;
+
+  const source =
+    s.statusSource === 'user' && s.statusAsOf
+      ? `${t('orders.detail.sourceSetByYou')} · ${formatDate(s.statusAsOf, language)}`
+      : s.statusSource === 'ai_vision' && s.statusAsOf
+        ? `${t('orders.detail.sourceShot')} · ${formatDate(s.statusAsOf, language)}`
+        : null;
+
   return (
-    <View style={{ gap: 8 }}>
+    <View
+      style={{
+        gap: spacing.sm,
+        padding: spacing.md,
+        borderRadius: radius.xl,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        ...elevation(1),
+      }}
+    >
       {consent.modal}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        <Button variant="secondary" label={t('orders.receive.pickPaste')} onPress={() => setPasting((v) => !v)} />
-        <Button
-          variant="secondary"
-          label={t('orders.receive.pickShot')}
-          loading={send.isPending && send.variables === 'image'}
-          onPress={() => send.mutate('image')}
-        />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+        <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flexWrap: 'wrap' }}>
+            <StatusBadge status={s.status} />
+            {total > 1 ? (
+              <Text variant="caption" color="textSecondary">
+                {t('orders.detail.shipmentN', { n: index + 1 })}
+              </Text>
+            ) : null}
+          </View>
+          {carrierLine ? (
+            <Text variant="small" color="textSecondary" numberOfLines={1}>
+              {carrierLine}
+            </Text>
+          ) : null}
+        </View>
+        {s.trackingNumber ? (
+          <IconButton
+            label={t('orders.detail.copy')}
+            onPress={() => void copyText(s.trackingNumber!).then((ok) => ok && toast.show(t('orders.detail.copied')))}
+          >
+            <Copy size={18} color={colors.textSecondary} />
+          </IconButton>
+        ) : null}
+        <IconButton label={t('orders.detail.shipmentMenu')} onPress={() => setMenu(true)}>
+          <MoreHorizontal size={22} color={colors.text} />
+        </IconButton>
       </View>
-      <AiWait active={send.isPending} />
-      {pasting ? (
-        <View style={{ gap: 8 }}>
-          <TextField
-            label={t('orders.receive.pasteTitle')}
-            placeholder={t('orders.receive.pastePlaceholder')}
-            value={text}
-            onChangeText={setText}
-            multiline
-            maxLength={2000}
-          />
-          <Button
-            label={send.isPending ? t('orders.receive.reading') : t('orders.receive.read')}
-            disabled={text.trim().length < 10}
-            loading={send.isPending && send.variables === 'text'}
-            onPress={() => send.mutate('text')}
-          />
+
+      <ShipmentProgress status={s.status} labels />
+
+      {s.statusText || eta || source ? (
+        <View style={{ gap: 2 }}>
+          {s.statusText ? <Text variant="small">{s.statusText}</Text> : null}
+          {eta ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <CalendarDays size={14} color={colors.textSecondary} />
+              <Text variant="small">
+                {s.estimatedDeliveryFrom ? t('orders.detail.etaWindow') : t('orders.detail.eta')}: {eta}
+                {s.estimatedDeliverySource === 'user' ? ` (${t('orders.detail.etaUser')})` : ''}
+              </Text>
+            </View>
+          ) : null}
+          {source ? (
+            <Text variant="caption" color="textSecondary">
+              {source}
+            </Text>
+          ) : null}
         </View>
       ) : null}
+
+      {hasPickup ? (
+        <View
+          style={{
+            gap: spacing.xs,
+            padding: spacing.sm,
+            borderRadius: radius.lg,
+            backgroundColor: colors.accentSoft,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MapPin size={16} color={colors.accentText} />
+            <Text variant="label" color="accentText">
+              {t('orders.detail.pickupCardTitle')}
+            </Text>
+          </View>
+          {s.pickup?.name ? <Text variant="bodyStrong">{s.pickup.name}</Text> : null}
+          {s.pickup?.address ? <Text variant="small">{s.pickup.address}</Text> : null}
+          {s.pickup?.until ? (
+            <Text variant="small">
+              {t('orders.detail.pickupUntil')}: {formatDate(s.pickup.until, language)}
+            </Text>
+          ) : null}
+          {s.pickup?.instructions ? <Text variant="small">{s.pickup.instructions}</Text> : null}
+          {s.pickup?.code ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('orders.detail.collectionCode')}: ${s.pickup.code}. ${t('orders.detail.copy')}`}
+              onPress={() => void copyText(s.pickup!.code!).then((ok) => ok && toast.show(t('orders.detail.copied')))}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+            >
+              <Text variant="small">
+                {t('orders.detail.collectionCode')}: <Text variant="bodyStrong">{s.pickup.code}</Text>
+              </Text>
+              <Copy size={14} color={colors.textSecondary} />
+            </Pressable>
+          ) : null}
+          {s.pickup?.address ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+              <Button
+                label={t('orders.detail.waze')}
+                icon={<Navigation size={16} color={colors.onAccent} />}
+                style={{ minHeight: 40, paddingHorizontal: spacing.md }}
+                onPress={() => void openWaze({ address: s.pickup!.address, lat: s.pickup!.lat, lng: s.pickup!.lng })}
+              />
+              <Button
+                variant="secondary"
+                label={t('orders.detail.copyAddress')}
+                icon={<Copy size={16} color={colors.text} />}
+                style={{ minHeight: 40, paddingHorizontal: spacing.md }}
+                onPress={() => void copyText(s.pickup!.address!).then((ok) => ok && toast.show(t('orders.detail.copied')))}
+              />
+            </View>
+          ) : null}
+        </View>
+      ) : null}
+
+      {primary ? (
+        <Button
+          label={primary.label}
+          loading={primary.loading}
+          onPress={primary.onPress}
+          style={{ minHeight: 44 }}
+        />
+      ) : null}
+
+      <AiWait active={statusShot.isPending || pickup.isPending} />
       {message ? (
         <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
           {message}
         </Text>
       ) : null}
-    </View>
-  );
-}
 
-function Timeline({ shipment }: { shipment: ShipmentDoc }) {
-  const { t } = useTranslation();
-  const { language } = useAppLanguage();
-  const { user } = useAuth();
-  const { colors, spacing } = useTheme();
-  const events = useQuery({
-    queryKey: ['trackingEvents', user?.uid, shipment.id],
-    enabled: !!user,
-    queryFn: async (): Promise<(TrackingEvent & { timeIsWallClock?: boolean })[]> => {
-      const snap = await getDocs(collection(db, 'users', user!.uid, 'shipments', shipment.id, 'trackingEvents'));
-      return snap.docs
-        .map((d) => d.data() as TrackingEvent & { timeIsWallClock?: boolean })
-        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
-    },
-  });
+      <View style={{ gap: spacing.xs, paddingTop: spacing.xs }}>
+        <Text variant="label" color="textSecondary">
+          {t('orders.detail.activity')}
+        </Text>
+        <Timeline shipment={s} />
+      </View>
 
-  if (events.isLoading) return <LoadingState rows={1} />;
-  if (events.isError || (events.data ?? []).length === 0) {
-    return (
-      <Text variant="small" color="textSecondary">
-        {t('orders.detail.timelineEmpty')}
-      </Text>
-    );
-  }
-  return (
-    <View style={{ gap: spacing.sm }}>
-      {(events.data ?? []).map((e) => (
-        <View key={e.id} style={{ gap: 2, paddingStart: spacing.sm, borderStartWidth: 2, borderStartColor: colors.accent }}>
-          {e.description ? (
-            <Text variant="bodyStrong">{e.description}</Text>
-          ) : (
-            <Text variant="bodyStrong">{t(`orders.status.${e.status}`)}</Text>
-          )}
-          <Text variant="caption" color="textSecondary">
-            {e.timeIsWallClock ? formatDateTimeWall(e.occurredAt, language) : formatDateTime(e.occurredAt, language)}
-            {e.location?.text ? ` · ${e.location.text}` : ''}
-          </Text>
+      {/* Shipment actions */}
+      <BottomSheet visible={menu} title={t('orders.detail.shipmentMenu')} onClose={() => setMenu(false)}>
+        <View style={{ gap: 2 }}>
+          <MenuRow
+            icon={<FilePenLine size={20} color={colors.text} />}
+            label={t('edit.shipment.edit')}
+            onPress={() => {
+              setMenu(false);
+              router.push(`/shipment/${order.id}?id=${s.id}`);
+            }}
+          />
+          {!finished ? (
+            <MenuRow
+              icon={<Camera size={20} color={colors.text} />}
+              label={t('orders.detail.updateFromScreenshot')}
+              onPress={() => {
+                setMenu(false);
+                statusShot.mutate();
+              }}
+            />
+          ) : null}
+          {s.trackingNumber && !finished ? (
+            <MenuRow
+              icon={<RefreshCw size={20} color={colors.text} />}
+              label={t('orders.detail.checkUpdates')}
+              onPress={() => {
+                setMenu(false);
+                refresh.mutate();
+              }}
+            />
+          ) : null}
+          {!finished ? (
+            <MenuRow
+              icon={<MapPin size={20} color={colors.text} />}
+              label={t('orders.detail.addPickup')}
+              onPress={() => {
+                setMenu(false);
+                setPickupSheet(true);
+              }}
+            />
+          ) : null}
         </View>
-      ))}
+      </BottomSheet>
+
+      {/* Pickup details: paste SMS, upload a screenshot, or (last resort) type them */}
+      <BottomSheet
+        visible={pickupSheet}
+        title={t('orders.detail.pickupSheet')}
+        onClose={() => {
+          setPickupSheet(false);
+          setPasting(false);
+        }}
+      >
+        <Text color="textSecondary">{t('orders.detail.pickupSheetBody')}</Text>
+        <View style={{ gap: 2 }}>
+          <MenuRow
+            icon={<ClipboardPaste size={20} color={colors.text} />}
+            label={t('orders.detail.pasteSms')}
+            onPress={() => setPasting((v) => !v)}
+          />
+          {pasting ? (
+            <View style={{ gap: spacing.xs, paddingHorizontal: spacing.sm }}>
+              <TextField
+                label={t('orders.receive.pasteTitle')}
+                placeholder={t('orders.receive.pastePlaceholder')}
+                value={text}
+                onChangeText={setText}
+                multiline
+                maxLength={2000}
+              />
+              <Button
+                label={pickup.isPending ? t('orders.receive.reading') : t('orders.receive.read')}
+                disabled={text.trim().length < 10}
+                loading={pickup.isPending && pickup.variables === 'text'}
+                onPress={() => pickup.mutate('text')}
+              />
+            </View>
+          ) : null}
+          <MenuRow
+            icon={<Camera size={20} color={colors.text} />}
+            label={t('orders.detail.uploadShot')}
+            onPress={() => pickup.mutate('image')}
+          />
+          <MenuRow
+            icon={<Pencil size={20} color={colors.text} />}
+            label={t('orders.detail.manualEntry')}
+            onPress={() => {
+              setPickupSheet(false);
+              router.push(`/shipment/${order.id}?id=${s.id}&manual=pickup`);
+            }}
+          />
+        </View>
+        <AiWait active={pickup.isPending} />
+        {message ? (
+          <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
+            {message}
+          </Text>
+        ) : null}
+      </BottomSheet>
     </View>
   );
 }
@@ -255,11 +583,13 @@ export function OrderDetailScreen() {
   const theme = useTheme();
   const { colors, spacing, radius } = theme;
   const router = useRouter();
+  const toast = useToast();
   const orders = useOrders();
   const shipments = useShipments();
   const { deleteOrder, markReceived, restore } = useOrderMutations();
-  const toast = useToast();
-  const { shop, busyKey, failed: shopFailed } = useShopNow();
+  const { shop, failed: shopFailed } = useShopNow();
+  const [menu, setMenu] = useState(false);
+  const [allItems, setAllItems] = useState(false);
 
   if (orders.isLoading || shipments.isLoading) {
     return (
@@ -292,6 +622,20 @@ export function OrderDetailScreen() {
     );
   }
   const ships = (shipments.data ?? []).filter((s) => s.orderId === order.id);
+  const merchant = order.merchantId ? { id: order.merchantId } : merchantByName(order.merchantName);
+  const catalog = merchantByName(order.merchantName);
+  const archived = !!order.archivedAt;
+
+  const markAsReceived = () =>
+    markReceived.mutate(
+      { orderId: order.id, shipments: ships },
+      {
+        onSuccess: () => {
+          toast.show(t('orders.receive.receivedDone'));
+          router.replace('/orders');
+        },
+      },
+    );
 
   const remove = async () => {
     const ok = await confirmAction({
@@ -305,235 +649,249 @@ export function OrderDetailScreen() {
     router.replace('/orders');
   };
 
-  const kv = (label: string, value: string | null | undefined) =>
-    value ? (
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md }}>
-        <Text color="textSecondary">{label}</Text>
-        <Text variant="bodyStrong" style={{ flexShrink: 1, textAlign: theme.endAlign }}>
-          {value}
-        </Text>
-      </View>
-    ) : null;
+  const items = order.items;
+  const shownItems = allItems ? items : items.slice(0, 3);
+  const meta = [
+    order.purchasedAt ? formatDate(order.purchasedAt, language) : null,
+    formatPrice(order.total, language),
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <Screen scroll>
       <Stack.Screen options={{ title: order.merchantName }} />
-      <View style={{ gap: spacing.lg }}>
-        <View style={{ gap: spacing.xs }}>
-          <Text variant="title">{order.merchantName}</Text>
-          {kv(t('orders.detail.orderNumber'), order.externalOrderId)}
-          {order.purchasedAt
-            ? kv(t('orders.form.purchaseDate'), formatDate(order.purchasedAt, language))
-            : null}
-          {kv(t('orders.form.total'), formatPrice(order.total, language))}
-          <Text variant="caption" color="textSecondary">
-            {t('orders.detail.importedFrom')} {t('orders.detail.sourceManual')}
-          </Text>
+      <View style={{ gap: spacing.md }}>
+        {/* Compact order header */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            padding: spacing.md,
+            borderRadius: radius.xl,
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
+        >
+          <MerchantLogo name={order.merchantName} domain={catalog?.domains[0]} size={56} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text variant="headline" numberOfLines={1} accessibilityRole="header">
+              {order.merchantName}
+            </Text>
+            {order.externalOrderId ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${t('orders.detail.orderNumber')}: ${order.externalOrderId}. ${t('orders.detail.copy')}`}
+                onPress={() =>
+                  void copyText(order.externalOrderId!).then((ok) => ok && toast.show(t('orders.detail.copied')))
+                }
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              >
+                <Text variant="small" color="textSecondary" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {order.externalOrderId}
+                </Text>
+                <Copy size={14} color={colors.textSecondary} />
+              </Pressable>
+            ) : null}
+            {meta ? (
+              <Text variant="small" color="textSecondary">
+                {meta}
+              </Text>
+            ) : null}
+          </View>
+          <IconButton label={t('orders.detail.orderMenu')} onPress={() => setMenu(true)}>
+            <MoreHorizontal size={24} color={colors.text} />
+          </IconButton>
         </View>
 
-        {order.archivedAt ? (
-          <View style={{ gap: spacing.xs }}>
-            <Text color="textSecondary">{t('orders.receive.archivedNote')}</Text>
+        {archived ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: spacing.sm,
+              padding: spacing.sm,
+              borderRadius: radius.lg,
+              backgroundColor: colors.accentSoft,
+            }}
+          >
+            <Text variant="small" style={{ flex: 1 }}>
+              {t('orders.receive.archivedNote')}
+            </Text>
             <Button
               variant="secondary"
               label={t('orders.receive.restore')}
               loading={restore.isPending}
+              style={{ minHeight: 40 }}
               onPress={() => restore.mutate(order.id)}
             />
           </View>
-        ) : (
-          <Button
-            label={t('orders.receive.received')}
-            loading={markReceived.isPending}
-            onPress={() =>
-              markReceived.mutate(
-                { orderId: order.id, shipments: ships },
-                {
-                  onSuccess: () => {
-                    toast.show(t('orders.receive.receivedDone'));
-                    router.replace('/orders');
-                  },
-                },
-              )
-            }
-          />
-        )}
-
-        {order.merchantId || merchantByName(order.merchantName) ? (
-          <Button
-            variant="secondary"
-            label={t('orders.detail.openStore', { store: order.merchantName })}
-            loading={busyKey === (order.merchantId ?? merchantByName(order.merchantName)?.id)}
-            onPress={() => void shop({ merchantId: order.merchantId ?? merchantByName(order.merchantName)?.id })}
-          />
         ) : null}
+
         {shopFailed ? (
           <Text color="danger" accessibilityLiveRegion="polite">
             {t('wishlist.detail.openFailed')}
           </Text>
         ) : null}
 
-        <Button
-          variant="secondary"
-          label={t('orders.detail.editOrder')}
-          onPress={() => router.push(`/order/edit/${order.id}`)}
-        />
-
-        {order.items.length > 0 ? (
+        {/* Shipments */}
+        {ships.length === 0 ? (
           <View style={{ gap: spacing.xs }}>
-            <Text variant="headline">{t('orders.detail.itemsHeading')}</Text>
-            <View
-              style={{
-                borderRadius: radius.lg,
-                borderWidth: 1,
-                borderColor: colors.border,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                  padding: spacing.sm,
-                  backgroundColor: colors.surface,
-                }}
-              >
-                <Text variant="caption" color="textSecondary" style={{ width: 56, textAlign: 'center' }}>
-                  {t('orders.detail.tableImage')}
-                </Text>
-                <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>
-                  {t('orders.detail.tableItem')}
-                </Text>
-                <Text variant="caption" color="textSecondary" style={{ width: 44, textAlign: 'center' }}>
-                  {t('orders.detail.tableQty')}
-                </Text>
-              </View>
-              {order.items.map((it, i) => (
+            <Text color="textSecondary">{t('orders.detail.noShipments')}</Text>
+            <Button
+              variant="secondary"
+              label={t('edit.shipment.add')}
+              onPress={() => router.push(`/shipment/${order.id}`)}
+            />
+          </View>
+        ) : (
+          ships.map((s, i) => (
+            <ShipmentCard
+              key={s.id}
+              order={order}
+              shipment={s}
+              index={i}
+              total={ships.length}
+              archived={archived}
+              onReceived={markAsReceived}
+              receiving={markReceived.isPending}
+            />
+          ))
+        )}
+
+        {/* Products: image first, three at a time */}
+        {items.length > 0 ? (
+          <View
+            style={{
+              gap: spacing.xs,
+              padding: spacing.md,
+              borderRadius: radius.xl,
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text variant="headline">{t('orders.detail.products', { count: items.length })}</Text>
+            {shownItems.map((it, i) => {
+              const open = it.productUrl
+                ? () => void shop({ merchantId: order.merchantId, productUrl: it.productUrl })
+                : undefined;
+              const row = (
                 <View
-                  key={i}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: spacing.sm,
-                    padding: spacing.sm,
-                    borderTopWidth: 1,
+                    paddingVertical: spacing.xs,
+                    borderTopWidth: i === 0 ? 0 : 1,
                     borderTopColor: colors.border,
                   }}
                 >
-                  <View style={{ width: 56, alignItems: 'center' }}>
-                    <Thumb imageUrl={it.imageUrl} fallbackName={it.title} size={48} />
-                  </View>
-                  {it.productUrl ? (
-                    <Pressable
-                      accessibilityRole="link"
-                      accessibilityLabel={`${t('orders.detail.openItem')}: ${it.title}`}
-                      onPress={() => void shop({ merchantId: order.merchantId, productUrl: it.productUrl })}
-                      style={{ flex: 1, gap: 2 }}
-                    >
-                      <Text numberOfLines={3}>{it.title}</Text>
+                  <Thumb imageUrl={it.imageUrl} fallbackName={order.merchantName} size={64} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text numberOfLines={2}>{it.title}</Text>
+                    <Text variant="caption" color="textSecondary">
+                      {`×${it.quantity}`}
+                      {it.unitPrice ? ` · ${formatPrice(it.unitPrice, language)}` : ''}
+                    </Text>
+                    {open ? (
                       <Text variant="caption" color="accentText">
                         {t('orders.detail.openItem')}
                       </Text>
-                    </Pressable>
-                  ) : (
-                    <Text style={{ flex: 1 }} numberOfLines={3}>
-                      {it.title}
-                    </Text>
-                  )}
-                  <Text variant="bodyStrong" style={{ width: 44, textAlign: 'center' }}>
-                    {it.quantity}
-                  </Text>
+                    ) : null}
+                  </View>
                 </View>
-              ))}
-            </View>
+              );
+              return open ? (
+                <Pressable
+                  key={`${it.title}-${i}`}
+                  accessibilityRole="link"
+                  accessibilityLabel={`${t('orders.detail.openItem')}: ${it.title}`}
+                  onPress={open}
+                >
+                  {row}
+                </Pressable>
+              ) : (
+                <View key={`${it.title}-${i}`}>{row}</View>
+              );
+            })}
+            {items.length > 3 ? (
+              <Button
+                variant="ghost"
+                label={allItems ? t('orders.detail.showLess') : t('orders.detail.showAll', { count: items.length })}
+                onPress={() => setAllItems((v) => !v)}
+              />
+            ) : null}
           </View>
         ) : null}
 
-        <View style={{ gap: spacing.sm }}>
-          <Text variant="headline">{t('orders.detail.shipments')}</Text>
-          {ships.length === 0 ? (
-            <Text color="textSecondary">{t('orders.detail.noShipments')}</Text>
-          ) : (
-            ships.map((s) => (
-              <View
-                key={s.id}
-                style={{
-                  gap: spacing.sm,
-                  padding: spacing.md,
-                  borderRadius: radius.xl,
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  ...theme.elevation(1),
-                }}
-              >
-                <StatusBadge status={s.status} />
-                <ShipmentProgress status={s.status} labels />
-                {s.statusText ? kv(t('orders.detail.carrierStatus'), s.statusText) : null}
-                {s.statusSource === 'user' && s.statusAsOf ? (
-                  <Text variant="caption" color="textSecondary">
-                    {t('orders.detail.statusSetByYou', { date: formatDate(s.statusAsOf, language) ?? '' })}
-                  </Text>
-                ) : null}
-                {s.statusSource === 'ai_vision' && s.statusAsOf ? (
-                  <Text variant="caption" color="textSecondary">
-                    {t('orders.detail.statusFromScreenshot', { date: formatDate(s.statusAsOf, language) ?? '' })}
-                  </Text>
-                ) : null}
-                {kv(t('orders.detail.carrier'), s.carrier)}
-                {kv(t('orders.detail.trackingNumber'), s.trackingNumber)}
-                {s.estimatedDeliveryAt
-                  ? kv(
-                      s.estimatedDeliveryFrom ? t('orders.detail.etaWindow') : t('orders.detail.eta'),
-                      `${s.estimatedDeliveryFrom ? `${formatDate(s.estimatedDeliveryFrom, language)} – ` : ''}${formatDate(s.estimatedDeliveryAt, language)}${s.estimatedDeliverySource === 'user' ? ` (${t('orders.detail.etaUser')})` : ''}`,
-                    )
-                  : null}
-                {s.pickup && Object.values(s.pickup).some(Boolean) ? (
-                  <View style={{ gap: spacing.xs, paddingVertical: spacing.xs }}>
-                    <Text variant="label" color="textSecondary">
-                      {t('orders.detail.pickupHeading')}
-                    </Text>
-                    {s.pickup.name ? <Text variant="bodyStrong">{s.pickup.name}</Text> : null}
-                    {s.pickup.address ? <Text>{s.pickup.address}</Text> : null}
-                    {kv(t('orders.detail.pickupUntil'), formatDate(s.pickup.until, language))}
-                    {s.pickup.instructions ? <Text variant="small">{s.pickup.instructions}</Text> : null}
-                    {kv(t('orders.detail.collectionCode'), s.pickup.code)}
-                  </View>
-                ) : null}
-                {s.status !== 'delivered' && s.status !== 'returned' ? <PickupFromMessage shipment={s} /> : null}
-                {kv(t('orders.detail.lastUpdate'), formatDateTime(s.lastVerifiedAt, language))}
-                <Button
-                  variant="ghost"
-                  label={t('edit.shipment.edit')}
-                  onPress={() => router.push(`/shipment/${order.id}?id=${s.id}`)}
-                />
-                {s.status !== 'delivered' && s.status !== 'returned' ? <StatusFromScreenshot shipment={s} /> : null}
-                {s.trackingNumber && s.status !== 'delivered' && s.status !== 'returned' ? (
-                  <RefreshButton shipment={s} />
-                ) : null}
-                <Text variant="label" color="textSecondary">
-                  {t('orders.detail.timeline')}
-                </Text>
-                <Timeline shipment={s} />
-              </View>
-            ))
-          )}
-          <Button
-            variant="secondary"
+        {deleteOrder.isError ? <Text color="danger">{t('common.saveFailed')}</Text> : null}
+      </View>
+
+      {/* Order actions */}
+      <BottomSheet visible={menu} title={t('orders.detail.orderMenu')} onClose={() => setMenu(false)}>
+        <View style={{ gap: 2 }}>
+          <MenuRow
+            icon={<Pencil size={20} color={colors.text} />}
+            label={t('orders.detail.editOrder')}
+            onPress={() => {
+              setMenu(false);
+              router.push(`/order/edit/${order.id}`);
+            }}
+          />
+          {merchant ? (
+            <MenuRow
+              icon={<Store size={20} color={colors.text} />}
+              label={t('orders.detail.openStore', { store: order.merchantName })}
+              onPress={() => {
+                setMenu(false);
+                void shop({ merchantId: order.merchantId ?? merchant.id });
+              }}
+            />
+          ) : null}
+          <MenuRow
+            icon={<PackagePlus size={20} color={colors.text} />}
             label={t('edit.shipment.add')}
-            onPress={() => router.push(`/shipment/${order.id}`)}
+            onPress={() => {
+              setMenu(false);
+              router.push(`/shipment/${order.id}`);
+            }}
+          />
+          {archived ? (
+            <MenuRow
+              icon={<Undo2 size={20} color={colors.text} />}
+              label={t('orders.receive.restore')}
+              onPress={() => {
+                setMenu(false);
+                restore.mutate(order.id);
+              }}
+            />
+          ) : (
+            <MenuRow
+              icon={<Check size={20} color={colors.text} />}
+              label={t('orders.receive.received')}
+              onPress={() => {
+                setMenu(false);
+                markAsReceived();
+              }}
+            />
+          )}
+        </View>
+        <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.xs }}>
+          <MenuRow
+            danger
+            icon={<Trash2 size={20} color={colors.danger} />}
+            label={t('orders.detail.delete')}
+            onPress={() => {
+              setMenu(false);
+              void remove();
+            }}
           />
         </View>
-
-        {deleteOrder.isError ? <Text color="danger">{t('common.saveFailed')}</Text> : null}
-        <Button
-          variant="ghost"
-          label={t('orders.detail.delete')}
-          loading={deleteOrder.isPending}
-          onPress={() => void remove()}
-        />
-      </View>
+      </BottomSheet>
     </Screen>
   );
 }

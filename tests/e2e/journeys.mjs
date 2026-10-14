@@ -260,6 +260,7 @@ try {
     await waitText('check everything before saving', 60_000);
     await clickBtn('Save order');
     await waitText('JRN-4471', 30_000);
+    await clickBtn('Order actions');
     await clickBtn('Edit order');
     await waitText('Edit order');
     await fill('Order number (Optional)', 'JRN-4472');
@@ -269,6 +270,7 @@ try {
 
   // 6 ───────── multiple shipments
   await step('6  Add a second shipment to the order', async () => {
+    await clickBtn('Order actions');
     await clickBtn('Add a shipment');
     await waitText('Add a shipment');
     await fill('Carrier (Optional)', 'Israel Post');
@@ -281,13 +283,15 @@ try {
 
   // 7 ───────── update tracking status
   await step('7  Set a shipment status manually (shown as set by you)', async () => {
-    await clickBtn('Edit shipment', { nth: 1 });
+    await clickBtn('Shipment actions', { nth: 1 });
+    await clickBtn('Edit shipment');
     await waitText('Edit shipment');
     await clickBtn('Ready for pickup');
     await clickBtn('Save shipment');
-    await waitText('Set by you', 30_000);
+    await waitText('You set this status', 30_000);
     const t = await text();
     if (!t.includes('Ready for pickup')) throw new Error('status not shown');
+    await shot('order-detail');
   });
 
   // 8 ───────── duplicate import

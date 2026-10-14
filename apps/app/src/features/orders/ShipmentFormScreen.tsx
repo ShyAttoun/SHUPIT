@@ -78,7 +78,7 @@ export function buildShipmentPayload(
 }
 
 export function ShipmentFormScreen() {
-  const { orderId, id } = useLocalSearchParams<{ orderId: string; id?: string }>();
+  const { orderId, id, manual } = useLocalSearchParams<{ orderId: string; id?: string; manual?: string }>();
   const { t } = useTranslation();
   const { spacing } = useTheme();
   const router = useRouter();
@@ -89,7 +89,7 @@ export function ShipmentFormScreen() {
 
   const [f, setF] = useState<Form>(empty);
   const [loaded, setLoaded] = useState(!id);
-  const [manualPickup, setManualPickup] = useState(false);
+  const [manualPickup, setManualPickup] = useState(manual === 'pickup');
   const [errors, setErrors] = useState<Partial<Record<'etaFrom' | 'etaTo' | 'pickupUntil', string>>>({});
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
