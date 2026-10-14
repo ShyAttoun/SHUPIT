@@ -108,6 +108,12 @@ export const en = {
     saveProductFromImage: 'Save as a product',
     privacy: 'Nothing is sent for AI reading until you choose an action and agree.',
   },
+  shareTip: {
+    title: 'Save a product straight from any app',
+    body: 'In a store’s app or your browser, tap Share and choose SHUPIT — the product is added to your wishlist.',
+    installFirst: 'Install SHUPIT on your phone first (Settings → Install) so it shows up in the Share menu.',
+    ios: 'iPhone and iPad don’t support sharing into web apps yet. Copy the product link and paste it in “Add a product”.',
+  },
   install: {
     title: 'Install the app',
     body: 'Add SHUPIT to your home screen for quick access and sharing from other apps.',

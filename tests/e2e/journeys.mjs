@@ -219,6 +219,7 @@ try {
   // 3 ───────── save + edit product from a link
   await step('3  Save a product from a link, then edit it', async () => {
     await go('/product/add');
+    await waitText('Save a product straight from any app'); // share-to-SHUPIT tip is visible
     await fill('Paste a product link', 'https://www.apple.com/shop/buy-iphone/iphone-16');
     await clickBtn('Get details');
     await waitText('Check the details', 45_000);

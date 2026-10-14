@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { MerchantLogo } from '@/components/MerchantLogo';
+import { ShareTip } from '@/features/share/ShareTip';
 import { useShopNow } from '@/features/stores/useShopNow';
 import { groupByBrand } from './grouping';
 import { ProductCard } from './ProductCard';
@@ -101,13 +102,14 @@ export function WishlistScreen() {
 
   if (all.length === 0 && cols.length === 0) {
     return (
-      <Screen>
+      <Screen scroll>
         <EmptyState
           icon={<Heart size={32} color={colors.accentText} />}
           title={t('wishlist.emptyTitle')}
           body={t('wishlist.emptyBody')}
           action={addButton}
         />
+        <ShareTip dismissible={false} />
       </Screen>
     );
   }
@@ -116,6 +118,7 @@ export function WishlistScreen() {
     <Screen scroll>
       <View style={{ gap: spacing.md }}>
         {addButton}
+        <ShareTip />
         <SearchField value={query} onChangeText={setQuery} placeholder={t('wishlist.searchPlaceholder')} />
 
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
