@@ -14,7 +14,7 @@ import { useShopNow } from './useShopNow';
 
 export function StoresScreen() {
   const { t } = useTranslation();
-  const { colors, spacing, hitTarget } = useTheme();
+  const { colors, spacing, hitTarget, radius } = useTheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ pick?: string }>();
   const favorites = useFavoriteStores();
@@ -122,6 +122,35 @@ export function StoresScreen() {
                 </Text>
               ) : null}
               {saveFavorites.isError ? <Text color="danger">{t('common.saveFailed')}</Text> : null}
+
+              {!q && visible.length > 3 ? (
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  {visible.slice(0, 3).map((m) => (
+                    <Pressable
+                      key={m.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t('stores.shopNow')}: ${m.name}`}
+                      onPress={() => void shop({ merchantId: m.id })}
+                      style={({ pressed }) => ({
+                        flex: 1,
+                        alignItems: 'center',
+                        gap: spacing.xs,
+                        padding: spacing.md,
+                        borderRadius: radius.xl,
+                        backgroundColor: colors.accentSoft,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        transform: [{ scale: pressed ? 0.97 : 1 }],
+                      })}
+                    >
+                      <MerchantLogo name={m.name} domain={m.domains[0]} size={64} />
+                      <Text variant="label" numberOfLines={1}>
+                        {m.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
 
               {visible.length === 0 ? (
                 <Text color="textSecondary">{t('stores.noResults')}</Text>

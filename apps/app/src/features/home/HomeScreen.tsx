@@ -9,7 +9,7 @@ import { View } from 'react-native';
 import { ListRow } from '@/components/ListRow';
 import { Section } from '@/components/Section';
 import { StatusBadge } from '@/components/StatusBadge';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
+import { Button, EmptyState, Grid, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
 import { arrivingSoon, isActiveShipment, useOrders, useShipments, type ShipmentDoc } from '@/features/orders/hooks';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate } from '@/lib/format';
@@ -169,6 +169,7 @@ export function HomeScreen() {
     <Screen scroll>
       <View style={{ gap: spacing.lg }}>
         {hero}
+        <Grid>
         {updates.length > 0 ? (
           <Section
             title={t('notifications.title')}
@@ -233,6 +234,7 @@ export function HomeScreen() {
         >
           {recent.map(orderRow)}
         </Section>
+        </Grid>
         {quickActions}
       </View>
     </Screen>

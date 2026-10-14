@@ -5,7 +5,7 @@ import { Platform, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { MerchantLogo } from '@/components/MerchantLogo';
 import { Section } from '@/components/Section';
-import { Button, Text, TextField, useTheme } from '@/design';
+import { BottomSheet, Button, Text, TextField, useTheme, useToast } from '@/design';
 import { couponsForFavorites, useCouponActions, useCoupons } from '@/features/coupons/hooks';
 import { useTranslation } from '@/i18n';
 
@@ -19,16 +19,15 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
   const [store, setStore] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [note, setNote] = useState('');
-  const [copied, setCopied] = useState<string | null>(null);
+  const toast = useToast();
 
   if (favoriteIds.length === 0) return null;
   const list = couponsForFavorites(coupons.data ?? [], favoriteIds);
 
-  const copy = async (id: string, value: string) => {
+  const copy = async (_id: string, value: string) => {
     try {
       if (Platform.OS === 'web' && navigator.clipboard) await navigator.clipboard.writeText(value);
-      setCopied(id);
-      setTimeout(() => setCopied((c) => (c === id ? null : c)), 2000);
+      toast.show(t('home.coupons.copied'));
     } catch {
       // clipboard unavailable: the code stays visible for manual copy
     }
@@ -46,12 +45,10 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
     <Section
       title={t('home.coupons.title')}
       action={
-        adding ? undefined : (
-          <Button variant="ghost" label={t('home.coupons.add')} onPress={() => setAdding(true)} />
-        )
+        <Button variant="ghost" label={t('home.coupons.add')} onPress={() => setAdding(true)} />
       }
     >
-      {list.length === 0 && !adding ? (
+      {list.length === 0 ? (
         <Text color="textSecondary">{t('home.coupons.empty')}</Text>
       ) : null}
 
@@ -81,7 +78,7 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
             </View>
             <Button
               variant="secondary"
-              label={copied === c.id ? t('home.coupons.copied') : t('home.coupons.copy')}
+              label={t('home.coupons.copy')}
               icon={<Copy size={16} color={colors.text} />}
               onPress={() => void copy(c.id, c.code)}
             />
@@ -97,31 +94,24 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
         );
       })}
 
-      {adding ? (
-        <View style={{ gap: spacing.sm }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
-            {favoriteIds.map((id) => (
-              <Chip
-                key={id}
-                label={getMerchant(id)?.name ?? id}
-                selected={(store ?? favoriteIds[0]) === id}
-                onPress={() => setStore(id)}
-              />
-            ))}
-          </View>
-          <TextField label={t('home.coupons.code')} value={code} onChangeText={setCode} maxLength={60} autoCapitalize="characters" />
-          <TextField label={t('home.coupons.note')} value={note} onChangeText={setNote} maxLength={200} />
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <Button
-              label={t('common.save')}
-              disabled={!code.trim()}
-              loading={add.isPending}
-              onPress={() => void save()}
+      <BottomSheet visible={adding} title={t('home.coupons.add')} onClose={() => setAdding(false)}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+          {favoriteIds.map((id) => (
+            <Chip
+              key={id}
+              label={getMerchant(id)?.name ?? id}
+              selected={(store ?? favoriteIds[0]) === id}
+              onPress={() => setStore(id)}
             />
-            <Button variant="ghost" label={t('common.cancel')} onPress={() => setAdding(false)} />
-          </View>
+          ))}
         </View>
-      ) : null}
+        <TextField label={t('home.coupons.code')} value={code} onChangeText={setCode} maxLength={60} autoCapitalize="characters" />
+        <TextField label={t('home.coupons.note')} value={note} onChangeText={setNote} maxLength={200} />
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <Button label={t('common.save')} disabled={!code.trim()} loading={add.isPending} onPress={() => void save()} />
+          <Button variant="ghost" label={t('common.cancel')} onPress={() => setAdding(false)} />
+        </View>
+      </BottomSheet>
     </Section>
   );
 }

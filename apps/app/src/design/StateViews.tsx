@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { Animated, View } from 'react-native';
+import { AccessibilityInfo, Animated, View } from 'react-native';
 import { Button } from './Button';
 import { Text } from './Text';
 import { useTheme } from './theme';
@@ -80,14 +80,22 @@ function SkeletonBlock({ height, width = '100%' }: { height: number; width?: num
   const opacity = useRef(new Animated.Value(0.5)).current;
 
   useEffect(() => {
-    const loop = Animated.loop(
+    let loop: Animated.CompositeAnimation | null = null;
+    let alive = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
+      if (!alive || reduce) return;
+      loop = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
         Animated.timing(opacity, { toValue: 0.5, duration: 700, useNativeDriver: true }),
       ]),
-    );
-    loop.start();
-    return () => loop.stop();
+      );
+      loop.start();
+    });
+    return () => {
+      alive = false;
+      loop?.stop();
+    };
   }, [opacity]);
 
   return (

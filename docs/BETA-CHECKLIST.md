@@ -90,4 +90,5 @@ notification unread/open/read → data export → Hebrew/RTL check and account d
 - Design foundation: breakpoints, elevation, gradients, easing tokens; one nav component (bottom bar on phones/tablets, side rail from 1024px, on the start edge); responsive `Grid`; bounded `Section` panels.
 - Home: hero with data-backed summary, verified price drops (only user-verified prices, same currency), liked carousel, coupons, stage-based shipment progress (stage only, never an invented percentage/position).
 - Orders, Stores, Wishlist: responsive grids; Orders/Detail show shipment stage progress.
-- Not done yet: dedicated discovery layout for Stores (categories, featured row), product detail/price-history visual rework, toast/bottom-sheet primitives, skeleton loaders, page transitions, side panels on desktop, screenshot review with real data per breakpoint.
+- Also added: Toast, BottomSheet (coupon form), reduced-motion-aware skeletons, featured favorites row on Stores, Home sections in a responsive grid.
+- Not done: store categories/filters (the merchant catalog has no category data), page transitions, desktop side panels, price-history chart rework, screenshot review with real data per breakpoint.
