@@ -3,7 +3,9 @@ import { Bell, Heart, Home, Package, Store, UserRound } from 'lucide-react-nativ
 import { useUnreadCount } from '@/features/notifications/hooks';
 import { Text } from '@/design';
 import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LogoMark, useTheme } from '@/design';
+import { ThemeToggle } from '@/design/ThemeToggle';
 import { useTranslation } from '@/i18n';
 
 export default function TabsLayout() {
@@ -11,6 +13,7 @@ export default function TabsLayout() {
   const { t } = useTranslation();
   const router = useRouter();
   const unread = useUnreadCount();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -73,12 +76,20 @@ export default function TabsLayout() {
             >
               <UserRound size={24} color={colors.text} />
             </Pressable>
+            <ThemeToggle />
           </View>
         ),
         tabBarActiveTintColor: colors.accentText,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { backgroundColor: colors.background, borderTopColor: colors.border },
-        tabBarLabelStyle: textStyle('caption'),
+        // Room under the labels so they are not cut off at the bottom edge.
+        tabBarStyle: {
+          backgroundColor: colors.background,
+          borderTopColor: colors.border,
+          height: 64 + insets.bottom,
+          paddingTop: spacing.xs,
+          paddingBottom: spacing.xs + insets.bottom,
+        },
+        tabBarLabelStyle: { ...textStyle('caption'), marginBottom: spacing.xxs },
       }}
     >
       <Tabs.Screen

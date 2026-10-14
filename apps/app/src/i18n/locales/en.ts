@@ -162,6 +162,8 @@ export const en = {
   },
   header: {
     settings: 'Profile and settings',
+    lightTheme: 'Switch to light theme',
+    darkTheme: 'Switch to dark theme',
   },
   home: {
     emptyTitle: 'Nothing on its way yet',
@@ -305,6 +307,8 @@ export const en = {
     noResults: 'No orders match your search',
     items_one: '{{count}} item',
     items_other: '{{count}} items',
+    itemAndMore_one: '{{title}} + 1 more',
+    itemAndMore_other: '{{title}} + {{count}} more',
     import: {
       chooseTitle: 'How do you want to add it?',
       screenshot: 'Upload a screenshot',

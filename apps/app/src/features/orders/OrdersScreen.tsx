@@ -1,8 +1,10 @@
+import { getMerchant, merchantByName } from '@shupit/contracts';
 import { useRouter } from 'expo-router';
 import { Package, Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { MerchantLogo } from '@/components/MerchantLogo';
 import { ListRow } from '@/components/ListRow';
 import { SearchField } from '@/components/SearchField';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -111,13 +113,31 @@ export function OrdersScreen() {
           visible.map((o) => {
             const ships = shipmentsByOrder.get(o.id) ?? [];
             const first = ships[0];
+            const merchant = getMerchant(o.merchantId) ?? merchantByName(o.merchantName);
+            const firstItem = o.items[0];
+            const title = firstItem
+              ? o.items.length > 1
+                ? t('orders.itemAndMore', { title: firstItem.title, count: o.items.length - 1 })
+                : firstItem.title
+              : o.merchantName;
             return (
               <ListRow
                 key={o.id}
+                accessibilityLabel={`${o.merchantName}, ${title}`}
                 leading={
-                  o.items[0]?.imageUrl ? <Thumb imageUrl={o.items[0].imageUrl} fallbackName={o.merchantName} size={52} /> : undefined
+                  <View style={{ width: 64, alignItems: 'center', gap: spacing.xxs }}>
+                    <Text variant="caption" color="textSecondary" numberOfLines={1}>
+                      {o.merchantName}
+                    </Text>
+                    <MerchantLogo name={o.merchantName} domain={merchant?.domains[0]} size={48} />
+                  </View>
                 }
-                title={o.merchantName}
+                trailing={
+                  firstItem?.imageUrl ? (
+                    <Thumb imageUrl={firstItem.imageUrl} fallbackName={o.merchantName} size={52} />
+                  ) : undefined
+                }
+                title={title}
                 subtitle={[
                   o.externalOrderId,
                   formatDate(o.purchasedAt ?? o.createdAt, language),
