@@ -79,7 +79,9 @@ service cloud.firestore {
 
     // ---- Price Watch ----------------------------------------------------
     match /priceWatchSubscriptions/{id} {
-      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      // `resource == null` lets the owner read a subscription that does not exist yet
+      // (a get on a missing document would otherwise be denied, blocking the first enable).
+      allow read: if signedIn() && (resource == null || resource.data.uid == request.auth.uid);
       allow create: if signedIn()
         && request.resource.data.uid == request.auth.uid
         && noServerFields();

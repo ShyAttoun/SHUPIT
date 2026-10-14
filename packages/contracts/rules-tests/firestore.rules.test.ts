@@ -86,6 +86,10 @@ describe('price watch', () => {
     );
   });
 
+  it('reading a subscription that does not exist yet is allowed (first enable)', async () => {
+    await assertSucceeds(getDoc(doc(alice(), 'priceWatchSubscriptions/alice_new')));
+  });
+
   it('subscription is private to its owner', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'priceWatchSubscriptions/s1'), { uid: 'alice' });

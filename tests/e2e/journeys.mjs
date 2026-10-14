@@ -222,9 +222,15 @@ try {
     await input.uploadFile('tests/e2e/fixtures/product-shot.png');
     await waitText('Let SHUPIT read your screenshots?', 20_000);
     await clickBtn('I agree');
-    await waitText('Aurora', 60_000);
-    const t = await text();
-    if (!/89\.9/.test(t)) throw new Error('price not read from the screenshot');
+    // Values live in inputs, which innerText does not include.
+    await page.waitForFunction(
+      () => [...document.querySelectorAll('input')].some((i) => i.getAttribute('aria-label') === 'Product name' && /Aurora/i.test(i.value)),
+      { timeout: 90_000 },
+    );
+    const price = await page.evaluate(
+      () => [...document.querySelectorAll('input')].find((i) => (i.getAttribute('aria-label') ?? '').startsWith('Price'))?.value,
+    );
+    if (!/89[.,]9/.test(price ?? '')) throw new Error(`price not read from the screenshot (got "${price}")`);
   });
 
   // 5 ───────── create + edit an order from pasted text
@@ -290,14 +296,26 @@ try {
       { timeout: 20_000 },
     );
     await clickInput('Track price');
-    await page.waitForFunction(
-      () => document.querySelector('input[aria-label="Track price"]')?.checked === true,
-      { timeout: 15_000 },
+    // Verify the toggle really persisted (server-side view of the subscription).
+    let enabled = false;
+    const login = await idt('signInWithPassword', { email, password, returnSecureToken: true });
+    for (let i = 0; i < 20 && !enabled; i++) {
+      await sleep(1000);
+      const r = await fetch(
+        `https://firestore.googleapis.com/v1/projects/shupit-8a4f5/databases/(default)/documents/priceWatchSubscriptions/${login.localId}_${productId}`,
+        { headers: { authorization: `Bearer ${login.idToken}` } },
+      );
+      if (r.ok) enabled = (await r.json()).fields?.enabled?.booleanValue === true;
+    }
+    if (!enabled) throw new Error('Track price toggle did not persist');
+    const lg = await idt('signInWithPassword', { email, password, returnSecureToken: true });
+    const pr = await fetch(
+      `https://firestore.googleapis.com/v1/projects/shupit-8a4f5/databases/(default)/documents/users/${lg.localId}/savedProducts/${productId}`,
+      { headers: { authorization: `Bearer ${lg.idToken}` } },
     );
-    await sleep(1500);
-    const doc = await api('GET', '/api/account/export');
-    const prod = doc.json?.userData?.collections?.savedProducts?.find((p) => p.id === productId)?.data;
-    if (!prod?.productUrl) throw new Error('saved product has no url');
+    const fields = (await pr.json()).fields ?? {};
+    const prod = { productUrl: fields.productUrl?.stringValue, title: fields.title?.stringValue };
+    if (!prod.productUrl) throw new Error('saved product has no url');
     const base = { pageUrl: prod.productUrl, pageTitle: prod.title };
     let r = await api('POST', '/api/price-observations', { ...base, price: { amountMinor: 399900, currency: 'ILS' }, confirmed: true });
     if (r.status !== 200) throw new Error(`first observation ${r.status}`);
