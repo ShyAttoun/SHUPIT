@@ -1,4 +1,4 @@
-import { getMerchant, type Merchant } from '@shupit/contracts';
+import { getMerchant, merchantMatchesQuery, type Merchant } from '@shupit/contracts';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowDown, ArrowUp, Plus, Store } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
@@ -77,7 +77,7 @@ export function StoresScreen() {
   const visible = favoriteIds
     .map((id) => getMerchant(id))
     .filter((m): m is Merchant => !!m)
-    .filter((m) => !q || m.name.toLowerCase().includes(q) || m.domains.some((d) => d.includes(q)));
+    .filter((m) => merchantMatchesQuery(m, q));
 
   const persistOrder = (ids: string[]) => saveFavorites.mutate(ids);
 

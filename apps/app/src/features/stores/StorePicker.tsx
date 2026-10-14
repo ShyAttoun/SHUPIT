@@ -1,11 +1,11 @@
-import { merchantCatalog } from '@shupit/contracts';
+import { merchantMatchesQuery, merchantsForPicker } from '@shupit/contracts';
 import { Check } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { MerchantLogo } from '@/components/MerchantLogo';
 import { SearchField } from '@/components/SearchField';
 import { Text, useTheme } from '@/design';
-import { useTranslation } from '@/i18n';
+import { useAppLanguage, useTranslation } from '@/i18n';
 
 /** Searchable multi-select grid of app-icon tiles with the store name underneath. */
 export function StorePicker({
@@ -16,15 +16,14 @@ export function StorePicker({
   onToggle: (merchantId: string) => void;
 }) {
   const { t } = useTranslation();
+  const { language } = useAppLanguage();
   const { colors, spacing, radius, hitTarget } = useTheme();
   const [query, setQuery] = useState('');
 
   const items = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return merchantCatalog.filter(
-      (m) => !q || m.name.toLowerCase().includes(q) || m.domains.some((d) => d.includes(q)),
-    );
-  }, [query]);
+    // Israeli stores come first in Hebrew; search also matches Hebrew names and domains.
+    return merchantsForPicker(language).filter((m) => merchantMatchesQuery(m, query));
+  }, [query, language]);
 
   return (
     <View style={{ gap: spacing.md }}>

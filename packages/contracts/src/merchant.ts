@@ -13,9 +13,16 @@ export const merchant = z.object({
   homepageUrl: z.string().url(),
   /** Ordered preference; the router picks the first that is configured and verified. */
   routing: z.array(routingKind).min(1),
-  affiliateProgramId: z.string().optional(),
+  /** null = explicitly no program. Set only after an approved program exists. */
+  affiliateProgramId: z.string().nullable().optional(),
   priceProviderId: z.string().optional(),
   active: z.boolean(),
+  /** Shopping category, used for grouping and future filters. */
+  category: z.enum(['general', 'electronics', 'appliances', 'home', 'fashion', 'sports', 'beauty', 'baby', 'books', 'toys', 'health', 'travel']).optional(),
+  /** Where the store matters most to our users; Israeli stores are listed first in Hebrew. */
+  market: z.enum(['il', 'global']).optional(),
+  /** Extra names people may type when searching (e.g. the Hebrew name). */
+  aliases: z.array(z.string().min(1)).optional(),
 });
 export type Merchant = z.infer<typeof merchant>;
 

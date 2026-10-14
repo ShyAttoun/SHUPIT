@@ -10,6 +10,8 @@ import {
   parsePriceNumber,
   toMinor,
   getMerchant,
+  merchantMatchesQuery,
+  merchantsForPicker,
 } from './index';
 
 test('normalizeProductUrl strips tracking, hash, www and trailing slash', () => {
@@ -71,4 +73,56 @@ test('orderCreateInput validates and rejects junk', () => {
   assert.equal(ok.success, true);
   const bad = orderCreateInput.safeParse({ merchantName: '', items: [], shipments: [] });
   assert.equal(bad.success, false);
+});
+
+const ORIGINAL_21 = [
+  'amazon', 'aliexpress', 'shein', 'temu', 'ebay', 'etsy', 'iherb', 'asos', 'zara', 'hm', 'nike', 'adidas',
+  'ikea', 'apple', 'ksp', 'ivory', 'terminalx', 'castro', 'fox', 'superpharm', 'zer4u',
+];
+
+test('expanded catalog: 61 unique merchants, original 21 preserved in order', () => {
+  assert.equal(merchantCatalog.length, 61);
+  assert.deepEqual(merchantCatalog.slice(0, 21).map((x) => x.id), ORIGINAL_21);
+  assert.equal(new Set(merchantCatalog.map((x) => x.id)).size, 61);
+});
+
+test('no two merchants share a normalized domain', () => {
+  const seen = new Map<string, string>();
+  for (const x of merchantCatalog) {
+    for (const d of x.domains) {
+      const key = d.toLowerCase().replace(/^www\./, '');
+      assert.ok(!seen.has(key), `${key} is used by both ${seen.get(key)} and ${x.id}`);
+      seen.set(key, x.id);
+    }
+  }
+});
+
+test('new merchants use web routing and explicitly have no affiliate program', () => {
+  const added = merchantCatalog.slice(21);
+  assert.equal(added.length, 40);
+  for (const x of added) {
+    assert.deepEqual(x.routing, ['web'], x.id);
+    assert.equal(x.affiliateProgramId, null, x.id);
+    assert.ok(x.category, `${x.id} has a category`);
+    assert.ok(x.market === 'il' || x.market === 'global', x.id);
+  }
+});
+
+test('search matches Hebrew aliases and domains; Hebrew picker lists Israeli stores first', () => {
+  const payngo = getMerchant('payngo')!;
+  assert.ok(merchantMatchesQuery(payngo, 'מחסני'));
+  assert.ok(merchantMatchesQuery(payngo, 'payngo'));
+  assert.ok(!merchantMatchesQuery(payngo, 'nike'));
+  const he = merchantsForPicker('he');
+  const firstGlobal = he.findIndex((x) => x.market !== 'il');
+  assert.ok(he.slice(0, firstGlobal).every((x) => x.market === 'il'));
+  assert.ok(he.slice(firstGlobal).every((x) => x.market !== 'il'));
+  assert.equal(merchantsForPicker('en'), merchantCatalog);
+});
+
+test('new domains resolve to the right merchant, lookalikes do not', () => {
+  assert.equal(merchantForUrl('https://www.payngo.co.il/p/1')?.id, 'payngo');
+  assert.equal(merchantForUrl('https://shop.mango.com/il/women')?.id, 'mango');
+  assert.equal(merchantForUrl('https://www.next.co.uk/style/x')?.id, 'next');
+  assert.equal(merchantForUrl('https://evilnext.co.uk/'), undefined);
 });

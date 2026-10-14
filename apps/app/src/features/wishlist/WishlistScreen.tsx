@@ -1,4 +1,4 @@
-import { getMerchant } from '@shupit/contracts';
+import { getMerchant, merchantMatchesQuery } from '@shupit/contracts';
 import { useRouter } from 'expo-router';
 import { Heart, Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
@@ -33,7 +33,7 @@ export function WishlistScreen() {
     return (products.data ?? []).filter(
       (p) =>
         (!active || p.collectionIds.includes(active)) &&
-        (!q || p.title.toLowerCase().includes(q) || getMerchant(p.merchantId)?.name.toLowerCase().includes(q)),
+        (!q || p.title.toLowerCase().includes(q) || (() => { const m = getMerchant(p.merchantId); return !!m && merchantMatchesQuery(m, q); })()),
     );
   }, [products.data, active, query]);
   const brandGroups = useMemo(() => groupByBrand(visible), [visible]);
