@@ -168,6 +168,19 @@ export const he: Translations = {
     darkTheme: 'מעבר לתצוגה כהה',
   },
   home: {
+    hero: {
+      hello: 'היי {{name}}',
+      helloAnon: 'ברוך שובך',
+      pickup_one: 'חבילה אחת מחכה לך בנקודת איסוף.',
+      pickup_other: '{{count}} חבילות מחכות לך בנקודות איסוף.',
+      active_one: 'משלוח אחד בדרך אליך.',
+      active_other: '{{count}} משלוחים בדרך אליך.',
+      calm: 'אין כרגע שום דבר בתנועה. אנחנו לא שופטים. אנחנו עוקבים.',
+      tagline: 'קונים בכל מקום. שומרים כאן.',
+    },
+    drops: 'ירידות מחיר מאומתות',
+    dropsNote: 'לפי מחירים שאימתת בעמוד החנות.',
+    dropFrom: 'היה {{price}}',
     coupons: {
       title: 'קופונים לחנויות שלך',
       add: 'הוסף קופון',

@@ -6,7 +6,7 @@ import { Modal, Pressable, View } from 'react-native';
 import { ListRow } from '@/components/ListRow';
 import { MerchantLogo } from '@/components/MerchantLogo';
 import { SearchField } from '@/components/SearchField';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
+import { Button, EmptyState, Grid, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
 import { useTranslation } from '@/i18n';
 import { moveInList, useFavoriteStores, useStoresMutations } from './hooks';
 import { StorePickerScreen } from './StorePickerScreen';
@@ -126,7 +126,7 @@ export function StoresScreen() {
               {visible.length === 0 ? (
                 <Text color="textSecondary">{t('stores.noResults')}</Text>
               ) : (
-                visible.map((m) => {
+                <Grid>{visible.map((m) => {
                   const i = favoriteIds.indexOf(m.id);
                   const first = i === 0;
                   const last = i === favoriteIds.length - 1;
@@ -170,7 +170,7 @@ export function StoresScreen() {
                       }
                     />
                   );
-                })
+                })}</Grid>
               )}
 
               <Text variant="caption" color="textSecondary">

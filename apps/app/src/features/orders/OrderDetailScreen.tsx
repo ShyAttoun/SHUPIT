@@ -8,6 +8,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import type { TrackingEvent } from '@shupit/contracts';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ShipmentProgress } from '@/components/ShipmentProgress';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useAppLanguage, useTranslation } from '@/i18n';
@@ -308,9 +309,18 @@ export function OrderDetailScreen() {
             ships.map((s) => (
               <View
                 key={s.id}
-                style={{ gap: spacing.sm, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface }}
+                style={{
+                  gap: spacing.sm,
+                  padding: spacing.md,
+                  borderRadius: radius.xl,
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  ...theme.elevation(1),
+                }}
               >
                 <StatusBadge status={s.status} />
+                <ShipmentProgress status={s.status} labels />
                 {s.statusText ? kv(t('orders.detail.carrierStatus'), s.statusText) : null}
                 {s.statusSource === 'user' && s.statusAsOf ? (
                   <Text variant="caption" color="textSecondary">

@@ -166,6 +166,19 @@ export const en = {
     darkTheme: 'Switch to dark theme',
   },
   home: {
+    hero: {
+      hello: 'Hi {{name}}',
+      helloAnon: 'Welcome back',
+      pickup_one: '1 package is waiting for you at a pickup point.',
+      pickup_other: '{{count}} packages are waiting for you at pickup points.',
+      active_one: '1 delivery is on its way.',
+      active_other: '{{count}} deliveries are on their way.',
+      calm: 'Nothing in motion right now. We don’t judge. We track.',
+      tagline: 'Shop everywhere. Keep it here.',
+    },
+    drops: 'Verified price drops',
+    dropsNote: 'Based on prices you verified on the store’s page.',
+    dropFrom: 'was {{price}}',
     coupons: {
       title: 'Coupons for your stores',
       add: 'Add a coupon',

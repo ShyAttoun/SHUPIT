@@ -15,6 +15,10 @@ import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate } from '@/lib/format';
 import { notificationRoute, notificationTitle } from '@/features/notifications/format';
 import { CouponsSection } from './CouponsSection';
+import { HomeHero } from './HomeHero';
+import { ShipmentProgress } from '@/components/ShipmentProgress';
+import { Thumb } from '@/components/Thumb';
+import { formatPrice } from '@/lib/format';
 import { WishlistCarousel } from './WishlistCarousel';
 import { useSavedProducts } from '@/features/wishlist/hooks';
 import { useNotificationActions, useNotifications } from '@/features/notifications/hooks';
@@ -81,6 +85,12 @@ export function HomeScreen() {
   const updates = (notifications.data ?? []).filter((n) => !n.readAt).slice(0, 5);
 
   const liked = (saved.data ?? []).slice(0, 12);
+  // Only prices the user verified on the store's page, in the same currency as the saved price.
+  const drops = (saved.data ?? []).filter((p) => {
+    const now = p.latestObservation?.price;
+    return !!now && !!p.savedPrice && now.currency === p.savedPrice.currency && now.amountMinor < p.savedPrice.amountMinor;
+  });
+  const hero = <HomeHero active={active.length} pickup={pickup.length} />;
   const favoriteIds = (favorites.data ?? []).map((f) => f.merchantId);
 
   const quickActions = (
@@ -104,6 +114,8 @@ export function HomeScreen() {
   if (orderList.length === 0) {
     return (
       <Screen scroll>
+        <View style={{ gap: spacing.lg }}>
+        {hero}
         <EmptyState
           icon={<Home size={32} color={colors.accentText} />}
           title={t('home.emptyTitle')}
@@ -116,6 +128,7 @@ export function HomeScreen() {
         ) : null}
         <CouponsSection favoriteIds={favoriteIds} />
         {quickActions}
+        </View>
       </Screen>
     );
   }
@@ -130,6 +143,7 @@ export function HomeScreen() {
         meta={
           <View style={{ gap: 4, marginTop: 4 }}>
             <StatusBadge status={s.status} />
+            <ShipmentProgress status={s.status} />
             {s.estimatedDeliveryAt ? (
               <Text variant="caption" color="textSecondary">
                 {t('orders.detail.eta')}: {formatDate(s.estimatedDeliveryAt, language)}
@@ -154,6 +168,7 @@ export function HomeScreen() {
   return (
     <Screen scroll>
       <View style={{ gap: spacing.lg }}>
+        {hero}
         {updates.length > 0 ? (
           <Section
             title={t('notifications.title')}
@@ -169,6 +184,24 @@ export function HomeScreen() {
                   const route = notificationRoute(n);
                   if (route) router.push(route as never);
                 }}
+              />
+            ))}
+          </Section>
+        ) : null}
+        {drops.length > 0 ? (
+          <Section title={t('home.drops')}>
+            <Text variant="caption" color="textSecondary">
+              {t('home.dropsNote')}
+            </Text>
+            {drops.slice(0, 4).map((p) => (
+              <ListRow
+                key={p.id}
+                leading={<Thumb imageUrl={p.imageUrl} fallbackName={p.title} size={48} />}
+                title={p.title}
+                subtitle={`${formatPrice(p.latestObservation!.price, language)} · ${t('home.dropFrom', {
+                  price: formatPrice(p.savedPrice, language) ?? '',
+                })}`}
+                onPress={() => router.push(`/product/${p.id}`)}
               />
             ))}
           </Section>

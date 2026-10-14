@@ -8,8 +8,9 @@ import { MerchantLogo } from '@/components/MerchantLogo';
 import { ListRow } from '@/components/ListRow';
 import { SearchField } from '@/components/SearchField';
 import { StatusBadge } from '@/components/StatusBadge';
+import { ShipmentProgress } from '@/components/ShipmentProgress';
 import { Thumb } from '@/components/Thumb';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
+import { Button, EmptyState, Grid, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDate, formatPrice } from '@/lib/format';
 import { MapPin } from 'lucide-react-native';
@@ -166,7 +167,7 @@ export function OrdersScreen() {
         {visible.length === 0 ? (
           <Text color="textSecondary">{t('orders.noResults')}</Text>
         ) : (
-          visible.map((o) => {
+          <Grid>{visible.map((o) => {
             const ships = shipmentsByOrder.get(o.id) ?? [];
             const first = ships[0];
             const merchant = getMerchant(o.merchantId) ?? merchantByName(o.merchantName);
@@ -204,6 +205,7 @@ export function OrdersScreen() {
                 meta={
                   <View style={{ marginTop: 4, gap: 4 }}>
                     {first ? <StatusBadge status={first.status} /> : null}
+                    {first ? <ShipmentProgress status={first.status} /> : null}
                     {ships
                       .filter((s) => s.pickup && (s.pickup.name || s.pickup.address))
                       .slice(0, 2)
@@ -220,7 +222,7 @@ export function OrdersScreen() {
                 onPress={() => router.push(`/order/${o.id}`)}
               />
             );
-          })
+          })}</Grid>
         )}
       </View>
     </Screen>

@@ -9,7 +9,7 @@ import { useShopNow } from '@/features/stores/useShopNow';
 import { groupByBrand } from './grouping';
 import { ProductCard } from './ProductCard';
 import { SearchField } from '@/components/SearchField';
-import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
+import { Button, EmptyState, Grid, ErrorState, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
 import { useTranslation } from '@/i18n';
 import { confirmAction } from '@/lib/platform';
 import { useCollections, useSavedProducts, useWishlistMutations } from './hooks';
@@ -204,7 +204,7 @@ export function WishlistScreen() {
                       {t('wishlist.siteHeading', { site: site.host })}
                     </Text>
                   ) : null}
-                  {site.items.map((p) => (
+                  <Grid>{site.items.map((p) => (
                     <ProductCard
                       key={p.id}
                       product={p}
@@ -216,7 +216,7 @@ export function WishlistScreen() {
                       }
                       shopping={busyKey === (p.productUrl ?? p.merchantId ?? '')}
                     />
-                  ))}
+                  ))}</Grid>
                 </View>
               ))}
             </View>

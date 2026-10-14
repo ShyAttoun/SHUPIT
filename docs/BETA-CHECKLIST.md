@@ -85,3 +85,9 @@ notification unread/open/read → data export → Hebrew/RTL check and account d
   - **Coupons have no automatic feed.** They are codes the user saves (`users/{uid}/coupons`) plus an empty, server-managed `partnerCoupons` collection.
 - Evidence: api unit 72/72, emulator 26/26, rules 13/13, app jest 49/49, UI journeys 12/12 (local build against production API), axe 0 critical/serious.
 - Not yet verified: real-device geolocation prompt, Nominatim live lookup (needs the deployed `/api/geocode`).
+
+## Addendum: UI/UX 2.0 (first increments)
+- Design foundation: breakpoints, elevation, gradients, easing tokens; one nav component (bottom bar on phones/tablets, side rail from 1024px, on the start edge); responsive `Grid`; bounded `Section` panels.
+- Home: hero with data-backed summary, verified price drops (only user-verified prices, same currency), liked carousel, coupons, stage-based shipment progress (stage only, never an invented percentage/position).
+- Orders, Stores, Wishlist: responsive grids; Orders/Detail show shipment stage progress.
+- Not done yet: dedicated discovery layout for Stores (categories, featured row), product detail/price-history visual rework, toast/bottom-sheet primitives, skeleton loaders, page transitions, side panels on desktop, screenshot review with real data per breakpoint.
