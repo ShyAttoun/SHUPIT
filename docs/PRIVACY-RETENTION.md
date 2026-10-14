@@ -45,3 +45,8 @@ Collection-group queries need the field overrides in `firestore.indexes.json`.
 - A pickup address you saved is sent (address text only, no identifier) from our server to OpenStreetMap Nominatim to find its coordinates.
 - Results, including "not found", are cached in `geocodeCache` (server-only) and purged after 180 days; coordinates are also stored on the shipment.
 - Your own location is read in the browser only when you choose "Show distance from me"; it is used on the device to compute the distance and is **not sent to or stored by SHUPIT**.
+
+## Phone automation key (SMS forwarding)
+- Optional. A personal key (`shp_…`) lets iPhone Shortcuts / Android Tasker send a delivery SMS to `POST /api/sms-hook`.
+- Only the SHA-256 hash is stored (`automationKeys`, server-only); the plaintext is shown once. Revoke or replace it in Settings; account deletion removes it.
+- The message text is processed in memory by the same AI reader (consent and daily quota apply) and is not stored. Pickup details are applied only when the shipment match is unambiguous.

@@ -23,7 +23,7 @@ async function dumpDoc(ref: DocumentReference): Promise<Json> {
 }
 
 /** Top-level collections that hold documents about a user (by `uid` field). */
-export const UID_COLLECTIONS = ['priceWatchSubscriptions', 'priceAlertEvents', 'affiliateClicks'] as const;
+export const UID_COLLECTIONS = ['priceWatchSubscriptions', 'priceAlertEvents', 'affiliateClicks', 'automationKeys'] as const;
 
 export async function exportAccountData(
   db: Firestore,
@@ -92,7 +92,7 @@ export async function deleteAccountData(db: Firestore, auth: Auth, uid: string):
 
   // 2. Owned documents in shared collections.
   const deletedRelated: Record<string, number> = {};
-  for (const name of ['priceWatchSubscriptions', 'priceAlertEvents', 'rateLimits'] as const) {
+  for (const name of ['priceWatchSubscriptions', 'priceAlertEvents', 'rateLimits', 'automationKeys'] as const) {
     deletedRelated[name] = await deleteByUid(db, name, uid);
   }
 

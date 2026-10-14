@@ -10,6 +10,7 @@ import { useState } from 'react';
 import { useWalkthroughStore } from '@/features/walkthrough/store';
 import { connectExtension, disconnectExtension, type ConnectResult } from '@/lib/extension';
 import { PrivacySection } from '@/features/privacy/PrivacySection';
+import { SmsAutomationSection } from '@/features/privacy/SmsAutomationSection';
 import { useInstall } from '@/lib/pwa';
 import { NotificationPrefsSection } from '@/features/notifications/PrefsSection';
 
@@ -118,6 +119,8 @@ export default function SettingsScreen() {
           label={t('walkthrough.replay')}
           onPress={() => useWalkthroughStore.getState().replay()}
         />
+
+        <SmsAutomationSection />
 
         {Platform.OS === 'web' ? (
           <View style={{ gap: theme.spacing.xs }}>

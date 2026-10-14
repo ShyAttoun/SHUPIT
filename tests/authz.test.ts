@@ -25,6 +25,13 @@ test('every user-facing API endpoint is wrapped in withAuth', () => {
   for (const f of files) {
     const base = f.split('/').pop()!;
     if (PUBLIC.has(base) || f.includes(`/${CRON_DIR}/`) || f.endsWith('tsconfig.json')) continue;
+    // Phone automations authenticate with a personal key (hash lookup) instead of a Firebase token.
+    if (base === 'sms-hook.ts') {
+      const hook = readFileSync(f, 'utf8');
+      assert.match(hook, /uidForKey\(/, 'sms-hook must resolve the user from a personal key');
+      assert.match(hook, /401/, 'sms-hook must reject unknown keys');
+      continue;
+    }
     const src = readFileSync(f, 'utf8');
     const exported = [...src.matchAll(/export (?:const|function|async function) (GET|POST|DELETE|PUT|PATCH)\b/g)].map((m) => m[1]);
     for (const method of exported) {
