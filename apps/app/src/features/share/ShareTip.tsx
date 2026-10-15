@@ -27,7 +27,6 @@ export function ShareTip({ dismissible = true }: { dismissible?: boolean }) {
 
   return (
     <View
-      accessibilityRole="summary"
       style={{
         flexDirection: 'row',
         gap: spacing.sm,
