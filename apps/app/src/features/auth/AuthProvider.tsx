@@ -10,6 +10,7 @@ import {
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { auth } from '@/lib/auth';
+import { useNativeAuth } from './nativeAuth';
 
 type Status = 'loading' | 'signedIn' | 'signedOut';
 
@@ -19,8 +20,11 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  /** Google popup is web-only for now; native needs a dedicated flow. */
+  /** Web: popup. Native: ID-token flow when the OAuth client ids are configured. */
   googleSupported: boolean;
+  /** iOS only (App Store rule: required whenever another social login is offered). */
+  signInWithApple: () => Promise<void>;
+  appleSupported: boolean;
   signOut: () => Promise<void>;
 }
 
@@ -29,6 +33,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<Status>('loading');
+  const native = useNativeAuth();
 
   useEffect(
     () =>
@@ -45,9 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUpWithEmail = useCallback(async (email: string, password: string) => {
     await createUserWithEmailAndPassword(auth, email, password);
   }, []);
+  const { signInWithGoogleNative, signInWithAppleNative } = native;
   const signInWithGoogle = useCallback(async () => {
-    await signInWithPopup(auth, new GoogleAuthProvider());
-  }, []);
+    if (Platform.OS === 'web') await signInWithPopup(auth, new GoogleAuthProvider());
+    else await signInWithGoogleNative();
+  }, [signInWithGoogleNative]);
+  const signInWithApple = useCallback(() => signInWithAppleNative(), [signInWithAppleNative]);
   const signOut = useCallback(() => fbSignOut(auth), []);
 
   const value = useMemo<AuthContextValue>(
@@ -57,10 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       signInWithGoogle,
-      googleSupported: Platform.OS === 'web',
+      googleSupported: Platform.OS === 'web' || native.googleSupported,
+      signInWithApple,
+      appleSupported: native.appleSupported,
       signOut,
     }),
-    [status, user, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut],
+    [status, user, signInWithEmail, signUpWithEmail, signInWithGoogle, signInWithApple, native.googleSupported, native.appleSupported, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

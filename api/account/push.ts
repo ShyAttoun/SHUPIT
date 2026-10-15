@@ -6,11 +6,17 @@ import { withAuth } from '../_lib/withAuth';
 
 export const OPTIONS = preflight;
 
-const body = z.object({
+const webBody = z.object({
   subscription: z.object({
     endpoint: z.string().url().max(1000),
     keys: z.object({ p256dh: z.string().max(200), auth: z.string().max(100) }),
   }),
+  lang: z.enum(['he', 'en']).default('en'),
+});
+
+/** A native app token from the Expo push service, e.g. ExponentPushToken[xxxxxxxx]. */
+const expoBody = z.object({
+  expoToken: z.string().regex(/^Expo(nent)?PushToken\[[\w-]{10,60}\]$/),
   lang: z.enum(['he', 'en']).default('en'),
 });
 
@@ -22,8 +28,27 @@ export const GET = withAuth(async (request, user) => {
 
 /** POST → register this browser for push (call only after the user granted permission). */
 export const POST = withAuth(async (request, user) => {
+  const raw = await readJson(request);
+  const expo = expoBody.safeParse(raw);
+  if (expo.success) {
+    const id = subscriptionId(expo.data.expoToken);
+    await adminDb()
+      .collection('users')
+      .doc(user.uid)
+      .collection('pushSubscriptions')
+      .doc(id)
+      .set({
+        kind: 'expo',
+        expoToken: expo.data.expoToken,
+        endpoint: expo.data.expoToken,
+        keys: { p256dh: '', auth: '' },
+        lang: expo.data.lang,
+        createdAt: new Date().toISOString(),
+      });
+    return json({ ok: true, id }, 200, {}, request);
+  }
   if (!pushConfigured()) return errorResponse(503, 'not_configured', 'Push is not configured');
-  const parsed = body.safeParse(await readJson(request));
+  const parsed = webBody.safeParse(raw);
   if (!parsed.success) return errorResponse(400, 'validation', 'Invalid subscription');
   const { subscription, lang } = parsed.data;
   const id = subscriptionId(subscription.endpoint);
@@ -43,7 +68,8 @@ export const POST = withAuth(async (request, user) => {
 
 /** DELETE ?endpoint= (or no param = all devices) → unregister. */
 export const DELETE = withAuth(async (request, user) => {
-  const endpoint = new URL(request.url).searchParams.get('endpoint');
+  const params = new URL(request.url).searchParams;
+  const endpoint = params.get('endpoint') ?? params.get('expoToken');
   const col = adminDb().collection('users').doc(user.uid).collection('pushSubscriptions');
   if (endpoint) {
     await col.doc(subscriptionId(endpoint)).delete();

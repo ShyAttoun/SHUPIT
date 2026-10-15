@@ -6,16 +6,73 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#071625",
+    "backgroundColor": "#FFFFFF",
+    "icon": "./assets/brand/icon-1024.png",
+    "ios": {
+      "bundleIdentifier": "il.co.shupit.app",
+      "supportsTablet": true,
+      "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:app.shupit.co.il"
+      ],
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "SHUPIT reads a screenshot or picture you choose to add a product or order.",
+        "NSCameraUsageDescription": "SHUPIT can take a photo of a product or order page when you ask.",
+        "NSLocationWhenInUseUsageDescription": "SHUPIT uses your location only when you ask for the distance to a pickup point. It stays on your device.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "il.co.shupit.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/brand/icon-adaptive-foreground.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.shupit.co.il"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-localization"
+      "expo-localization",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-share-intent",
+        {
+          "iosActivationRules": {
+            "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
+            "NSExtensionActivationSupportsText": true,
+            "NSExtensionActivationSupportsImageWithMaxCount": 1
+          },
+          "androidIntentFilters": [
+            "text/*",
+            "image/*"
+          ]
+        }
+      ],
+      "expo-notifications"
     ],
     "web": {
       "bundler": "metro",
       "output": "single"
     },
-    "icon": "./assets/brand/icon-512.png"
+    "extra": {
+      "eas": {}
+    }
   }
 }

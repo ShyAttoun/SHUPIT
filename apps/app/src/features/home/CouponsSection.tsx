@@ -9,6 +9,7 @@ import { BottomSheet, Button, Text, TextField, useTheme, useToast } from '@/desi
 import { CouponImportSheet } from '@/features/coupons/CouponImportSheet';
 import { couponsForFavorites, useCouponActions, useCoupons } from '@/features/coupons/hooks';
 import { useTranslation } from '@/i18n';
+import { copyToClipboard } from '@/lib/clipboard';
 
 /** Coupons for the stores the user marked. Honest empty state: there is no automatic coupon feed yet. */
 export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
@@ -28,8 +29,7 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
 
   const copy = async (_id: string, value: string) => {
     try {
-      if (Platform.OS === 'web' && navigator.clipboard) await navigator.clipboard.writeText(value);
-      toast.show(t('home.coupons.copied'));
+      if (await copyToClipboard(value)) toast.show(t('home.coupons.copied'));
     } catch {
       // clipboard unavailable: the code stays visible for manual copy
     }

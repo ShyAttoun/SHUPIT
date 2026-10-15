@@ -9,6 +9,7 @@ import { setConsents } from '@/lib/account';
 import { useTranslation } from '@/i18n';
 import { useAuth } from './AuthProvider';
 import { authErrorKey } from './errors';
+import { AppleButton } from './AppleButton';
 import { GoogleButton } from './GoogleButton';
 
 type FormValues = { email: string; password: string };
@@ -16,7 +17,8 @@ type FormValues = { email: string; password: string };
 export function SignInScreen() {
   const { t } = useTranslation();
   const theme = useTheme();
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, googleSupported } = useAuth();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, googleSupported, signInWithApple, appleSupported } =
+    useAuth();
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [formError, setFormError] = useState<string | null>(null);
   const [googleBusy, setGoogleBusy] = useState(false);
@@ -53,6 +55,17 @@ export function SignInScreen() {
       setFormError(t(`auth.errors.${authErrorKey(e)}`));
     }
   });
+
+  const onApple = async () => {
+    setFormError(null);
+    try {
+      await signInWithApple();
+      void setConsents({ terms: true }).catch(() => undefined);
+    } catch (e) {
+      const code = (e as { code?: string }).code;
+      if (code !== 'auth/popup-closed-by-user') setFormError(t(`auth.errors.${authErrorKey(e)}`));
+    }
+  };
 
   const onGoogle = async () => {
     setFormError(null);
@@ -193,12 +206,15 @@ export function SignInScreen() {
           />
         </View>
 
-        {googleSupported ? (
+        {googleSupported || appleSupported ? (
           <View style={{ gap: theme.spacing.md }}>
             <Text color="textSecondary" style={{ textAlign: 'center' }}>
               {t('auth.or')}
             </Text>
-            <GoogleButton label={t('auth.continueWithGoogle')} onPress={onGoogle} loading={googleBusy} />
+            {appleSupported ? <AppleButton onPress={onApple} light={theme.mode === 'light'} /> : null}
+            {googleSupported ? (
+              <GoogleButton label={t('auth.continueWithGoogle')} onPress={onGoogle} loading={googleBusy} />
+            ) : null}
             <Text variant="caption" color="textSecondary" style={{ textAlign: 'center' }}>
               {t('auth.googleAgree')}
             </Text>

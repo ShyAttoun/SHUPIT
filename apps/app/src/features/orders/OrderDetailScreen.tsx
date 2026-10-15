@@ -48,6 +48,7 @@ import { formatDate, formatDateTime, formatDateTimeWall, formatPrice } from '@/l
 import { pickScreenshot } from '@/lib/imagePicker';
 import { confirmAction } from '@/lib/platform';
 import { openWaze } from '@/lib/waze';
+import { copyToClipboard } from '@/lib/clipboard';
 import { openExternal } from '@/lib/platform';
 import { useOrderMutations, useOrders, useShipments, type ShipmentDoc } from './hooks';
 
@@ -65,10 +66,7 @@ function aiErrorMessage(e: unknown, t: Tr, specific?: Record<string, string>): s
 
 async function copyText(value: string): Promise<boolean> {
   try {
-    if (Platform.OS === 'web' && navigator.clipboard) {
-      await navigator.clipboard.writeText(value);
-      return true;
-    }
+    return await copyToClipboard(value);
   } catch {
     // clipboard unavailable
   }

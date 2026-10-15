@@ -45,7 +45,9 @@ export async function cropThumbnail(
   const raw = sanitizeBox(box);
   // A little margin: the model's boxes tend to be tight and clip the edges of the picture.
   const b = raw ? padBox(raw, 0.06) : null;
-  if (!b || Platform.OS !== 'web' || typeof document === 'undefined') return null;
+  if (!b) return null;
+  if (Platform.OS !== 'web') return cropThumbnailNative(imageBase64, mediaType, b, opts);
+  if (typeof document === 'undefined') return null;
   const size = opts.size ?? 256;
   const maxChars = opts.maxChars ?? 40_000;
   try {
@@ -71,6 +73,42 @@ export async function cropThumbnail(
     for (const q of [0.78, 0.62, 0.48]) {
       const url = canvas.toDataURL('image/jpeg', q);
       if (url.length <= maxChars) return url;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Native: same crop with the image manipulator. Returns a JPEG data URL, or null. */
+async function cropThumbnailNative(
+  imageBase64: string,
+  mediaType: string,
+  b: Box,
+  opts: { size?: number; maxChars?: number },
+): Promise<string | null> {
+  try {
+    const ImageManipulator = await import('expo-image-manipulator');
+    const uri = `data:${mediaType};base64,${imageBase64}`;
+    // A no-op pass gives the real pixel size.
+    const probe = await ImageManipulator.manipulateAsync(uri, [], { format: ImageManipulator.SaveFormat.JPEG });
+    const sw = Math.round(b.w * probe.width);
+    const sh = Math.round(b.h * probe.height);
+    const scale = Math.min(1, (opts.size ?? 256) / Math.max(sw, sh));
+    const maxChars = opts.maxChars ?? 40_000;
+    for (const compress of [0.78, 0.62, 0.48]) {
+      const out = await ImageManipulator.manipulateAsync(
+        uri,
+        [
+          { crop: { originX: Math.round(b.x * probe.width), originY: Math.round(b.y * probe.height), width: sw, height: sh } },
+          { resize: { width: Math.max(1, Math.round(sw * scale)) } },
+        ],
+        { compress, format: ImageManipulator.SaveFormat.JPEG, base64: true },
+      );
+      if (out.base64) {
+        const url = `data:image/jpeg;base64,${out.base64}`;
+        if (url.length <= maxChars) return url;
+      }
     }
     return null;
   } catch {

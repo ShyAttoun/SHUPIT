@@ -5,6 +5,7 @@ import { Button, Text, useTheme, useToast } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { apiFetch } from '@/lib/api';
+import { copyToClipboard } from '@/lib/clipboard';
 import { formatDate } from '@/lib/format';
 
 const ENDPOINT = 'https://app.shupit.co.il/api/sms-hook';
@@ -68,7 +69,7 @@ export function SmsAutomationSection() {
             variant="secondary"
             label={t('orders.detail.copy')}
             onPress={() => {
-              void navigator.clipboard?.writeText(fresh).then(() => toast.show(t('orders.detail.copied')));
+              void copyToClipboard(fresh).then((ok) => ok && toast.show(t('orders.detail.copied')));
             }}
           />
           <Text variant="caption">{t('settings.automation.endpoint', { url: ENDPOINT })}</Text>

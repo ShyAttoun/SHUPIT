@@ -12,8 +12,11 @@ export interface PushPayload {
 }
 
 export interface StoredSubscription {
+  /** 'expo' = a native app token (sent through the Expo push service); default is a Web Push endpoint. */
+  kind?: 'web' | 'expo';
   endpoint: string;
   keys: { p256dh: string; auth: string };
+  expoToken?: string;
   lang: 'he' | 'en';
 }
 
@@ -94,11 +97,32 @@ export async function sendPush(
   uid: string,
   build: (lang: 'he' | 'en') => PushPayload,
 ): Promise<{ sent: number; removed: number }> {
-  if (!configure()) return { sent: 0, removed: 0 };
   const subs = await listSubscriptions(db, uid);
   let sent = 0;
   let removed = 0;
+  const webOk = configure();
   for (const s of subs) {
+    if (s.kind === 'expo' && s.expoToken) {
+      const p = build(s.lang === 'he' ? 'he' : 'en');
+      try {
+        const res = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({ to: s.expoToken, title: p.title, body: p.body, data: { url: p.url }, sound: 'default', collapseId: p.tag }),
+          signal: AbortSignal.timeout(8000),
+        });
+        const out = (await res.json()) as { data?: { status?: string; details?: { error?: string } } };
+        if (out.data?.status === 'ok') sent++;
+        else if (out.data?.details?.error === 'DeviceNotRegistered') {
+          await db.collection('users').doc(uid).collection('pushSubscriptions').doc(s.id).delete().catch(() => undefined);
+          removed++;
+        }
+      } catch {
+        console.error('push_send_error', 'expo');
+      }
+      continue;
+    }
+    if (!webOk) continue;
     try {
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: s.keys },

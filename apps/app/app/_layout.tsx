@@ -26,6 +26,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { installGlobalErrorReporting } from '@/lib/errorReporting';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useNativeShare } from '@/features/share/useNativeShare';
+import { useNativeNotifications } from '@/features/notifications/useNativeNotifications';
+import { useIncomingShare } from '@/lib/incomingShare';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -41,6 +44,14 @@ function RootNavigator() {
   const { mode } = useTheme();
   const router = useRouter();
   useApplyLanguage();
+  useNativeShare();
+  useNativeNotifications();
+  const incoming = useIncomingShare((s) => s.incoming);
+
+  // A share received from another app opens the share screen (after sign-in, if needed).
+  useEffect(() => {
+    if (incoming && status === 'signedIn') router.replace('/share?from=native' as never);
+  }, [incoming, status, router]);
 
   // A share can arrive before the user is signed in. Remember it, then resume after sign-in.
   useEffect(() => {

@@ -10,6 +10,7 @@ import { ApiError, apiFetch } from '@/lib/api';
 import { useTranslation } from '@/i18n';
 import { fileToPicked } from '@/lib/imageFile';
 import type { PickedImage } from '@/lib/imagePicker';
+import { useIncomingShare } from '@/lib/incomingShare';
 import { firstUrl, useShareInbox } from '@/lib/shareInbox';
 
 interface Received {
@@ -127,6 +128,8 @@ export default function ShareScreen() {
     void (async () => {
       let r: Received = {};
       if (params.from === 'target') r = await readSharedFromCache().catch(() => ({}));
+      // Native share sheet: the content was parked by useNativeShare.
+      if (params.from === 'native') r = useIncomingShare.getState().take() ?? {};
       // GET-style share (query params) and manual deep links.
       r = {
         title: r.title ?? params.title,

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Platform, View } from 'react-native';
 import { Button, Text, useTheme, useToast } from '@/design';
 import { useTranslation } from '@/i18n';
+import { copyToClipboard } from '@/lib/clipboard';
 import { CouponImportSheet } from './CouponImportSheet';
 import { useCoupons } from './hooks';
 
@@ -31,8 +32,7 @@ export function ProductCoupons({
 
   const copy = async (code: string) => {
     try {
-      if (Platform.OS === 'web' && navigator.clipboard) await navigator.clipboard.writeText(code);
-      toast.show(t('home.coupons.copied'));
+      if (await copyToClipboard(code)) toast.show(t('home.coupons.copied'));
     } catch {
       // clipboard unavailable: the code stays visible
     }
