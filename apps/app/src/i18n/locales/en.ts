@@ -309,6 +309,20 @@ export const en = {
     },
   },
   wishlist: {
+    total: {
+      title: 'Basket total ({{count}} items)',
+      none: 'No saved prices yet',
+      note: 'Sum of the prices you saved — not live prices',
+      unpriced: '{{count}} without a price',
+    },
+    compare: {
+      title: 'Compare prices',
+      all: 'Compare prices',
+      group: 'Compare',
+      note: 'We open a search for each item on a price-comparison site. The prices you see there belong to that site; we don’t show or verify them.',
+      google: 'Google Shopping',
+      zap: 'Zap',
+    },
     title: 'Wishlist',
     emptyTitle: 'Love it? SHUPIT.',
     emptyBody: 'Save it now. Decide later.',

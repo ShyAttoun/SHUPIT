@@ -7,18 +7,22 @@ import { Chip } from '@/components/Chip';
 import { MerchantLogo } from '@/components/MerchantLogo';
 import { ShareTip } from '@/features/share/ShareTip';
 import { useShopNow } from '@/features/stores/useShopNow';
+import { CompareSheet } from './CompareSheet';
 import { groupByBrand } from './grouping';
+import { basketTotals } from './totals';
+import { formatPrice } from '@/lib/format';
 import { ProductCard } from './ProductCard';
 import { SearchField } from '@/components/SearchField';
 import { Button, EmptyState, Grid, ErrorState, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
-import { useTranslation } from '@/i18n';
+import { useAppLanguage, useTranslation } from '@/i18n';
 import { confirmAction } from '@/lib/platform';
 import { useCollections, useSavedProducts, useWishlistMutations } from './hooks';
 
 export function WishlistScreen() {
   const { t } = useTranslation();
   const { shop, busyKey, failed: shopFailed } = useShopNow();
-  const { colors, spacing, hitTarget } = useTheme();
+  const { colors, spacing, hitTarget, radius } = useTheme();
+  const { language } = useAppLanguage();
   const router = useRouter();
   const products = useSavedProducts();
   const collections = useCollections();
@@ -38,6 +42,8 @@ export function WishlistScreen() {
     );
   }, [products.data, active, query]);
   const brandGroups = useMemo(() => groupByBrand(visible), [visible]);
+  const totals = useMemo(() => basketTotals(visible), [visible]);
+  const [compare, setCompare] = useState<{ title: string; items: typeof visible } | null>(null);
 
   if (products.isLoading || collections.isLoading) {
     return (
@@ -177,6 +183,41 @@ export function WishlistScreen() {
           </View>
         ) : null}
 
+        {visible.length > 0 ? (
+          <View
+            style={{
+              gap: spacing.xs,
+              padding: spacing.md,
+              borderRadius: radius.xl,
+              backgroundColor: colors.accentSoft,
+              borderWidth: 1,
+              borderColor: colors.border,
+            }}
+          >
+            <Text variant="label" color="textSecondary">
+              {t('wishlist.total.title', { count: visible.length })}
+            </Text>
+            {totals.byCurrency.length > 0 ? (
+              <Text variant="title">
+                {totals.byCurrency.map((m) => formatPrice(m, language)).join('  +  ')}
+              </Text>
+            ) : (
+              <Text color="textSecondary">{t('wishlist.total.none')}</Text>
+            )}
+            <Text variant="caption" color="textSecondary">
+              {t('wishlist.total.note')}
+              {totals.unpriced > 0 ? ` · ${t('wishlist.total.unpriced', { count: totals.unpriced })}` : ''}
+            </Text>
+            <View style={{ alignSelf: 'flex-start' }}>
+              <Button
+                variant="secondary"
+                label={t('wishlist.compare.all')}
+                onPress={() => setCompare({ title: t('wishlist.compare.title'), items: visible })}
+              />
+            </View>
+          </View>
+        ) : null}
+
         {shopFailed ? (
           <Text color="danger" accessibilityLiveRegion="polite">
             {t('wishlist.detail.openFailed')}
@@ -198,6 +239,14 @@ export function WishlistScreen() {
                     {t('wishlist.brandCount', { count: g.count })}
                   </Text>
                 </View>
+                <Button
+                  variant="ghost"
+                  label={t('wishlist.compare.group')}
+                  style={{ minHeight: 40 }}
+                  onPress={() =>
+                    setCompare({ title: g.name ?? t('wishlist.otherStores'), items: g.sites.flatMap((s) => s.items) })
+                  }
+                />
               </View>
 
               {g.sites.map((site) => (
@@ -226,6 +275,12 @@ export function WishlistScreen() {
           ))
         )}
       </View>
+      <CompareSheet
+        visible={compare !== null}
+        title={compare?.title ?? ''}
+        products={compare?.items ?? []}
+        onClose={() => setCompare(null)}
+      />
     </Screen>
   );
 }
