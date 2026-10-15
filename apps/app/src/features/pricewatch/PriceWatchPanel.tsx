@@ -74,7 +74,8 @@ export function PriceWatchPanel({ product }: { product: SavedProduct }) {
         <Switch
           accessibilityLabel={t('priceWatch.trackPrice')}
           value={!!watch.data?.enabled}
-          disabled={setWatch.isPending || watch.isLoading}
+          // Not disabled while saving: the value is optimistic, so the switch never greys out or flips back.
+          disabled={watch.isLoading}
           onValueChange={(enabled) => setWatch.mutate({ enabled })}
           trackColor={{ true: colors.accent, false: colors.border }}
         />

@@ -54,16 +54,18 @@ export function Button({
       ]}
       {...rest}
     >
+      {/* The label stays in the layout while loading, so the button never changes size. */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs, opacity: loading ? 0 : 1 }}>
+        {icon ? <View>{icon}</View> : null}
+        <Text variant="bodyStrong" color={fg}>
+          {label}
+        </Text>
+      </View>
       {loading ? (
-        <ActivityIndicator color={colors[fg]} />
-      ) : (
-        <>
-          {icon ? <View>{icon}</View> : null}
-          <Text variant="bodyStrong" color={fg}>
-            {label}
-          </Text>
-        </>
-      )}
+        <View style={{ position: 'absolute', alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color={colors[fg]} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }

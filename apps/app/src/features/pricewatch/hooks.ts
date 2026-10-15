@@ -48,7 +48,26 @@ export function useSetPriceWatch(productId: string) {
       await setDoc(ref, next);
       return next as unknown as PriceWatchSubscription;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['pricewatch', uid, productId] }),
+    // Optimistic: the switch/target reflect the tap immediately instead of flipping after the round trip.
+    onMutate: async (p) => {
+      const key = ['pricewatch', uid, productId];
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<PriceWatchSubscription | null>(key);
+      const base = previous ?? ({ id: subId(uid, productId), uid, savedProductId: productId, minDropPercent: 5 } as PriceWatchSubscription);
+      qc.setQueryData<PriceWatchSubscription | null>(key, {
+        ...base,
+        ...(p.enabled !== undefined ? { enabled: p.enabled } : {}),
+        ...(p.minDropPercent !== undefined ? { minDropPercent: p.minDropPercent } : {}),
+        ...(p.targetPrice !== undefined ? { targetPrice: p.targetPrice ?? undefined } : {}),
+      });
+      return { previous };
+    },
+    onError: (_e, _p, ctx) => {
+      qc.setQueryData(['pricewatch', uid, productId], ctx?.previous ?? null);
+    },
+    onSuccess: (saved) => {
+      qc.setQueryData(['pricewatch', uid, productId], saved);
+    },
   });
 }
 
