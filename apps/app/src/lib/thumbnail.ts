@@ -25,6 +25,13 @@ export function sanitizeBox(box: Partial<Box> | null | undefined): Box | null {
   return { x: cx, y: cy, w: cw, h: ch };
 }
 
+/** Grows a box by `p` of the image on every side, staying inside the image. */
+export function padBox(b: Box, p: number): Box {
+  const x = Math.max(0, b.x - p);
+  const y = Math.max(0, b.y - p);
+  return { x, y, w: Math.min(1 - x, b.w + 2 * p), h: Math.min(1 - y, b.h + 2 * p) };
+}
+
 /**
  * Web only. Cuts the box out of the screenshot and returns a small square-ish JPEG data URL
  * (kept under `maxChars`), or null when it cannot be produced.
@@ -35,7 +42,9 @@ export async function cropThumbnail(
   box: Partial<Box> | null | undefined,
   opts: { size?: number; maxChars?: number } = {},
 ): Promise<string | null> {
-  const b = sanitizeBox(box);
+  const raw = sanitizeBox(box);
+  // A little margin: the model's boxes tend to be tight and clip the edges of the picture.
+  const b = raw ? padBox(raw, 0.06) : null;
   if (!b || Platform.OS !== 'web' || typeof document === 'undefined') return null;
   const size = opts.size ?? 256;
   const maxChars = opts.maxChars ?? 40_000;

@@ -1,9 +1,9 @@
 import type { NotificationPrefs } from '@shupit/contracts';
 import { useEffect, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { View } from 'react-native';
 import { useAppLanguage } from '@/i18n';
 import { disablePush, enablePush, hasLocalSubscription, permissionState, pushSupport } from '@/lib/webpush';
-import { Text, useTheme } from '@/design';
+import { Text, useTheme, Toggle } from '@/design';
 import { useTranslation } from '@/i18n';
 import { useNotificationPrefs, useSetNotificationPref } from './hooks';
 
@@ -66,7 +66,7 @@ export function NotificationPrefsSection() {
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.md }}
         >
           <Text style={{ flex: 1 }}>{t(r.label)}</Text>
-          <Switch
+          <Toggle
             accessibilityLabel={t(r.label)}
             value={prefs.data?.[r.key] ?? true}
             disabled={prefs.isLoading || set.isPending}
@@ -89,7 +89,7 @@ export function NotificationPrefsSection() {
                     : t('notifications.prefs.pushBody')}
               </Text>
             </View>
-            <Switch
+            <Toggle
               accessibilityLabel={t('notifications.prefs.pushTitle')}
               value={pushOn}
               disabled={pushBusy || support !== 'supported' || permissionState() === 'denied'}

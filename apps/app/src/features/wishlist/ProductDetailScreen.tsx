@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Thumb } from '@/components/Thumb';
 import { Button, EmptyState, ErrorState, LoadingState, Screen, Text, useTheme } from '@/design';
+import { useFavoriteStores } from '@/features/stores/hooks';
 import { useShopNow } from '@/features/stores/useShopNow';
 import { PriceWatchPanel } from '@/features/pricewatch/PriceWatchPanel';
 import { useAppLanguage, useTranslation } from '@/i18n';
@@ -21,6 +22,7 @@ export function ProductDetailScreen() {
   const products = useSavedProducts();
   const collections = useCollections();
   const { updateProduct, deleteProduct } = useWishlistMutations();
+  const favorites = useFavoriteStores();
   const { shop, busyKey, disclosure, failed } = useShopNow();
 
   if (products.isLoading || collections.isLoading) {
@@ -88,7 +90,23 @@ export function ProductDetailScreen() {
           </View>
         </View>
 
-        {product.merchantId ? <ProductCoupons merchantId={product.merchantId} productUrl={product.productUrl} /> : null}
+        {!product.merchantId && (favorites.data ?? []).length > 0 ? (
+          <View style={{ gap: spacing.xs }}>
+            <Text variant="label">{t('wishlist.add.whichStore')}</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+              {(favorites.data ?? []).map((f) => (
+                <Chip
+                  key={f.merchantId}
+                  label={getMerchant(f.merchantId)?.name ?? f.merchantId}
+                  selected={false}
+                  onPress={() => updateProduct.mutate({ id: product.id, patch: { merchantId: f.merchantId } })}
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {product.merchantId ? <ProductCoupons merchantId={product.merchantId} productId={product.id} productUrl={product.productUrl} /> : null}
 
         <View style={{ gap: spacing.xxs }}>
           <Text variant="label" color="textSecondary">

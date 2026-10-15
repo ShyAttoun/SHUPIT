@@ -17,13 +17,13 @@ export function ListRow({
   subtitle?: string | null;
   meta?: ReactNode;
   trailing?: ReactNode;
-  /** Secondary action shown under the row (outside the row's own press target). */
+  /** Secondary action shown inside the same box, under the content (outside the row's press target). */
   footer?: ReactNode;
   onPress?: () => void;
   accessibilityLabel?: string;
 }) {
   const { colors, spacing, radius, hitTarget } = useTheme();
-  const body = (
+  const content = (
     <View
       style={{
         flexDirection: 'row',
@@ -32,10 +32,6 @@ export function ListRow({
         minHeight: hitTarget + 16,
         paddingVertical: spacing.sm,
         paddingHorizontal: spacing.md,
-        borderRadius: radius.lg,
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.border,
       }}
     >
       {leading}
@@ -53,23 +49,41 @@ export function ListRow({
       {trailing}
     </View>
   );
-  const row = onPress ? (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? title}
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-    >
-      {body}
-    </Pressable>
-  ) : (
-    body
-  );
-  if (!footer) return row;
+  // One card: the tappable content, and (optionally) a footer action inside the same box.
   return (
-    <View style={{ gap: spacing.xs }}>
-      {row}
-      <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }}>{footer}</View>
+    <View
+      style={{
+        borderRadius: radius.lg,
+        backgroundColor: colors.surface,
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
+      }}
+    >
+      {onPress ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={accessibilityLabel ?? title}
+          onPress={onPress}
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        >
+          {content}
+        </Pressable>
+      ) : (
+        content
+      )}
+      {footer ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            paddingHorizontal: spacing.sm,
+            paddingBottom: spacing.sm,
+          }}
+        >
+          {footer}
+        </View>
+      ) : null}
     </View>
   );
 }

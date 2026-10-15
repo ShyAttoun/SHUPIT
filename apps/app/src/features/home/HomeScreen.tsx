@@ -142,6 +142,19 @@ export function HomeScreen() {
     return (
       <ListRow
         key={s.id}
+        leading={
+          <View style={{ flexDirection: 'row', width: 44 + Math.max(0, Math.min(3, o?.items.length ?? 0) - 1) * 14 }}>
+            {(o?.items.length ? o.items.slice(0, 3) : [null]).map((it, n) => (
+              <View key={n} style={{ marginStart: n === 0 ? 0 : -30 }}>
+                <Thumb
+                  imageUrl={it ? (it.thumbDataUrl ?? it.imageUrl) : undefined}
+                  fallbackName={o?.merchantName ?? 'SHUPIT'}
+                  size={44}
+                />
+              </View>
+            ))}
+          </View>
+        }
         title={o?.merchantName ?? '—'}
         subtitle={[s.carrier, s.trackingNumber].filter(Boolean).join(' · ') || null}
         meta={

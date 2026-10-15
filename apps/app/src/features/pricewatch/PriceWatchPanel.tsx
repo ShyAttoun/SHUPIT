@@ -8,10 +8,10 @@ import {
   type SavedProduct,
 } from '@shupit/contracts';
 import { useEffect, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { PriceChart } from '@/components/PriceChart';
-import { Button, LoadingState, Text, TextField, useTheme } from '@/design';
+import { Button, LoadingState, Text, TextField, useTheme, Toggle } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { formatDateTime, formatPrice, percentChange } from '@/lib/format';
 import { useObservations, usePriceWatch, useSetPriceWatch } from './hooks';
@@ -71,7 +71,7 @@ export function PriceWatchPanel({ product }: { product: SavedProduct }) {
         <Text variant="headline" accessibilityRole="header">
           {t('priceWatch.trackPrice')}
         </Text>
-        <Switch
+        <Toggle
           accessibilityLabel={t('priceWatch.trackPrice')}
           value={!!watch.data?.enabled}
           // Not disabled while saving: the value is optimistic, so the switch never greys out or flips back.

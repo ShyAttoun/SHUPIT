@@ -1,8 +1,8 @@
 import { EmailAuthProvider, GoogleAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from 'firebase/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Switch, View } from 'react-native';
-import { Button, Text, TextField, useTheme } from '@/design';
+import { View } from 'react-native';
+import { Button, Text, TextField, useTheme, Toggle } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { authErrorKey } from '@/features/auth/errors';
 import { useTranslation } from '@/i18n';
@@ -97,7 +97,7 @@ export function PrivacySection() {
               {t('privacy.ai.body')}
             </Text>
           </View>
-          <Switch
+          <Toggle
             accessibilityLabel={t('privacy.ai.title')}
             value={!!consents.data?.aiProcessing}
             disabled={consents.isLoading || toggleBusy}
@@ -144,7 +144,7 @@ export function PrivacySection() {
           </Text>
           <Text color="text">{t('privacy.delete.body')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <Switch
+            <Toggle
               accessibilityLabel={t('privacy.delete.understand')}
               value={understood}
               onValueChange={setUnderstood}

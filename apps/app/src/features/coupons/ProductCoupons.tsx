@@ -8,7 +8,15 @@ import { CouponImportSheet } from './CouponImportSheet';
 import { useCoupons } from './hooks';
 
 /** Saved coupon codes for the product's store, ready to copy, plus a way to find more. */
-export function ProductCoupons({ merchantId, productUrl }: { merchantId: string; productUrl?: string }) {
+export function ProductCoupons({
+  merchantId,
+  productId,
+  productUrl,
+}: {
+  merchantId: string;
+  productId: string;
+  productUrl?: string;
+}) {
   const { t } = useTranslation();
   const { colors, spacing, radius } = useTheme();
   const toast = useToast();
@@ -16,8 +24,10 @@ export function ProductCoupons({ merchantId, productUrl }: { merchantId: string;
   const [finding, setFinding] = useState(false);
   const store = getMerchant(merchantId)?.name ?? merchantId;
   const list = (coupons.data ?? [])
-    .filter((c) => c.merchantId === merchantId)
-    .filter((c) => !c.expiresAt || Date.parse(c.expiresAt) >= Date.now());
+    // Store-wide codes plus the codes saved for this exact product; other products' codes are hidden.
+    .filter((c) => c.merchantId === merchantId && (!c.productId || c.productId === productId))
+    .filter((c) => !c.expiresAt || Date.parse(c.expiresAt) >= Date.now())
+    .sort((a, b) => Number(!!b.productId) - Number(!!a.productId));
 
   const copy = async (code: string) => {
     try {
@@ -57,7 +67,9 @@ export function ProductCoupons({ merchantId, productUrl }: { merchantId: string;
               </Text>
               {c.description || c.expiresAt ? (
                 <Text variant="caption" color="textSecondary">
-                  {[c.description, c.expiresAt].filter(Boolean).join(' · ')}
+                  {[c.productId ? t('home.coupons.import.thisProduct') : null, c.description, c.expiresAt]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Text>
               ) : null}
             </View>
@@ -80,6 +92,7 @@ export function ProductCoupons({ merchantId, productUrl }: { merchantId: string;
         merchantChoices={[merchantId]}
         defaultMerchantId={merchantId}
         defaultUrl={productUrl}
+        productId={productId}
       />
     </View>
   );

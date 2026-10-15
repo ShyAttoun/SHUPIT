@@ -39,6 +39,8 @@ export type FavoriteStore = z.infer<typeof favoriteStore>;
 export const storeCoupon = z.object({
   id: z.string().min(1),
   merchantId: z.string().min(1),
+  /** Set when the code only works for one saved product (e.g. an iHerb product coupon). */
+  productId: z.string().min(1).max(128).optional(),
   code: z.string().min(1).max(60),
   description: z.string().max(200).optional(),
   expiresAt: z.string().optional(),

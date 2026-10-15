@@ -1,4 +1,4 @@
-import { sanitizeBox } from './thumbnail';
+import { padBox, sanitizeBox } from './thumbnail';
 
 describe('sanitizeBox', () => {
   it('accepts a normal product-photo box', () => {
@@ -12,5 +12,15 @@ describe('sanitizeBox', () => {
     expect(sanitizeBox({ x: 0, y: 0, w: 1, h: 0.1 })).toBeNull();
     expect(sanitizeBox({ x: NaN, y: 0, w: 0.5, h: 0.5 })).toBeNull();
     expect(sanitizeBox(null)).toBeNull();
+  });
+});
+
+describe('padBox', () => {
+  it('adds margin but stays inside the image', () => {
+    const b = padBox({ x: 0.02, y: 0.5, w: 0.5, h: 0.45 }, 0.06);
+    expect(b.x).toBe(0);
+    expect(b.y).toBeCloseTo(0.44, 5);
+    expect(b.x + b.w).toBeLessThanOrEqual(1);
+    expect(b.y + b.h).toBeLessThanOrEqual(1);
   });
 });

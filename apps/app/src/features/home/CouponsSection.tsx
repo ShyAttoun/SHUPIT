@@ -78,7 +78,9 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
                   {c.code}
                 </Text>
                 <Text variant="caption" color="textSecondary" numberOfLines={2}>
-                  {[m?.name, c.description].filter(Boolean).join(' · ')}
+                  {[m?.name, c.productId ? t('home.coupons.import.specificProduct') : null, c.description]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Text>
               </View>
             </View>

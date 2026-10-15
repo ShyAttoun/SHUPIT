@@ -29,8 +29,11 @@ export const POST = withAuth(async (request, user) => {
     asImage.success && asImage.data.imageBase64 && asImage.data.mediaType
       ? { base64: asImage.data.imageBase64, mediaType: asImage.data.mediaType }
       : null;
-  const pageText = asPage.success ? (asPage.data.page.text ?? '').trim() : '';
-  if (!image && pageText.length < 40) {
+  // A message pasted by the user (e.g. an SMS from the carrier) is a valid source, even when short.
+  const pasted =
+    typeof (raw as { text?: unknown })?.text === 'string' ? (raw as { text: string }).text.trim().slice(0, 4000) : '';
+  const pageText = pasted.length >= 10 ? pasted : asPage.success ? (asPage.data.page.text ?? '').trim() : '';
+  if (!image && pageText.length < (pasted.length >= 10 ? 10 : 40)) {
     return errorResponse(400, 'bad_request', 'A screenshot or page is required');
   }
   if (!process.env.ANTHROPIC_API_KEY) return errorResponse(503, 'not_configured', 'AI extraction is not configured yet');
@@ -58,7 +61,8 @@ export const POST = withAuth(async (request, user) => {
               : {}),
           },
     );
-    const found = result.orders.filter((o) => o.isOrderScreenshot);
+    // A message the user pasted has no "order screenshot" framing; trust it and read what it says.
+    const found = pasted.length >= 10 ? result.orders : result.orders.filter((o) => o.isOrderScreenshot);
     if (found.length === 0) return errorResponse(422, 'not_an_order', 'No order found');
     // The page may list several orders: use the one that has our tracking number, else the first with a status.
     const tn = snap.get('trackingNumber') as string | null;

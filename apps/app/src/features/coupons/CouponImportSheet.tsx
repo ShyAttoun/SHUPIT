@@ -28,6 +28,7 @@ export function CouponImportSheet({
   merchantChoices,
   defaultMerchantId,
   defaultUrl,
+  productId,
 }: {
   visible: boolean;
   onClose: () => void;
@@ -35,6 +36,8 @@ export function CouponImportSheet({
   merchantChoices: string[];
   defaultMerchantId?: string | null;
   defaultUrl?: string;
+  /** When opened from a saved product, the codes are saved for that product only. */
+  productId?: string;
 }) {
   const { t } = useTranslation();
   const { colors, spacing, radius } = useTheme();
@@ -102,7 +105,13 @@ export function CouponImportSheet({
   const save = async () => {
     if (!target) return;
     for (const c of toSave) {
-      await add.mutateAsync({ merchantId: target, code: c.code, description: c.description, expiresAt: c.expiresAt });
+      await add.mutateAsync({
+        merchantId: target,
+        code: c.code,
+        description: c.description,
+        expiresAt: c.expiresAt,
+        ...(productId ? { productId } : {}),
+      });
     }
     toast.show(t('home.coupons.import.saved', { count: toSave.length }));
     onClose();

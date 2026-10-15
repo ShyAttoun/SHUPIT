@@ -129,7 +129,8 @@ async function fill(label, value) {
   await el.type(value);
 }
 async function clickInput(label) {
-  const sel = `input[aria-label="${esc(label)}"]`;
+  // Switches are custom (role="switch" on a div) and the terms label may be a prefix of a longer text.
+  const sel = `input[aria-label="${esc(label)}"], [role="switch"][aria-label^="${esc(label)}"]`;
   const deadline = Date.now() + 15_000;
   while (Date.now() < deadline) {
     const el = (await visible(await page.$$(sel)))[0];
@@ -278,6 +279,8 @@ try {
   await step('6  Add a second shipment to the order', async () => {
     await clickBtn('Order actions');
     await clickBtn('Add a shipment');
+    // The sheet offers screenshot / SMS first; manual entry is the last-resort link.
+    await clickBtn('Add manually');
     await waitText('Add a shipment');
     await fill('Carrier (Optional)', 'Israel Post');
     await fill('Tracking number (Optional)', 'RR778899IL');
@@ -318,8 +321,8 @@ try {
     // enable tracking through the real switch (wait until it is interactive, then until it is on)
     await page.waitForFunction(
       () => {
-        const i = document.querySelector('input[aria-label="Track price"]');
-        return !!i && !i.disabled;
+        const i = document.querySelector('input[aria-label="Track price"], [role="switch"][aria-label="Track price"]');
+        return !!i && !i.disabled && i.getAttribute('aria-disabled') !== 'true';
       },
       { timeout: 20_000 },
     );

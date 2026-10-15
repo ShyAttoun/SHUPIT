@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react';
 import { useShareInbox } from '@/lib/shareInbox';
 import { View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { useFavoriteStores } from '@/features/stores/hooks';
 import { Button, Screen, Text, TextField, useTheme } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
 import { apiFetch } from '@/lib/api';
@@ -73,7 +74,10 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
 
   const typedUrl = url.trim();
   const dup = findDuplicate(products.data ?? [], canonicalUrl ?? (isHttpUrl(typedUrl) ? typedUrl : undefined));
-  const merchant = getMerchant(merchantForUrl(canonicalUrl ?? typedUrl)?.id);
+  // Store: read from the screenshot, or picked by the user, or inferred from the link.
+  const [pickedMerchantId, setPickedMerchantId] = useState<string | undefined>();
+  const favorites = useFavoriteStores();
+  const merchant = getMerchant(pickedMerchantId ?? merchantForUrl(canonicalUrl ?? typedUrl)?.id);
 
   const fetchDetails = async (override?: string) => {
     const target = (override ?? typedUrl).trim();
@@ -146,6 +150,7 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
         // Keep the default currency when the screenshot only showed an ambiguous symbol.
         if (res.data.price.currency) setCurrency(res.data.price.currency);
       }
+      if (res.merchantId) setPickedMerchantId(res.merchantId);
       const cut = await cropThumbnail(picked.base64, picked.mediaType, res.data.imageBox, { size: 256 });
       if (cut) setThumb(cut);
       // Screenshot values are AI-read, not page-verified: they stay "user-confirmed" provenance-wise.
@@ -280,6 +285,20 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
               <Text variant="small" color="textSecondary">
                 {t('wishlist.add.store')}: {merchant.name}
               </Text>
+            ) : (favorites.data ?? []).length > 0 ? (
+              <View style={{ gap: spacing.xs }}>
+                <Text variant="label">{t('wishlist.add.whichStore')}</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+                  {(favorites.data ?? []).map((f) => (
+                    <Chip
+                      key={f.merchantId}
+                      label={getMerchant(f.merchantId)?.name ?? f.merchantId}
+                      selected={false}
+                      onPress={() => setPickedMerchantId(f.merchantId)}
+                    />
+                  ))}
+                </View>
+              </View>
             ) : null}
 
             {thumb ? (

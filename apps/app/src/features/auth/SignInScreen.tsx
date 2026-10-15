@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
 import { z } from 'zod';
-import { Button, LogoMark, Screen, Text, TextField, useTheme } from '@/design';
-import { Switch } from 'react-native';
+import { Button, LogoMark, Screen, Text, TextField, useTheme, Toggle } from '@/design';
 import { LegalLinks } from '@/legal/LegalLinks';
 import { setConsents } from '@/lib/account';
 import { useTranslation } from '@/i18n';
@@ -168,7 +167,7 @@ export function SignInScreen() {
           />
           {mode === 'signUp' ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-              <Switch
+              <Toggle
                 accessibilityLabel={t('legal.agreePrefix')}
                 value={agreed}
                 onValueChange={setAgreed}

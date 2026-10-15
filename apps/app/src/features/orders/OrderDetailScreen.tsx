@@ -232,6 +232,9 @@ function ShipmentCard({
   const [menu, setMenu] = useState(false);
   const [pickupSheet, setPickupSheet] = useState(false);
   const [pasting, setPasting] = useState(false);
+  const [statusSheet, setStatusSheet] = useState(false);
+  const [statusPasting, setStatusPasting] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
   const [text, setText] = useState('');
   const [message, setMessage] = useState<string | null>(null);
 
@@ -262,19 +265,28 @@ function ShipmentCard({
     onError: () => setMessage(t('orders.detail.refreshFailed')),
   });
 
+  // Update the shipment's status from a carrier screenshot or a pasted carrier SMS.
   const statusShot = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (source: 'image' | 'text') => {
       if (!(await consent.ensure())) return null;
+      const url = `/api/shipments-status?id=${encodeURIComponent(s.id)}`;
+      if (source === 'text') {
+        return apiFetch(url, { method: 'POST', body: { kind: 'order', text: statusMsg.trim() } });
+      }
       const picked = await pickScreenshot();
       if (!picked) return null;
-      return apiFetch(`/api/shipments-status?id=${encodeURIComponent(s.id)}`, {
+      return apiFetch(url, {
         method: 'POST',
         body: { kind: 'order', imageBase64: picked.base64, mediaType: picked.mediaType },
       });
     },
     onSuccess: async (res) => {
       if (!res) return;
+      setStatusSheet(false);
+      setStatusPasting(false);
+      setStatusMsg('');
       setMessage(t('orders.detail.updated'));
+      toast.show(t('orders.detail.updated'));
       await refreshAll();
     },
     onError: (e) => setMessage(aiErrorMessage(e, t as Tr, { no_status: t('orders.detail.noStatus') })),
@@ -319,7 +331,7 @@ function ShipmentCard({
         : s.trackingNumber && !finished
           ? { label: t('orders.detail.checkUpdates'), onPress: () => refresh.mutate(), loading: refresh.isPending }
           : !finished
-            ? { label: t('orders.detail.updateFromScreenshot'), onPress: () => statusShot.mutate(), loading: statusShot.isPending }
+            ? { label: t('orders.detail.updateShipment'), onPress: () => setStatusSheet(true), loading: statusShot.isPending }
             : null;
 
   const source =
@@ -488,10 +500,10 @@ function ShipmentCard({
           {!finished ? (
             <MenuRow
               icon={<Camera size={20} color={colors.text} />}
-              label={t('orders.detail.updateFromScreenshot')}
+              label={t('orders.detail.updateShipment')}
               onPress={() => {
                 setMenu(false);
-                statusShot.mutate();
+                setStatusSheet(true);
               }}
             />
           ) : null}
@@ -516,6 +528,54 @@ function ShipmentCard({
             />
           ) : null}
         </View>
+      </BottomSheet>
+
+      {/* Update status: a carrier screenshot or a pasted carrier SMS */}
+      <BottomSheet
+        visible={statusSheet}
+        title={t('orders.detail.updateShipment')}
+        onClose={() => {
+          setStatusSheet(false);
+          setStatusPasting(false);
+        }}
+      >
+        <Text color="textSecondary">{t('orders.detail.updateShipmentBody')}</Text>
+        <View style={{ gap: 2 }}>
+          <MenuRow
+            icon={<Camera size={20} color={colors.text} />}
+            label={t('orders.detail.uploadShot')}
+            onPress={() => statusShot.mutate('image')}
+          />
+          <MenuRow
+            icon={<ClipboardPaste size={20} color={colors.text} />}
+            label={t('orders.detail.carrierSms')}
+            onPress={() => setStatusPasting((v) => !v)}
+          />
+          {statusPasting ? (
+            <View style={{ gap: spacing.xs, paddingHorizontal: spacing.sm }}>
+              <TextField
+                label={t('orders.detail.carrierSms')}
+                placeholder={t('orders.receive.pastePlaceholder')}
+                value={statusMsg}
+                onChangeText={setStatusMsg}
+                multiline
+                maxLength={2000}
+              />
+              <Button
+                label={statusShot.isPending ? t('orders.receive.reading') : t('orders.receive.read')}
+                disabled={statusMsg.trim().length < 10}
+                loading={statusShot.isPending && statusShot.variables === 'text'}
+                onPress={() => statusShot.mutate('text')}
+              />
+            </View>
+          ) : null}
+        </View>
+        <AiWait active={statusShot.isPending} />
+        {message ? (
+          <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
+            {message}
+          </Text>
+        ) : null}
       </BottomSheet>
 
       {/* Pickup details: paste SMS, upload a screenshot, or (last resort) type them */}
@@ -577,6 +637,161 @@ function ShipmentCard({
   );
 }
 
+
+const ymdNoon = (v?: string | null) => (v && /^\d{4}-\d{2}-\d{2}/.test(v) ? `${v.slice(0, 10)}T12:00:00.000Z` : undefined);
+const untilIso = (v?: string | null) => {
+  const m = v ? /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?$/.exec(v) : null;
+  return m ? `${m[1]}T${m[2] ?? '23:59'}:00.000Z` : undefined;
+};
+
+interface ExtractedShipment {
+  carrier: string | null;
+  trackingNumber: string | null;
+  status?: string | null;
+  statusText?: string | null;
+  estimatedDeliveryFrom?: string | null;
+  estimatedDelivery: string | null;
+  pickup?: {
+    name?: string | null;
+    address?: string | null;
+    until?: string | null;
+    instructions?: string | null;
+    collectionCode?: string | null;
+  } | null;
+}
+
+/** Add a shipment from a carrier screenshot or a pasted carrier SMS; manual entry is the last resort. */
+function AddShipmentSheet({
+  visible,
+  order,
+  onClose,
+}: {
+  visible: boolean;
+  order: { id: string };
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const router = useRouter();
+  const toast = useToast();
+  const consent = useAiConsent();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const { colors, spacing } = useTheme();
+  const [pasting, setPasting] = useState(false);
+  const [text, setText] = useState('');
+  const [message, setMessage] = useState<string | null>(null);
+
+  const add = useMutation({
+    mutationFn: async (source: 'image' | 'text') => {
+      if (!(await consent.ensure())) return null;
+      let body: Record<string, unknown>;
+      if (source === 'text') body = { kind: 'order', text: text.trim() };
+      else {
+        const picked = await pickScreenshot();
+        if (!picked) return null;
+        body = { kind: 'order', imageBase64: picked.base64, mediaType: picked.mediaType };
+      }
+      const res = await apiFetch<{ orders?: { data: { shipments: ExtractedShipment[] } }[]; data?: { shipments: ExtractedShipment[] } }>(
+        '/api/extract',
+        { method: 'POST', body },
+      );
+      const all = (res.orders?.map((o) => o.data) ?? (res.data ? [res.data] : [])).flatMap((d) => d.shipments);
+      const sh = all.find((x) => x.carrier || x.trackingNumber || x.status || x.pickup);
+      if (!sh) throw new ApiError(422, 'no_shipment');
+      const pickup = sh.pickup
+        ? {
+            ...(sh.pickup.name ? { name: sh.pickup.name } : {}),
+            ...(sh.pickup.address ? { address: sh.pickup.address } : {}),
+            ...(untilIso(sh.pickup.until) ? { until: untilIso(sh.pickup.until) } : {}),
+            ...(sh.pickup.instructions ? { instructions: sh.pickup.instructions } : {}),
+            ...(sh.pickup.collectionCode ? { code: sh.pickup.collectionCode } : {}),
+          }
+        : undefined;
+      await apiFetch('/api/shipments', {
+        method: 'POST',
+        body: {
+          orderId: order.id,
+          ...(sh.carrier ? { carrier: sh.carrier } : {}),
+          ...(sh.trackingNumber ? { trackingNumber: sh.trackingNumber } : {}),
+          ...(sh.status ? { status: sh.status } : {}),
+          ...(sh.statusText ? { statusText: sh.statusText } : {}),
+          ...(ymdNoon(sh.estimatedDelivery) ? { estimatedDeliveryAt: ymdNoon(sh.estimatedDelivery) } : {}),
+          ...(ymdNoon(sh.estimatedDeliveryFrom) ? { estimatedDeliveryFrom: ymdNoon(sh.estimatedDeliveryFrom) } : {}),
+          ...(pickup && Object.keys(pickup).length ? { pickup } : {}),
+        },
+      });
+      return true;
+    },
+    onSuccess: async (ok) => {
+      if (!ok) return;
+      setText('');
+      setPasting(false);
+      setMessage(null);
+      toast.show(t('orders.detail.shipmentAdded'));
+      await qc.invalidateQueries({ queryKey: ['shipments', user?.uid] });
+      onClose();
+    },
+    onError: (e) =>
+      setMessage(aiErrorMessage(e, t as Tr, { no_shipment: t('orders.detail.noShipmentFound') })),
+  });
+
+  return (
+    <BottomSheet visible={visible} title={t('edit.shipment.add')} onClose={onClose}>
+      {consent.modal}
+      <Text color="textSecondary">{t('orders.detail.addShipmentBody')}</Text>
+      <View style={{ gap: 2 }}>
+        <MenuRow
+          icon={<Camera size={20} color={colors.text} />}
+          label={t('orders.detail.uploadShot')}
+          onPress={() => add.mutate('image')}
+        />
+        <MenuRow
+          icon={<ClipboardPaste size={20} color={colors.text} />}
+          label={t('orders.detail.carrierSms')}
+          onPress={() => setPasting((v) => !v)}
+        />
+        {pasting ? (
+          <View style={{ gap: spacing.xs, paddingHorizontal: spacing.sm }}>
+            <TextField
+              label={t('orders.detail.carrierSms')}
+              placeholder={t('orders.receive.pastePlaceholder')}
+              value={text}
+              onChangeText={setText}
+              multiline
+              maxLength={2000}
+            />
+            <Button
+              label={add.isPending ? t('orders.receive.reading') : t('orders.receive.read')}
+              disabled={text.trim().length < 10}
+              loading={add.isPending && add.variables === 'text'}
+              onPress={() => add.mutate('text')}
+            />
+          </View>
+        ) : null}
+      </View>
+      <AiWait active={add.isPending} />
+      {message ? (
+        <Text variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
+          {message}
+        </Text>
+      ) : null}
+      {/* Last resort: the full manual form. */}
+      <Pressable
+        accessibilityRole="link"
+        onPress={() => {
+          onClose();
+          router.push(`/shipment/${order.id}`);
+        }}
+        style={{ minHeight: 44, justifyContent: 'center' }}
+      >
+        <Text variant="small" color="accentText" style={{ textDecorationLine: 'underline' }}>
+          {t('orders.detail.addManually')}
+        </Text>
+      </Pressable>
+    </BottomSheet>
+  );
+}
+
 export function OrderDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
@@ -590,6 +805,7 @@ export function OrderDetailScreen() {
   const { deleteOrder, markReceived, restore } = useOrderMutations();
   const { shop, failed: shopFailed } = useShopNow();
   const [menu, setMenu] = useState(false);
+  const [addSheet, setAddSheet] = useState(false);
   const [allItems, setAllItems] = useState(false);
 
   if (orders.isLoading || shipments.isLoading) {
@@ -841,7 +1057,18 @@ export function OrderDetailScreen() {
         ) : null}
 
         {deleteOrder.isError ? <Text color="danger">{t('common.saveFailed')}</Text> : null}
+
+        {!archived ? (
+          <Button
+            label={t('orders.receive.received')}
+            loading={markReceived.isPending}
+            icon={<Check size={18} color={colors.onAccent} />}
+            onPress={markAsReceived}
+          />
+        ) : null}
       </View>
+
+      <AddShipmentSheet visible={addSheet} order={order} onClose={() => setAddSheet(false)} />
 
       {/* Order actions */}
       <BottomSheet visible={menu} title={t('orders.detail.orderMenu')} onClose={() => setMenu(false)}>
@@ -854,32 +1081,12 @@ export function OrderDetailScreen() {
               router.push(`/order/edit/${order.id}`);
             }}
           />
-          {storeOrderUrl ? (
-            <MenuRow
-              icon={<Store size={20} color={colors.text} />}
-              label={t('orders.detail.openOrder', { store: order.merchantName })}
-              onPress={() => {
-                setMenu(false);
-                void openExternal(storeOrderUrl);
-              }}
-            />
-          ) : null}
-          {merchant ? (
-            <MenuRow
-              icon={<Store size={20} color={colors.text} />}
-              label={t('orders.detail.openStore', { store: order.merchantName })}
-              onPress={() => {
-                setMenu(false);
-                void shop({ merchantId: order.merchantId ?? merchant.id });
-              }}
-            />
-          ) : null}
           <MenuRow
             icon={<PackagePlus size={20} color={colors.text} />}
             label={t('edit.shipment.add')}
             onPress={() => {
               setMenu(false);
-              router.push(`/shipment/${order.id}`);
+              setAddSheet(true);
             }}
           />
           {archived ? (
