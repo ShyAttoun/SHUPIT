@@ -38,12 +38,13 @@ interface ExtractResponse {
 
 function errorKey(
   e: unknown,
-): 'notOrder' | 'unreadableLink' | 'notConfigured' | 'quota' | 'consentRequired' | 'rateLimited' | 'aiCapacity' | 'generic' {
+): 'notOrder' | 'blockedSite' | 'unreadableLink' | 'notConfigured' | 'quota' | 'consentRequired' | 'rateLimited' | 'aiCapacity' | 'generic' {
   if (e instanceof ApiError) {
     if (e.code === 'consent_required') return 'consentRequired';
     if (e.code === 'rate_limited') return 'rateLimited';
     if (e.code === 'ai_capacity') return 'aiCapacity';
     if (e.code === 'not_an_order') return 'notOrder';
+    if (e.code === 'blocked_by_site') return 'blockedSite';
     if (e.code === 'unreadable') return 'unreadableLink';
     if (e.code === 'not_configured') return 'notConfigured';
     if (e.code === 'quota_exceeded') return 'quota';

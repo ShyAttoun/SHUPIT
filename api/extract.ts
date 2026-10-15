@@ -1,6 +1,6 @@
 import { extractRequest, merchantByName, merchantForUrl } from '@shupit/contracts';
 import { sanitizeCoupons } from './_lib/coupons';
-import { fetchPageHtml } from './_lib/extract';
+import { FetchPageError, fetchPageHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { UnsafeUrlError } from './_lib/ssrf';
 import { consumeAi } from './_lib/usage';
@@ -95,7 +95,12 @@ export const POST = withAuth(async (request, user) => {
     if (e instanceof UnsafeUrlError) return errorResponse(400, 'unsafe_url', 'This URL cannot be fetched');
     if (e instanceof ExtractionFailedError) return errorResponse(422, 'extraction_failed', 'Could not read this');
     // Fetch/network errors on link mode: the site blocked us.
-    if (url && !imageBase64 && !pastedText) return errorResponse(422, 'unreadable', 'The page could not be read');
+    if (url && !imageBase64 && !pastedText) {
+      if (e instanceof FetchPageError && e.blocked) {
+        return errorResponse(422, 'blocked_by_site', 'This site blocks automatic reading');
+      }
+      return errorResponse(422, 'unreadable', 'The page could not be read');
+    }
     throw e;
   }
 }, { rate: AI_RULE });

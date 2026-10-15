@@ -1,5 +1,5 @@
 import { isHttpUrl, merchantForUrl, normalizeProductUrl } from '@shupit/contracts';
-import { fetchPageHtml, parseProductHtml } from './_lib/extract';
+import { FetchPageError, fetchPageHtml, parseProductHtml } from './_lib/extract';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { UnsafeUrlError } from './_lib/ssrf';
 import { withAuth } from './_lib/withAuth';
@@ -30,6 +30,7 @@ export const POST = withAuth(async (request) => {
         draft: { canonicalUrl: url, merchantId: merchant?.id, missing: ['title', 'imageUrl', 'price'] },
         urlKey: normalizeProductUrl(url),
         unreadable: true,
+        reason: e instanceof FetchPageError && e.blocked ? 'blocked' : 'unreadable',
       },
       200,
       {},

@@ -87,7 +87,9 @@ export function CouponImportSheet({
           ? t('orders.import.consentRequired')
           : e instanceof ApiError && e.code === 'quota_exceeded'
             ? t('orders.import.quota')
-            : e instanceof ApiError && (e.code === 'unreadable' || e.code === 'unsafe_url')
+            : e instanceof ApiError && e.code === 'blocked_by_site'
+              ? t('wishlist.add.blockedSite')
+              : e instanceof ApiError && (e.code === 'unreadable' || e.code === 'unsafe_url')
               ? t('home.coupons.import.unreadable')
               : t('orders.import.generic'),
       ),

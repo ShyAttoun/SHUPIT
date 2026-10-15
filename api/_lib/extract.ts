@@ -145,7 +145,28 @@ export function parseProductHtml(html: string, pageUrl: string): ProductDraft {
   };
 }
 
-export class FetchPageError extends Error {}
+export class FetchPageError extends Error {
+  /** True when the site refused us as an automated client (bot protection, captcha, rate wall). */
+  readonly blocked: boolean;
+  constructor(message: string, opts: { blocked?: boolean } = {}) {
+    super(message);
+    this.blocked = !!opts.blocked;
+  }
+}
+
+const CHALLENGE_BODY = /just a moment|attention required|enable javascript and cookies|verify you are (a )?human|captcha|access denied|px-captcha|datadome/i;
+
+/** Heuristics for "the site served a bot challenge instead of the page". Exported for tests. */
+export function looksBlocked(status: number, headers: { get(name: string): string | null }, bodySnippet = ''): boolean {
+  if (headers.get('cf-mitigated')) return true;
+  if ([401, 403, 405, 406, 429, 503].includes(status)) {
+    const server = (headers.get('server') ?? '').toLowerCase();
+    if (/cloudflare|akamai|incapsula|imperva|datadome|perimeterx|sucuri/.test(server)) return true;
+    if (status === 403 || status === 429) return true;
+    return CHALLENGE_BODY.test(bodySnippet);
+  }
+  return status === 200 && /<title>\s*(just a moment|attention required|access denied)/i.test(bodySnippet);
+}
 
 /** SSRF-guarded fetch with redirect re-validation, size and time limits. */
 export async function fetchPageHtml(
@@ -169,7 +190,10 @@ export async function fetchPageHtml(
       current = new URL(loc, url).toString();
       continue;
     }
-    if (!res.ok) throw new FetchPageError(`status ${res.status}`);
+    if (!res.ok) {
+      const snippet = await res.text().then((t) => t.slice(0, 2000)).catch(() => '');
+      throw new FetchPageError(`status ${res.status}`, { blocked: looksBlocked(res.status, res.headers, snippet) });
+    }
     const type = res.headers.get('content-type') ?? '';
     if (!/text\/html|application\/xhtml/i.test(type)) throw new FetchPageError('not html');
     const reader = res.body?.getReader();
@@ -183,7 +207,11 @@ export async function fetchPageHtml(
       total += value.byteLength;
     }
     void reader.cancel().catch(() => {});
-    return { html: Buffer.concat(chunks).toString('utf8').slice(0, MAX_BYTES), finalUrl: url.toString() };
+    const html = Buffer.concat(chunks).toString('utf8').slice(0, MAX_BYTES);
+    if (looksBlocked(res.status, res.headers, html.slice(0, 2000))) {
+      throw new FetchPageError('challenge page', { blocked: true });
+    }
+    return { html, finalUrl: url.toString() };
   }
   throw new FetchPageError('too many redirects');
 }

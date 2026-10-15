@@ -77,3 +77,18 @@ test('a malformed optional value does not discard the whole read', () => {
   assert.equal(r.data.shipments[0]!.status, null);
   assert.deepEqual(r.data.shipments[0]!.events, [{ description: 'Arrived', occurredAt: '2026-10-13T16:46' }]);
 });
+
+import { looksBlocked } from '../api/_lib/extract';
+
+const h = (o: Record<string, string>) => ({ get: (k: string) => o[k.toLowerCase()] ?? null });
+
+test('bot challenges are recognised as blocked, ordinary errors are not', () => {
+  assert.equal(looksBlocked(403, h({ 'cf-mitigated': 'challenge', server: 'cloudflare' })), true);
+  assert.equal(looksBlocked(403, h({ server: 'cloudflare' })), true);
+  assert.equal(looksBlocked(429, h({})), true);
+  assert.equal(looksBlocked(503, h({ server: 'nginx' }), '<title>Just a moment...</title>'), true);
+  assert.equal(looksBlocked(200, h({}), '<html><title>Just a moment...</title>'), true);
+  assert.equal(looksBlocked(404, h({ server: 'nginx' }), 'Not found'), false);
+  assert.equal(looksBlocked(500, h({}), 'oops'), false);
+  assert.equal(looksBlocked(200, h({}), '<title>Product</title>'), false);
+});

@@ -27,6 +27,7 @@ interface PreviewResponse {
   draft: ProductDraft;
   urlKey: string | null;
   unreadable?: boolean;
+  reason?: 'blocked' | 'unreadable';
 }
 
 export function AddProductScreen() {
@@ -94,7 +95,15 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
       }
       setFromPage({ title: !!d.title, price: !!d.price, image: !!d.imageUrl });
       setBlocked(!!res.unreadable);
-      setNotice(res.unreadable ? t('wishlist.add.blocked') : d.missing.length ? t('wishlist.add.partial') : null);
+      setNotice(
+        res.unreadable
+          ? res.reason === 'blocked'
+            ? t('wishlist.add.blockedSite')
+            : t('wishlist.add.blocked')
+          : d.missing.length
+            ? t('wishlist.add.partial')
+            : null,
+      );
       setShowForm(true);
     } catch {
       setCanonicalUrl(target);
