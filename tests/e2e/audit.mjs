@@ -49,10 +49,20 @@ async function signIn(page) {
   await btn.click();
   await page.waitForFunction(() => !document.querySelector('input[type="password"]'), { timeout: 30_000 });
   // Dismiss the first-run welcome tour (remembered per user afterwards).
-  const skip = await page
-    .waitForSelector('[aria-label="Close"], [aria-label="סגירה"]', { timeout: 8000 })
+  // New users must pick stores in the tour; do it so every audited page is the real app.
+  const tour = await page
+    .waitForSelector('[aria-label="Skip"], [aria-label="דלג"]', { timeout: 8000 })
     .catch(() => null);
-  if (skip) await skip.click();
+  if (tour) {
+    await tour.click();
+    for (const id of ['Amazon', 'Nike', 'Zara']) {
+      const el = await page.waitForSelector(`[aria-label="${id}"]`, { timeout: 8000 }).catch(() => null);
+      if (el) await el.click();
+    }
+    const go = await page.$$('xpath/.//*[@role="button"][contains(normalize-space(.),"Let\'s go") or contains(normalize-space(.),"יאללה")]');
+    if (go[0]) await go[0].click();
+    await new Promise((r) => setTimeout(r, 1500));
+  }
 }
 
 async function audit(page, route, tag) {

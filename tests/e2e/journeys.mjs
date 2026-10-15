@@ -181,13 +181,13 @@ try {
     // The terms agreement switch is required.
     await clickInput('I agree to the');
     await clickBtn('Create my account');
-    // First entry: the welcome tour (3 intro steps, then store selection with a 3-store minimum).
-    await waitText('Shop everywhere. All in one place.', 40_000);
-    await clickBtn('Next');
-    await waitText('Love it? Save it!');
-    await clickBtn('Next');
+    // First entry: the welcome tour (3 visual intro screens, then store selection with a 3-store minimum).
+    await waitText('All the stores you love. In one place.', 40_000);
+    await clickBtn('Continue');
+    await waitText('Love it? Save it. Find it!');
+    await clickBtn('Continue');
     await waitText('All your orders. None of the mess.');
-    await clickBtn('Next');
+    await clickBtn('Choose stores');
     await waitText('Where do you love to shop?');
     // The final CTA stays disabled below 3 stores.
     await clickBtn('Nike');
@@ -206,8 +206,14 @@ try {
 
   // 2 ───────── favorite stores
   await step('2  Favorite stores from the tour are listed and open', async () => {
+    // The tab bar re-renders right after the tour closes; retry once if the first tap was swallowed.
     await clickBtn('Stores');
-    await waitText('Add more stores');
+    try {
+      await waitText('Add more stores', 8_000);
+    } catch {
+      await clickBtn('Stores');
+      await waitText('Add more stores');
+    }
     const t = await text();
     if (!t.includes('Nike') || !t.includes('KSP')) throw new Error('favorites not listed');
     await clickBtn('Shop now', { nth: 0 });

@@ -11,9 +11,12 @@ import { useAppLanguage, useTranslation } from '@/i18n';
 export function StorePicker({
   selected,
   onToggle,
+  category,
 }: {
   selected: string[];
   onToggle: (merchantId: string) => void;
+  /** Optional category filter (merchants without a category only appear under "all"). */
+  category?: string | null;
 }) {
   const { t } = useTranslation();
   const { language } = useAppLanguage();
@@ -22,8 +25,10 @@ export function StorePicker({
 
   const items = useMemo(() => {
     // Israeli stores come first in Hebrew; search also matches Hebrew names and domains.
-    return merchantsForPicker(language).filter((m) => merchantMatchesQuery(m, query));
-  }, [query, language]);
+    return merchantsForPicker(language).filter(
+      (m) => (!category || m.category === category) && merchantMatchesQuery(m, query),
+    );
+  }, [query, language, category]);
 
   return (
     <View style={{ gap: spacing.md }}>
