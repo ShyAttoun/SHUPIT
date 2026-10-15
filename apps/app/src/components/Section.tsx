@@ -33,6 +33,8 @@ export function Section({
   return (
     <View
       style={{
+        // Fills its grid cell, so boxes in the same row end at the same height.
+        flexGrow: 1,
         borderRadius: radius.xl,
         backgroundColor: colors.surface,
         borderWidth: 1,
@@ -47,7 +49,8 @@ export function Section({
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: spacing.sm,
-          paddingVertical: spacing.xs,
+          // One fixed header height for every category, with or without an action button.
+          height: 56,
           paddingHorizontal: spacing.md,
           backgroundColor: soft,
           borderBottomWidth: 3,
