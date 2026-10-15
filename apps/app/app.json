@@ -72,7 +72,9 @@
       "output": "single"
     },
     "extra": {
-      "eas": {}
+      "eas": {
+        "projectId": "09fd2fa0-28c6-4d9b-9de1-7ba4cf2f1a64"
+      }
     }
   }
 }
