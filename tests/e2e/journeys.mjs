@@ -176,12 +176,12 @@ try {
     await go('/');
     await waitText('Welcome back');
     await clickBtn('Create account'); // switches the form to sign-up
-    await waitText('Create your account');
+    await waitText('Nice to meet you!');
     await fill('Email', email);
     await fill('Password', password);
     // The terms agreement switch is required.
     await clickInput('I agree to the');
-    await clickBtn('Create my account');
+    await clickBtn('Create my free account');
     // First entry: the welcome tour (3 visual intro screens, then store selection with a 3-store minimum).
     await waitText('All the stores you love. In one place.', 40_000);
     await clickBtn('Continue');

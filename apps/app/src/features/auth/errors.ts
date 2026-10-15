@@ -25,6 +25,8 @@ export function authErrorKey(error: unknown): AuthErrorKey {
       return 'tooManyRequests';
     case 'auth/network-request-failed':
       return 'network';
+    case 'auth/account-exists-with-different-credential':
+      return 'accountExists';
     default:
       return 'generic';
   }

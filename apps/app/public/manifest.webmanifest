@@ -1,7 +1,7 @@
 {
   "name": "SHUPIT",
   "short_name": "SHUPIT",
-  "description": "Favorite stores, wishlist, orders and delivery tracking in one place. Shop everywhere. Keep it here.",
+  "description": "Favorite stores, wishlist, orders and delivery tracking in one place. All your shopping bags in one place.",
   "id": "/",
   "start_url": "/?source=pwa",
   "scope": "/",
