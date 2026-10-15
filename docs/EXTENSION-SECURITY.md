@@ -8,9 +8,9 @@ Reviewed: 2026-10-14 (self-review; no external audit). Manifest V3.
 | `activeTab` | Read/screenshot the current tab **only after the user clicks an action** in the popup. | Content scripts on all sites: rejected (always-on access). |
 | `scripting` | Inject one self-contained function (`readPage`) into the active tab. | — |
 | `storage` | Keep the SHUPIT session and the current job in `chrome.storage.local` (not synced). | — |
-| host `https://shupit.vercel.app/*` | Call the SHUPIT API. | — |
+| host `https://app.shupit.co.il/*` and `https://shupit.vercel.app/*` | Call the SHUPIT API. | — |
 | host `https://securetoken.googleapis.com/*` | Refresh the Firebase ID token. | — |
-| `externally_connectable` `https://shupit.vercel.app/*` | The web app hands over the signed-in session. | Production builds contain **no** `localhost` match (dev build only: `node build.mjs --dev`). |
+| `externally_connectable` `https://app.shupit.co.il/*`, `https://shupit.vercel.app/*` | The web app hands over the signed-in session. | Production builds contain **no** `localhost` match (dev build only: `node build.mjs --dev`). |
 
 No `<all_urls>`, no `tabs` permission, no `cookies`, no `webRequest`, no remote code, no `web_accessible_resources`, default MV3 CSP.
 

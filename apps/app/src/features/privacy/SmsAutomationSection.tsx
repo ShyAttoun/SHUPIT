@@ -7,7 +7,7 @@ import { useAppLanguage, useTranslation } from '@/i18n';
 import { apiFetch } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 
-const ENDPOINT = 'https://shupit.vercel.app/api/sms-hook';
+const ENDPOINT = 'https://app.shupit.co.il/api/sms-hook';
 
 /** Creates / revokes the personal key used by phone automations that forward delivery SMS. */
 export function SmsAutomationSection() {

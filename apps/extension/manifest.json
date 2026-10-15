@@ -27,11 +27,13 @@
     "storage"
   ],
   "host_permissions": [
+    "https://app.shupit.co.il/*",
     "https://shupit.vercel.app/*",
     "https://securetoken.googleapis.com/*"
   ],
   "externally_connectable": {
     "matches": [
+      "https://app.shupit.co.il/*",
       "https://shupit.vercel.app/*",
       "http://localhost:8081/*"
     ]

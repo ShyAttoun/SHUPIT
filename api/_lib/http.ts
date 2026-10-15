@@ -1,5 +1,6 @@
 const ALLOWED_ORIGINS = new Set([
   'https://shupit.vercel.app',
+  'https://app.shupit.co.il',
   'http://localhost:8081',
   'http://localhost:19006',
 ]);
