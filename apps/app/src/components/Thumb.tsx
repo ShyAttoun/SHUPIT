@@ -8,7 +8,7 @@ const BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ??
   (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hostname !== 'localhost'
     ? ''
-    : 'https://shupit.vercel.app');
+    : 'https://app.shupit.co.il');
 
 /**
  * Product / order picture. Many store CDNs refuse pictures requested from another site (hotlink
