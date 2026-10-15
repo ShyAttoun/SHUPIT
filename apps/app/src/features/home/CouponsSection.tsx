@@ -45,6 +45,7 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
 
   return (
     <Section
+      tone="coupons"
       title={t('home.coupons.title')}
       action={
         <Button variant="ghost" label={t('home.coupons.add')} onPress={() => setAdding(true)} />
@@ -60,38 +61,45 @@ export function CouponsSection({ favoriteIds }: { favoriteIds: string[] }) {
           <View
             key={`${c.source}-${c.id}`}
             style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.sm,
+              gap: spacing.xs,
               padding: spacing.sm,
               borderRadius: radius.lg,
               borderWidth: 1,
               borderStyle: 'dashed',
               borderColor: colors.border,
-              backgroundColor: colors.surface,
+              backgroundColor: colors.background,
             }}
           >
-            <MerchantLogo name={m?.name ?? c.merchantId} domain={m?.domains[0]} size={40} />
-            <View style={{ flex: 1 }}>
-              <Text variant="bodyStrong">{c.code}</Text>
-              <Text variant="caption" color="textSecondary" numberOfLines={2}>
-                {[m?.name, c.description].filter(Boolean).join(' · ')}
-              </Text>
+            {/* The code gets the full width, so it never wraps letter by letter. */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <MerchantLogo name={m?.name ?? c.merchantId} domain={m?.domains[0]} size={40} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="bodyStrong" selectable style={{ flexShrink: 1 }}>
+                  {c.code}
+                </Text>
+                <Text variant="caption" color="textSecondary" numberOfLines={2}>
+                  {[m?.name, c.description].filter(Boolean).join(' · ')}
+                </Text>
+              </View>
             </View>
-            <Button
-              variant="secondary"
-              label={t('home.coupons.copy')}
-              icon={<Copy size={16} color={colors.text} />}
-              onPress={() => void copy(c.id, c.code)}
-            />
-            {c.source === 'mine' ? (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
               <Button
-                variant="ghost"
-                label={t('common.delete')}
-                icon={<Trash2 size={16} color={colors.text} />}
-                onPress={() => remove.mutate(c.id)}
+                variant="secondary"
+                label={t('home.coupons.copy')}
+                icon={<Copy size={16} color={colors.text} />}
+                style={{ minHeight: 40, paddingHorizontal: spacing.md }}
+                onPress={() => void copy(c.id, c.code)}
               />
-            ) : null}
+              {c.source === 'mine' ? (
+                <Button
+                  variant="ghost"
+                  label={t('common.delete')}
+                  icon={<Trash2 size={16} color={colors.text} />}
+                  style={{ minHeight: 40, paddingHorizontal: spacing.md }}
+                  onPress={() => remove.mutate(c.id)}
+                />
+              ) : null}
+            </View>
           </View>
         );
       })}

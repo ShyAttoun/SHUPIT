@@ -98,7 +98,7 @@ export function HomeScreen() {
   const favoriteIds = (favorites.data ?? []).map((f) => f.merchantId);
 
   const quickActions = (
-    <Section title={t('home.quickActions')}>
+    <Section tone="actions" title={t('home.quickActions')}>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
         <Button
           label={t('home.addOrder')}
@@ -126,7 +126,7 @@ export function HomeScreen() {
           body={t('home.emptyBody')}
         />
         {liked.length > 0 ? (
-          <Section title={t('home.liked')}>
+          <Section tone="liked" title={t('home.liked')}>
             <WishlistCarousel products={liked} onOpen={(p) => router.push(`/product/${p.id}`)} />
           </Section>
         ) : null}
@@ -176,6 +176,7 @@ export function HomeScreen() {
         <Grid>
         {updates.length > 0 ? (
           <Section
+            tone="alerts"
             title={t('notifications.title')}
             action={<Button variant="ghost" label={t('home.seeAll')} onPress={() => router.push('/notifications')} />}
           >
@@ -194,7 +195,7 @@ export function HomeScreen() {
           </Section>
         ) : null}
         {drops.length > 0 ? (
-          <Section title={t('home.drops')}>
+          <Section tone="drops" title={t('home.drops')}>
             <Text variant="caption" color="textSecondary">
               {t('home.dropsNote')}
             </Text>
@@ -213,6 +214,7 @@ export function HomeScreen() {
         ) : null}
         {liked.length > 0 ? (
           <Section
+            tone="liked"
             title={t('home.liked')}
             action={<Button variant="ghost" label={t('home.seeAll')} onPress={() => router.push('/wishlist')} />}
           >
@@ -220,10 +222,10 @@ export function HomeScreen() {
           </Section>
         ) : null}
         <CouponsSection favoriteIds={favoriteIds} />
-        {pickup.length > 0 ? <Section title={t('home.readyForPickup')}>{pickup.map(shipmentRow)}</Section> : null}
-        {soon.length > 0 ? <Section title={t('home.arrivingSoon')}>{soon.map(shipmentRow)}</Section> : null}
+        {pickup.length > 0 ? <Section tone="shipments" title={t('home.readyForPickup')}>{pickup.map(shipmentRow)}</Section> : null}
+        {soon.length > 0 ? <Section tone="shipments" title={t('home.arrivingSoon')}>{soon.map(shipmentRow)}</Section> : null}
         {active.length > 0 ? (
-          <Section title={t('home.activeDeliveries')}>
+          <Section tone="shipments" title={t('home.activeDeliveries')}>
             {active.map(shipmentRow)}
             {active.some((s) => s.status === 'unknown') ? (
               <Text variant="caption" color="textSecondary">
@@ -233,6 +235,7 @@ export function HomeScreen() {
           </Section>
         ) : null}
         <Section
+          tone="orders"
           title={t('home.recentOrders')}
           action={<Button variant="ghost" label={t('home.seeAll')} onPress={() => router.push('/orders')} />}
         >
