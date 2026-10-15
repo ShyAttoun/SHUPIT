@@ -41,7 +41,7 @@ const ORDER_SHAPE = `{
   "orderNumber": string|null,
   "purchaseDate": "YYYY-MM-DD"|null,
   "total": {"amount": number, "currency": "ISO"}|null,
-  "items": [{"title": string, "quantity": integer, "imageUrl": string|null, "productUrl": string|null}],   // imageUrl / productUrl: ONLY a URL from the provided image / link list, matched by alt text, link text or position; null if unsure
+  "items": [{"title": string, "quantity": integer, "imageUrl": string|null, "productUrl": string|null, "imageBox": {"x": number, "y": number, "w": number, "h": number}|null}],   // imageUrl / productUrl: ONLY a URL from the provided image / link list, matched by alt text, link text or position; null if unsure. imageBox: ONLY for an attached screenshot - tight box around THAT item's picture as fractions 0-1 of the image width/height, else null
   "shipments": [{"carrier": string|null, "trackingNumber": string|null,
                  "status": "processing"|"shipped"|"in_transit"|"customs"|"out_for_delivery"|"ready_for_pickup"|"delivered"|"exception"|"returned"|null,
                  "statusText": string|null,          // the carrier's own wording of the CURRENT status, verbatim (same language as the page)
@@ -59,6 +59,7 @@ const PRODUCT_SHAPE = `{
   "title": string|null,
   "merchantName": string|null,
   "price": {"amount": number, "currency": "ISO"}|null,   // the current selling price, not a crossed-out or "was" price
+  "imageBox": {"x": number, "y": number, "w": number, "h": number}|null,   // ONLY for an attached screenshot: tight box around the main product photo, as fractions 0-1 of the image width/height (x,y = top-left); null if no clear product photo or no image
   "confidence": "high"|"medium"|"low"
 }`;
 

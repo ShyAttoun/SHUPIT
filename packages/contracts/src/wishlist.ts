@@ -11,6 +11,12 @@ export const savedProduct = z.object({
   urlKey: z.string().optional(),
   note: z.string().max(500).optional(),
   imageUrl: z.string().url().optional(),
+  /** Small JPEG cut from the user's own screenshot, used when the store's picture can't be loaded. */
+  thumbDataUrl: z
+    .string()
+    .regex(/^data:image\/jpeg;base64,/)
+    .max(60_000)
+    .optional(),
   /** Price at the moment of saving. Not a live price. */
   savedPrice: money.optional(),
   priceVerifiedAt: isoDate.optional(),

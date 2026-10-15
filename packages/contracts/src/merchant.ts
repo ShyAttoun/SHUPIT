@@ -19,6 +19,8 @@ export const merchant = z.object({
   active: z.boolean(),
   /** Shopping category, used for grouping and future filters. */
   category: z.enum(['general', 'electronics', 'appliances', 'home', 'fashion', 'sports', 'beauty', 'baby', 'books', 'toys', 'health', 'travel']).optional(),
+  /** The store's own "my orders" page, when known (opened directly, never through affiliate routing). */
+  ordersUrl: z.string().url().optional(),
   /** Where the store matters most to our users; Israeli stores are listed first in Hebrew. */
   market: z.enum(['il', 'global']).optional(),
   /** Extra names people may type when searching (e.g. the Hebrew name). */

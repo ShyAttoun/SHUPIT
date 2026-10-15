@@ -198,8 +198,8 @@ export function OrdersScreen() {
                   </View>
                 }
                 trailing={
-                  firstItem?.imageUrl ? (
-                    <Thumb imageUrl={firstItem.imageUrl} fallbackName={o.merchantName} size={52} />
+                  firstItem?.thumbDataUrl || firstItem?.imageUrl ? (
+                    <Thumb imageUrl={firstItem.thumbDataUrl ?? firstItem.imageUrl} fallbackName={o.merchantName} size={52} />
                   ) : undefined
                 }
                 title={title}

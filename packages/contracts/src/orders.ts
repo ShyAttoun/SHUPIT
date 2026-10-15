@@ -32,6 +32,7 @@ export const orderItem = z.object({
   unitPrice: money.optional(),
   imageUrl: z.string().url().optional(),
   productUrl: z.string().url().optional(),
+  thumbDataUrl: z.string().regex(/^data:image\/jpeg;base64,/).max(20_000).optional(),
 });
 export type OrderItem = z.infer<typeof orderItem>;
 
@@ -49,6 +50,8 @@ export const order = z.object({
   dedupeKey: z.string().optional(),
   /** Set when the user marks the package as received; archived orders leave the main list. */
   archivedAt: isoDate.nullable().optional(),
+  /** The store's page for this order, when it was imported from that page. */
+  orderUrl: z.string().url().nullable().optional(),
   createdAt: isoDate,
   updatedAt: isoDate,
 });

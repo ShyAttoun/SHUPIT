@@ -202,7 +202,7 @@ export function HomeScreen() {
             {drops.slice(0, 4).map((p) => (
               <ListRow
                 key={p.id}
-                leading={<Thumb imageUrl={p.imageUrl} fallbackName={p.title} size={48} />}
+                leading={<Thumb imageUrl={p.thumbDataUrl ?? p.imageUrl} fallbackName={p.title} size={48} />}
                 title={p.title}
                 subtitle={`${formatPrice(p.latestObservation!.price, language)} · ${t('home.dropFrom', {
                   price: formatPrice(p.savedPrice, language) ?? '',

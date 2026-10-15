@@ -363,6 +363,7 @@ function orderBody(d: OrderData, merchantId: string | null, pageUrl: string) {
     ...(merchantId ? { merchantId } : {}),
     merchantName: d.merchantName ?? host,
     ...(d.orderNumber ? { externalOrderId: d.orderNumber } : {}),
+    ...(/^https:\/\//.test(pageUrl) ? { orderUrl: pageUrl.split('#')[0] } : {}),
     ...(isoNoon(d.purchaseDate) ? { purchasedAt: isoNoon(d.purchaseDate) } : {}),
     // A total whose currency was not shown is left out rather than guessed.
     ...(d.total && d.total.currency

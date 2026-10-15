@@ -6,6 +6,7 @@ import { useShareInbox } from '@/lib/shareInbox';
 import { Pressable, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { StatusBadge } from '@/components/StatusBadge';
+import { cropThumbnail } from '@/lib/thumbnail';
 import { AiWait } from '@/components/AiWait';
 import { Button, LoadingState, Screen, Text, TextField, useTheme } from '@/design';
 import { useFavoriteStores } from '@/features/stores/hooks';
@@ -113,6 +114,21 @@ function AddOrderContent({ ensure }: { ensure: () => Promise<boolean> }) {
         body: { kind: 'order', imageBase64: picked.base64, mediaType: picked.mediaType },
       });
       applyExtraction(res, 'screenshot');
+      // Cut each item's picture out of the user's own screenshot (first few items; small thumbnails).
+      const boxes = res.data.items.slice(0, 6).map((i) => (i as { imageBox?: unknown }).imageBox);
+      const thumbs = await Promise.all(
+        boxes.map((b) =>
+          cropThumbnail(picked.base64, picked.mediaType, b as never, { size: 160, maxChars: 14_000 }),
+        ),
+      );
+      if (thumbs.some(Boolean)) {
+        const withThumbs = (v: OrderFormValues): OrderFormValues => ({
+          ...v,
+          items: v.items.map((it, n) => (thumbs[n] ? { ...it, thumb: thumbs[n]! } : it)),
+        });
+        setValues(withThumbs);
+        setInitial((v) => (v ? withThumbs(v) : v));
+      }
     } catch (e) {
       setFailKey(errorKey(e));
       setStep('error');

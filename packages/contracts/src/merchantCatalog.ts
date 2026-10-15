@@ -43,7 +43,20 @@ const n = (
   affiliateProgramId: null,
 });
 
-export const merchantCatalog: readonly Merchant[] = [
+/** "My orders" pages checked to exist (they redirect to sign-in when logged out). */
+const ORDERS_URL: Record<string, string> = {
+  amazon: 'https://www.amazon.com/gp/css/order-history',
+  ebay: 'https://www.ebay.com/mye/myebay/purchase',
+  etsy: 'https://www.etsy.com/your/purchases',
+  aliexpress: 'https://www.aliexpress.com/p/order/index.html',
+  temu: 'https://www.temu.com/bgt_orders.html',
+  shein: 'https://il.shein.com/user/orders/list',
+  asos: 'https://my.asos.com/my-account/orders',
+  nike: 'https://www.nike.com/orders',
+  ikea: 'https://www.ikea.com/il/he/profile/orders/',
+};
+
+const baseCatalog: readonly Merchant[] = [
   m('amazon', 'Amazon', ['amazon.com', 'amazon.co.uk', 'amazon.de'], 'https://www.amazon.com', undefined, { category: 'general' }),
   m('aliexpress', 'AliExpress', ['aliexpress.com'], 'https://www.aliexpress.com', undefined, { category: 'general' }),
   m('shein', 'SHEIN', ['shein.com', 'il.shein.com'], 'https://il.shein.com', 'IL', { category: 'fashion' }),
@@ -107,6 +120,10 @@ export const merchantCatalog: readonly Merchant[] = [
   n('target', 'Target', 'target.com', 'general'),
   n('wayfair', 'Wayfair', 'wayfair.com', 'home'),
 ];
+
+export const merchantCatalog: readonly Merchant[] = baseCatalog.map((x) =>
+  ORDERS_URL[x.id] ? { ...x, ordersUrl: ORDERS_URL[x.id] } : x,
+);
 
 export function getMerchant(id: string | undefined): Merchant | undefined {
   return id ? merchantCatalog.find((x) => x.id === id) : undefined;

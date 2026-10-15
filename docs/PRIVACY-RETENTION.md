@@ -50,3 +50,12 @@ Collection-group queries need the field overrides in `firestore.indexes.json`.
 - Optional. A personal key (`shp_…`) lets iPhone Shortcuts / Android Tasker send a delivery SMS to `POST /api/sms-hook`.
 - Only the SHA-256 hash is stored (`automationKeys`, server-only); the plaintext is shown once. Revoke or replace it in Settings; account deletion removes it.
 - The message text is processed in memory by the same AI reader (consent and daily quota apply) and is not stored. Pickup details are applied only when the shipment match is unambiguous.
+
+## Product pictures cut from screenshots
+- When a store's own picture cannot be loaded (bot protection), the app cuts the product photo out of the screenshot **on the user's device** and stores only that small JPEG (a thumbnail, ≈10–40 KB) on the saved product or order item (`thumbDataUrl`). The full screenshot is still not stored.
+- The user sees the cut picture and can remove it before saving. It is deleted with the product/order and with the account.
+- The model only reports where the picture is (a bounding box); it never receives or returns a picture.
+- **The in-app privacy text still says screenshots are "not stored" — that remains true for the screenshot itself, but the wording should mention the thumbnail before a public launch.**
+
+## Order page link
+- For orders imported with the extension, the page URL of the order is kept (`orderUrl`) so the app can reopen it. Only https pages of the order's own store without credentials, tokens or fragments are kept; otherwise nothing is stored.

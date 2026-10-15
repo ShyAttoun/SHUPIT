@@ -22,6 +22,14 @@ const EVENT_TIME = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/;
 
 const confidence = z.enum(['high', 'medium', 'low']);
 
+/** Where the main picture is inside a screenshot, as fractions (0–1) of its width and height. */
+export const imageBox = z
+  .object({ x: z.number(), y: z.number(), w: z.number(), h: z.number() })
+  .nullable()
+  .optional()
+  .catch(null);
+export type ImageBox = { x: number; y: number; w: number; h: number };
+
 /** What the vision/text model may report for an order. null = not visible. Never guessed. */
 export const extractedOrder = z.object({
   isOrderScreenshot: z.boolean(),
@@ -38,6 +46,8 @@ export const extractedOrder = z.object({
         imageUrl: z.string().url().max(2048).nullable().optional(),
         /** Must be one of the links found on the page; null when unsure. */
         productUrl: z.string().url().max(2048).nullable().optional().catch(null),
+        /** Screenshot input only: where this item's picture is, so the app can crop it. */
+        imageBox,
       }),
     )
     .max(30),
@@ -101,6 +111,8 @@ export const extractedProduct = z.object({
   title: z.string().max(300).nullable(),
   merchantName: z.string().max(120).nullable(),
   price: amount,
+  /** Screenshot input only: where the product photo is, so the app can crop it. */
+  imageBox,
   confidence,
 });
 export type ExtractedProduct = z.infer<typeof extractedProduct>;

@@ -81,7 +81,7 @@ export function ProductDetailScreen() {
       <Stack.Screen options={{ title: product.title.slice(0, 40) }} />
       <View style={{ gap: spacing.lg }}>
         <View style={{ flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
-          <Thumb imageUrl={product.imageUrl} fallbackName={product.title} size={88} />
+          <Thumb imageUrl={product.thumbDataUrl ?? product.imageUrl} fallbackName={product.title} size={88} />
           <View style={{ flex: 1, gap: spacing.xxs }}>
             <Text variant="title">{product.title}</Text>
             {merchant ? <Text color="textSecondary">{merchant.name}</Text> : null}

@@ -45,7 +45,7 @@ export function ProductCard({
           opacity: pressed ? 0.85 : 1,
         })}
       >
-        <Thumb imageUrl={product.imageUrl} fallbackName={product.title} size={64} />
+        <Thumb imageUrl={product.thumbDataUrl ?? product.imageUrl} fallbackName={product.title} size={64} />
         <View style={{ flex: 1, gap: 2 }}>
           <Text variant="bodyStrong" numberOfLines={2}>
             {product.title}

@@ -60,6 +60,8 @@ export interface NewProductInput {
   priceFromPage?: boolean;
   titleFromPage?: boolean;
   imageFromPage?: boolean;
+  /** Cut from the user's own screenshot when the page's picture could not be read. */
+  thumbDataUrl?: string;
   note?: string;
   collectionIds: string[];
 }
@@ -95,6 +97,7 @@ export function buildProduct(id: string, input: NewProductInput, now = new Date(
     if (key) product.urlKey = key;
   }
   if (input.imageUrl) product.imageUrl = input.imageUrl;
+  if (input.thumbDataUrl) product.thumbDataUrl = input.thumbDataUrl;
   if (input.note?.trim()) product.note = input.note.trim();
   if (input.savedPrice) {
     product.savedPrice = input.savedPrice;

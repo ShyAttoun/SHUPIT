@@ -48,6 +48,7 @@ import { formatDate, formatDateTime, formatDateTimeWall, formatPrice } from '@/l
 import { pickScreenshot } from '@/lib/imagePicker';
 import { confirmAction } from '@/lib/platform';
 import { openWaze } from '@/lib/waze';
+import { openExternal } from '@/lib/platform';
 import { useOrderMutations, useOrders, useShipments, type ShipmentDoc } from './hooks';
 
 type Tr = (key: string, opts?: Record<string, unknown>) => string;
@@ -624,6 +625,8 @@ export function OrderDetailScreen() {
   const ships = (shipments.data ?? []).filter((s) => s.orderId === order.id);
   const merchant = order.merchantId ? { id: order.merchantId } : merchantByName(order.merchantName);
   const catalog = merchantByName(order.merchantName);
+  // The store's own page for this order: the page it was imported from, else the store's "my orders".
+  const storeOrderUrl = order.orderUrl ?? catalog?.ordersUrl ?? null;
   const archived = !!order.archivedAt;
 
   const markAsReceived = () =>
@@ -705,6 +708,15 @@ export function OrderDetailScreen() {
             <MoreHorizontal size={24} color={colors.text} />
           </IconButton>
         </View>
+
+        {storeOrderUrl ? (
+          <Button
+            variant="secondary"
+            label={t('orders.detail.openOrder', { store: order.merchantName })}
+            icon={<Store size={18} color={colors.text} />}
+            onPress={() => void openExternal(storeOrderUrl)}
+          />
+        ) : null}
 
         {archived ? (
           <View
@@ -790,7 +802,7 @@ export function OrderDetailScreen() {
                     borderTopColor: colors.border,
                   }}
                 >
-                  <Thumb imageUrl={it.imageUrl} fallbackName={order.merchantName} size={64} />
+                  <Thumb imageUrl={it.thumbDataUrl ?? it.imageUrl} fallbackName={order.merchantName} size={64} />
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text numberOfLines={2}>{it.title}</Text>
                     <Text variant="caption" color="textSecondary">
@@ -842,6 +854,16 @@ export function OrderDetailScreen() {
               router.push(`/order/edit/${order.id}`);
             }}
           />
+          {storeOrderUrl ? (
+            <MenuRow
+              icon={<Store size={20} color={colors.text} />}
+              label={t('orders.detail.openOrder', { store: order.merchantName })}
+              onPress={() => {
+                setMenu(false);
+                void openExternal(storeOrderUrl);
+              }}
+            />
+          ) : null}
           {merchant ? (
             <MenuRow
               icon={<Store size={20} color={colors.text} />}

@@ -80,7 +80,7 @@ export function WishlistCarousel({
             })}
           >
             <View style={{ alignItems: 'center' }}>
-              <Thumb imageUrl={p.imageUrl} fallbackName={p.title} size={CARD - 24} />
+              <Thumb imageUrl={p.thumbDataUrl ?? p.imageUrl} fallbackName={p.title} size={CARD - 24} />
             </View>
             <Text variant="small" numberOfLines={2}>
               {p.title}

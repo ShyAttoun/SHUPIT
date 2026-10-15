@@ -13,7 +13,8 @@ export interface OrderFormValues {
   purchaseDate: string; // YYYY-MM-DD or ''
   total: string;
   currency: string;
-  items: { title: string; quantity: string }[];
+  /** `thumb`: small picture cut from the user's screenshot (optional, never typed by the user). */
+  items: { title: string; quantity: string; thumb?: string }[];
   carrier: string;
   trackingNumber: string;
   eta: string; // YYYY-MM-DD or ''
@@ -118,7 +119,7 @@ export function buildOrderInput(
       errors.items = 'invalidQuantity';
       continue;
     }
-    items.push({ title, quantity: q });
+    items.push({ title, quantity: q, ...(it.thumb ? { thumbDataUrl: it.thumb } : {}) });
   }
 
   if (Object.keys(errors).length) return { ok: false, errors };
@@ -267,7 +268,11 @@ export function valuesFromOrder(o: Order, fallbackCurrency: string): OrderFormVa
     total: o.total ? String(fromMinor(o.total)) : '',
     currency: o.total?.currency ?? fallbackCurrency,
     items: o.items.length
-      ? o.items.map((i) => ({ title: i.title, quantity: String(i.quantity) }))
+      ? o.items.map((i) => ({
+          title: i.title,
+          quantity: String(i.quantity),
+          ...(i.thumbDataUrl ? { thumb: i.thumbDataUrl } : {}),
+        }))
       : [{ title: '', quantity: '1' }],
     carrier: '',
     trackingNumber: '',
@@ -302,12 +307,14 @@ export function diffOrderUpdate(
   }
 
   const prevItems = existing.items.map((i) => ({ title: i.title, quantity: i.quantity }));
-  if (JSON.stringify(prevItems) !== JSON.stringify(n.items)) {
+  const nextPlain = n.items.map((i) => ({ title: i.title, quantity: i.quantity }));
+  if (JSON.stringify(prevItems) !== JSON.stringify(nextPlain)) {
     out.items = n.items.map((it) => {
       const old = existing.items.find((o) => o.title === it.title);
       return {
         ...it,
         ...(old?.imageUrl ? { imageUrl: old.imageUrl } : {}),
+        ...(old?.thumbDataUrl ? { thumbDataUrl: old.thumbDataUrl } : {}),
         ...(old?.productUrl ? { productUrl: old.productUrl } : {}),
       };
     });

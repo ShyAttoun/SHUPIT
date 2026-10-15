@@ -34,6 +34,8 @@ export const orderCreateInput = z.object({
   total: money.optional(),
   /** How the draft was produced; defaults to manual. */
   importSource: z.enum(['manual', 'screenshot', 'link', 'extension']).optional(),
+  /** Page the order was read from (extension). Sanitized server-side. */
+  orderUrl: z.string().url().max(2048).optional(),
   /** Field names that were read by AI and left unedited by the user (provenance). */
   aiFields: z.array(z.string().max(40)).max(12).optional(),
   items: z
@@ -43,6 +45,7 @@ export const orderCreateInput = z.object({
         quantity: z.number().int().min(1).max(999),
         imageUrl: z.string().url().max(2048).optional(),
         productUrl: z.string().url().max(2048).optional(),
+        thumbDataUrl: z.string().regex(/^data:image\/jpeg;base64,/).max(20_000).optional(),
       }),
     )
     .max(50),
@@ -83,6 +86,7 @@ export const orderUpdateInput = z
           quantity: z.number().int().min(1).max(999),
           imageUrl: z.string().url().max(2048).optional(),
           productUrl: z.string().url().max(2048).optional(),
+          thumbDataUrl: z.string().regex(/^data:image\/jpeg;base64,/).max(20_000).optional(),
         }),
       )
       .max(50)

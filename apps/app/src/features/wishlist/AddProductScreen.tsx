@@ -18,6 +18,8 @@ import { apiFetch } from '@/lib/api';
 import { ImageDropZone } from '@/components/ImageDropZone';
 import type { PickedImage } from '@/lib/imagePicker';
 import { ApiError } from '@/lib/api';
+import { Thumb } from '@/components/Thumb';
+import { cropThumbnail } from '@/lib/thumbnail';
 import { AiWait } from '@/components/AiWait';
 import { ShareTip } from '@/features/share/ShareTip';
 import { useAiConsent } from '@/features/privacy/AiConsent';
@@ -43,7 +45,7 @@ export function AddProductScreen() {
 function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
   const { t } = useTranslation();
   const { language } = useAppLanguage();
-  const { spacing } = useTheme();
+  const { spacing, colors, radius } = useTheme();
   const router = useRouter();
   const products = useSavedProducts();
   const collections = useCollections();
@@ -60,6 +62,8 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
   const [currency, setCurrency] = useState(language === 'he' ? 'ILS' : 'USD');
   const [note, setNote] = useState('');
   const [imageUrl, setImageUrl] = useState<string | undefined>();
+  // Picture cut from the user's own screenshot; kept only if they confirm it is the product.
+  const [thumb, setThumb] = useState<string | undefined>();
   const [collectionId, setCollectionId] = useState<string | null>(null);
   const [fromPage, setFromPage] = useState({ title: false, price: false, image: false });
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; price?: string }>({});
@@ -126,7 +130,11 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
     setShowForm(true);
     try {
       const res = await apiFetch<{
-        data: { title: string | null; price: { amount: number; currency: string | null } | null };
+        data: {
+          title: string | null;
+          price: { amount: number; currency: string | null } | null;
+          imageBox?: { x: number; y: number; w: number; h: number } | null;
+        };
         merchantId: string | null;
       }>('/api/extract', {
         method: 'POST',
@@ -138,6 +146,8 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
         // Keep the default currency when the screenshot only showed an ambiguous symbol.
         if (res.data.price.currency) setCurrency(res.data.price.currency);
       }
+      const cut = await cropThumbnail(picked.base64, picked.mediaType, res.data.imageBox, { size: 256 });
+      if (cut) setThumb(cut);
       // Screenshot values are AI-read, not page-verified: they stay "user-confirmed" provenance-wise.
       setFromPage((f) => ({ ...f, title: false, price: false }));
       setNotice(t('wishlist.add.partial'));
@@ -190,6 +200,7 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
       productUrl: canonicalUrl ?? (isHttpUrl(typedUrl) ? typedUrl : undefined),
       merchantId: merchant?.id,
       imageUrl,
+      thumbDataUrl: thumb,
       savedPrice,
       priceFromPage: fromPage.price && !!savedPrice,
       titleFromPage: fromPage.title,
@@ -269,6 +280,32 @@ function AddProductContent({ ensure }: { ensure: () => Promise<boolean> }) {
               <Text variant="small" color="textSecondary">
                 {t('wishlist.add.store')}: {merchant.name}
               </Text>
+            ) : null}
+
+            {thumb ? (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing.sm,
+                  padding: spacing.sm,
+                  borderRadius: radius.lg,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  backgroundColor: colors.surface,
+                }}
+              >
+                <Thumb imageUrl={thumb} fallbackName={title || 'SHUPIT'} size={72} />
+                <View style={{ flex: 1, gap: spacing.xs }}>
+                  <Text variant="small">{t('wishlist.add.isThisPicture')}</Text>
+                  <Button
+                    variant="secondary"
+                    label={t('wishlist.add.removePicture')}
+                    style={{ minHeight: 40, alignSelf: 'flex-start' }}
+                    onPress={() => setThumb(undefined)}
+                  />
+                </View>
+              </View>
             ) : null}
 
             <TextField

@@ -3,6 +3,7 @@ import { DuplicateError, NotFoundError, updateOrder } from './_lib/ordersService
 import { adminDb } from './_lib/firebaseAdmin';
 import { errorResponse, json, preflight, readJson } from './_lib/http';
 import { orderDedupeKey } from './_lib/orderKeys';
+import { sanitizeOrderUrl } from './_lib/orderUrl';
 import { toEventDocs } from './_lib/orderEnrich';
 import { withAuth } from './_lib/withAuth';
 
@@ -68,6 +69,7 @@ export const POST = withAuth(async (request, user) => {
     importSource: input.importSource ?? 'manual',
     provenance: provenanceFor(input, now),
     dedupeKey: dedupeKey ?? null,
+    orderUrl: sanitizeOrderUrl(input.orderUrl, input.merchantId),
     createdAt: now,
     updatedAt: now,
   };
