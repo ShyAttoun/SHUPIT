@@ -37,3 +37,8 @@ eas submit --platform ios   # TestFlight → App Store
 
 ## Store policy notes
 See the compliance discussion in the project history: privacy policy URL must be real, account deletion must be reachable in-app and via a public web URL (Play), App Privacy / Data Safety forms must mention AI processing, screenshots/thumbnails and location; keep merchant names out of store metadata.
+
+## Apple account (iOS)
+- Team: `VSXX93B934` (Individual — the App Store seller name will be the account holder's personal name).
+- `apps/app/public/.well-known/apple-app-site-association` serves universal links for `VSXX93B934.il.co.shupit.app`.
+- EAS already stores a distribution certificate and push key on the `shupit` account; a **new provisioning profile** for `il.co.shupit.app` (and the Share Extension `il.co.shupit.app.share-extension`) must be created through the Apple API. Non-interactive builds need an **App Store Connect API key**: set `EXPO_ASC_API_KEY_PATH`, `EXPO_ASC_KEY_ID`, `EXPO_ASC_ISSUER_ID`, `EXPO_APPLE_TEAM_ID=VSXX93B934`, `EXPO_APPLE_TEAM_TYPE=INDIVIDUAL` (the push key id is not an API key).

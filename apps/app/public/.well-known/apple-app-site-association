@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["VSXX93B934.il.co.shupit.app"],
+        "components": [{ "/": "/*" }]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["VSXX93B934.il.co.shupit.app"]
+  }
+}
