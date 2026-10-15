@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, TextInput, View, type TextInputProps } from 'react-native';
 import { Text } from './Text';
 import { useTheme } from './theme';
 
@@ -35,7 +35,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
             borderColor: error ? colors.danger : colors.border,
             backgroundColor: colors.surface,
             color: colors.text,
-            textAlign: theme.isRTL ? 'right' : 'auto',
+            textAlign: Platform.OS === 'web' && theme.isRTL ? 'right' : 'auto',
             ...(theme.isRTL ? { writingDirection: 'rtl' as const } : null),
           },
           style,

@@ -121,25 +121,6 @@ export function SignInScreen() {
 
   return (
     <Screen scroll topInset style={glow}>
-      {/* Soft decorative shopping elements (hidden on very short screens) */}
-      {!compact ? (
-        <View pointerEvents="none" style={{ position: 'absolute', top: 0, start: 0, end: 0, height: 220 }}>
-          <Floating style={{ top: 28, start: 8 }} phase={0}>
-            <View style={{ transform: [{ rotate: '-10deg' }], opacity: 0.9 }}>
-              <Deco Icon={ShoppingBag} />
-            </View>
-          </Floating>
-          <Floating style={{ top: 96, start: 20 }} phase={600}>
-            <Deco Icon={Heart} color="#E5446D" size={38} />
-          </Floating>
-          <Floating style={{ top: 24, end: 8 }} phase={300}>
-            <View style={{ transform: [{ rotate: '8deg' }], opacity: 0.9 }}>
-              <Deco Icon={Package} color="#C99A66" />
-            </View>
-          </Floating>
-        </View>
-      ) : null}
-
       <View
         style={{
           flex: 1,
@@ -152,6 +133,27 @@ export function SignInScreen() {
       >
         {/* Brand */}
         <View style={{ alignItems: 'center', gap: spacing.xxs }}>
+          {/* Soft decorative elements sit beside the logo (never on it); hidden on very short screens */}
+          {!compact ? (
+            <View
+              pointerEvents="none"
+              style={{ position: 'absolute', top: 0, width: 280, height: 110, alignSelf: 'center' }}
+            >
+              <Floating style={{ top: 6, start: 8 }} phase={0}>
+                <View style={{ transform: [{ rotate: '-10deg' }], opacity: 0.95 }}>
+                  <Deco Icon={ShoppingBag} size={46} />
+                </View>
+              </Floating>
+              <Floating style={{ top: 62, start: 52 }} phase={600}>
+                <Deco Icon={Heart} color="#E5446D" size={32} />
+              </Floating>
+              <Floating style={{ top: 10, end: 8 }} phase={300}>
+                <View style={{ transform: [{ rotate: '8deg' }], opacity: 0.95 }}>
+                  <Deco Icon={Package} color="#C99A66" size={46} />
+                </View>
+              </Floating>
+            </View>
+          ) : null}
           <LogoMark size={compact ? 56 : 72} />
           <Text variant="display" accessibilityRole="header" style={{ textAlign: 'center' }}>
             {t('common.appName')}
@@ -281,15 +283,15 @@ export function SignInScreen() {
               </Text>
             </Pressable>
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
-              <Toggle accessibilityLabel={t('legal.agreePrefix')} value={agreed} onValueChange={setAgreed} />
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text variant="small">
+            <View style={{ gap: spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <Toggle accessibilityLabel={t('legal.agreePrefix')} value={agreed} onValueChange={setAgreed} />
+                <Text variant="small" style={{ flex: 1 }}>
                   {t('legal.agreePrefix')} {t('legal.terms')} {t('legal.and')}
                   {t('legal.privacy')}
                 </Text>
-                <LegalLinks />
               </View>
+              <LegalLinks />
             </View>
           )}
 
@@ -371,31 +373,22 @@ export function SignInScreen() {
         </View>
 
         {/* Switch prompt */}
-        <View style={{ alignItems: 'center', gap: spacing.xs }}>
-          <Text variant="small" color="textSecondary">
-            {mode === 'signIn' ? t('auth.newHere') : t('auth.haveAccount')}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setFormError(null);
-              setNotice(null);
-              setMode(mode === 'signIn' ? 'signUp' : 'signIn');
-            }}
-            style={{
-              minHeight: 44,
-              paddingHorizontal: spacing.lg,
-              borderRadius: radius.full,
-              backgroundColor: colors.accentSoft,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {
+            setFormError(null);
+            setNotice(null);
+            setMode(mode === 'signIn' ? 'signUp' : 'signIn');
+          }}
+          style={{ minHeight: 44, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Text variant="small" color="textSecondary" style={{ textAlign: 'center' }}>
+            {mode === 'signIn' ? t('auth.newHere') : t('auth.haveAccountPrefix')}{' '}
             <Text variant="bodyStrong" color="accentText">
-              {mode === 'signIn' ? t('auth.createFree') : t('auth.backToSignIn')}
+              {mode === 'signIn' ? t('auth.createFreeLink') : t('auth.signInLink')}
             </Text>
-          </Pressable>
-        </View>
+          </Text>
+        </Pressable>
 
         {mode === 'signIn' ? <LegalLinks center /> : null}
       </View>

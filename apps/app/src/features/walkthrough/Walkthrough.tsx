@@ -264,7 +264,7 @@ export function Walkthrough() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 style={{ flexGrow: 0 }}
-                contentContainerStyle={{ gap: spacing.xs, padding: spacing.sm, flexDirection: isRTL ? 'row-reverse' : 'row' }}
+                contentContainerStyle={{ gap: spacing.xs, padding: spacing.sm, flexDirection: 'row' }}
               >
                 <Chip label={t('walkthrough.cat.all')} selected={category === null} onPress={() => setCategory(null)} />
                 {categories.map((c) => (

@@ -42,7 +42,7 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
           alignSelf: 'center',
           paddingHorizontal: theme.isWide ? theme.spacing.xl : theme.spacing.md,
           paddingTop: topInset ? insets.top + theme.spacing.md : theme.spacing.md,
-          paddingBottom: theme.spacing.lg,
+          paddingBottom: topInset ? insets.bottom + theme.spacing.lg : theme.spacing.lg,
         },
         style,
       ]}

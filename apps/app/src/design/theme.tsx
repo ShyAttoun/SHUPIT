@@ -77,7 +77,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => ({
       mode,
       isRTL,
-      endAlign: isRTL ? 'left' : 'right',
+      // Native `right` is logical (end), which is already the trailing edge in both directions.
+      endAlign: Platform.OS === 'web' ? (isRTL ? 'left' : 'right') : 'right',
       colors: themes[mode],
       spacing,
       radius,

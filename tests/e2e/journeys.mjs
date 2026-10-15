@@ -124,9 +124,17 @@ async function fill(label, value) {
     if (!el) await sleep(250);
   }
   if (!el) throw new Error(`field not found: ${label}`);
-  await el.click({ clickCount: 3 });
-  await page.keyboard.press('Backspace');
-  await el.type(value);
+  // Forms prefill asynchronously and can overwrite early typing, so verify the value and retry.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await el.click({ clickCount: 3 });
+    await page.keyboard.press('Backspace');
+    await el.type(value);
+    await sleep(250);
+    const now = await el.evaluate((e) => e.value);
+    if (now === value) return;
+    await sleep(400);
+    el = (await visible(await page.$$(sel)))[0] ?? el;
+  }
 }
 async function clickInput(label) {
   // Switches are custom (role="switch" on a div) and the terms label may be a prefix of a longer text.

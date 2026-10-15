@@ -18,7 +18,9 @@ export function LegalLinks({ center = false }: { center?: boolean }) {
       style={{
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: spacing.md,
+        columnGap: spacing.md,
+        rowGap: spacing.xxs,
+        alignItems: 'center',
         justifyContent: center ? 'center' : 'flex-start',
       }}
     >

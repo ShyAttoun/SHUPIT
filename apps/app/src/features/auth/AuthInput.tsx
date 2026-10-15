@@ -1,6 +1,6 @@
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { forwardRef, useState } from 'react';
-import { Pressable, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import { Text, useTheme } from '@/design';
 
 /**
@@ -68,7 +68,8 @@ export const AuthInput = forwardRef<
               minWidth: 0,
               paddingVertical: spacing.sm,
               color: colors.text,
-              textAlign: ltrContent ? 'left' : isRTL ? 'right' : 'left',
+              textAlign:
+                Platform.OS === 'web' ? (ltrContent ? 'left' : isRTL ? 'right' : 'left') : ltrContent ? 'left' : 'auto',
               // The web outline would double the border drawn by the container.
               ...({ outlineStyle: 'none' } as object),
             },

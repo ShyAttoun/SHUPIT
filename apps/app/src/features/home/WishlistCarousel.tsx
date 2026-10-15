@@ -57,7 +57,7 @@ export function WishlistCarousel({
       onMomentumScrollEnd={(e) => {
         index.current = Math.round(e.nativeEvent.contentOffset.x / (CARD + GAP));
       }}
-      contentContainerStyle={{ gap: GAP, paddingVertical: spacing.xs, flexDirection: isRTL ? 'row-reverse' : 'row' }}
+      contentContainerStyle={{ gap: GAP, paddingVertical: spacing.xs, flexDirection: 'row' }}
       accessibilityLabel="carousel"
     >
       {products.map((p) => {

@@ -1,5 +1,5 @@
 import type { ColorTokens, TextVariant } from '@shupit/tokens';
-import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
+import { Platform, Text as RNText, type TextProps as RNTextProps } from 'react-native';
 import { useTheme } from './theme';
 
 export interface TextProps extends RNTextProps {
@@ -18,7 +18,13 @@ export function Text({ variant = 'body', color = 'text', style, ...rest }: TextP
       {...rest}
       style={[
         theme.textStyle(variant),
-        theme.isRTL ? { writingDirection: 'rtl', textAlign: 'right' } : null,
+        // Web: explicit physical alignment. Native: `right` means "end", which is the LEFT edge once the
+        // layout is mirrored, so rely on the natural start alignment of the (RTL) layout instead.
+        theme.isRTL
+          ? Platform.OS === 'web'
+            ? { writingDirection: 'rtl', textAlign: 'right' }
+            : { writingDirection: 'rtl' }
+          : null,
         { color: theme.colors[color] },
         style,
       ]}

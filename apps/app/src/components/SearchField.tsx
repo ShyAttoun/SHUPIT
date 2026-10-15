@@ -1,5 +1,5 @@
 import { Search } from 'lucide-react-native';
-import { TextInput, View } from 'react-native';
+import { Platform, TextInput, View } from 'react-native';
 import { useTheme } from '@/design';
 
 export function SearchField({
@@ -38,7 +38,7 @@ export function SearchField({
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
-        style={[theme.textStyle('body'), { flex: 1, color: colors.text, paddingVertical: 10, textAlign: theme.isRTL ? 'right' : 'auto' }]}
+        style={[theme.textStyle('body'), { flex: 1, color: colors.text, paddingVertical: 10, textAlign: Platform.OS === 'web' && theme.isRTL ? 'right' : 'auto' }]}
       />
     </View>
   );
