@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './Text';
 import { useTheme } from './theme';
 
@@ -13,6 +14,7 @@ export const useToast = () => useContext(ToastContext);
 /** Short confirmation at the bottom of the screen. Announced politely; disappears on its own. */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { colors, spacing, radius, elevation, motion } = useTheme();
+  const insets = useSafeAreaInsets();
   const [message, setMessage] = useState<string | null>(null);
   const opacity = useRef(new Animated.Value(0)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -37,7 +39,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       {message ? (
-        <View pointerEvents="none" style={{ position: 'absolute', start: 0, end: 0, bottom: 96, alignItems: 'center' }}>
+        <View pointerEvents="none" style={{ position: 'absolute', start: 0, end: 0, bottom: 96 + insets.bottom, alignItems: 'center' }}>
           <Animated.View
             accessibilityLiveRegion="polite"
             role="status"

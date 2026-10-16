@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from './Text';
 import { useTheme } from './theme';
 
@@ -17,6 +18,7 @@ export function BottomSheet({
 }) {
   const { colors, spacing, radius, isWide, breakpoint } = useTheme();
   const centered = breakpoint !== 'phone';
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType={centered ? 'fade' : 'slide'} onRequestClose={onClose}>
       <Pressable
@@ -46,7 +48,7 @@ export function BottomSheet({
             borderColor: colors.border,
           }}
         >
-          <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.lg + insets.bottom, gap: spacing.md }} keyboardShouldPersistTaps="handled">
             <View style={{ alignItems: 'center' }}>
               <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
             </View>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AccessibilityInfo, Animated, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { MerchantLogo } from '@/components/MerchantLogo';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, LogoMark, Text, useTheme } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { toggleFavoriteList, useFavoriteStores, useStoresMutations } from '@/features/stores/hooks';
@@ -38,6 +39,7 @@ export function Walkthrough() {
   const { user } = useAuth();
   const { colors, spacing, radius, isRTL } = useTheme();
   const { width: vw } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { seenFor, replaying, markSeen, closeReplay } = useWalkthroughStore();
   const favorites = useFavoriteStores();
   const { saveFavorites } = useStoresMutations();
@@ -148,7 +150,16 @@ export function Walkthrough() {
       aria-modal
       aria-label={t('walkthrough.title')}
     >
-      <View style={{ flex: 1, width: '100%', maxWidth: 520, paddingHorizontal: spacing.md, paddingTop: spacing.md }}>
+      <View
+        style={{
+          flex: 1,
+          width: '100%',
+          maxWidth: 520,
+          paddingHorizontal: spacing.md,
+          paddingTop: Math.max(insets.top, spacing.md),
+          paddingBottom: insets.bottom,
+        }}
+      >
         {/* top bar */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 44 }}>
           <Text variant="label" style={{ color: D.muted }}>
