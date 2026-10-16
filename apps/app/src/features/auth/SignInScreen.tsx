@@ -27,7 +27,8 @@ const glow =
     : {};
 
 export function SignInScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language === 'he' ? 'he' : 'en';
   const theme = useTheme();
   const { colors, spacing, radius, isRTL, elevation } = theme;
   const { height } = useWindowDimensions();
@@ -288,10 +289,10 @@ export function SignInScreen() {
                 <Toggle accessibilityLabel={t('legal.agreePrefix')} value={agreed} onValueChange={setAgreed} />
                 <Text variant="small" style={{ flex: 1 }}>
                   {t('legal.agreePrefix')} {t('legal.terms')} {t('legal.and')}
+                  {language === 'en' ? ' ' : ''}
                   {t('legal.privacy')}
                 </Text>
               </View>
-              <LegalLinks />
             </View>
           )}
 
@@ -365,9 +366,12 @@ export function SignInScreen() {
                   />
                 ) : null}
               </View>
-              <Text variant="caption" color="textSecondary" style={{ textAlign: 'center' }}>
-                {t('auth.googleAgree')}
-              </Text>
+              {/* In sign-up the agreement switch above already covers consent. */}
+              {mode === 'signIn' ? (
+                <Text variant="caption" color="textSecondary" style={{ textAlign: 'center' }}>
+                  {t('auth.socialAgree')}
+                </Text>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -390,7 +394,8 @@ export function SignInScreen() {
           </Text>
         </Pressable>
 
-        {mode === 'signIn' ? <LegalLinks center /> : null}
+        {/* The three policy links, once, on one line. */}
+        <LegalLinks center />
       </View>
     </Screen>
   );

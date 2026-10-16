@@ -65,7 +65,7 @@ export const he: Translations = {
   legal: {
     privacy: 'מדיניות פרטיות',
     terms: 'תנאי שימוש',
-    affiliate: 'גילוי נאות — שותפים',
+    affiliate: 'גילוי נאות',
     agreePrefix: 'אני מסכים/ה ל',
     and: 'ול',
     mustAgree: 'יש להסכים כדי להמשיך',
@@ -639,7 +639,8 @@ export const he: Translations = {
     signUpSubmit: 'יצירת חשבון חינם',
     signInSubmit: 'התחברות',
     backToSignIn: 'כבר יש לי חשבון',
-    googleAgree: 'בהמשך עם Google אתם מסכימים לתנאי השימוש ולמדיניות הפרטיות.',
+    googleAgree: 'בהמשך אתם מסכימים לתנאי השימוש ולמדיניות הפרטיות.',
+    socialAgree: 'בהמשך אתם מסכימים לתנאי השימוש ולמדיניות הפרטיות.',
     continueWithGoogle: 'המשך עם Google',
     email: 'אימייל',
     password: 'סיסמה',

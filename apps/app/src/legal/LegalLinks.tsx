@@ -16,12 +16,12 @@ export function LegalLinks({ center = false }: { center?: boolean }) {
   return (
     <View
       style={{
+        // All three links on ONE line; the text shrinks (down to 80%) instead of wrapping.
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        columnGap: spacing.md,
-        rowGap: spacing.xxs,
+        flexWrap: 'nowrap',
+        columnGap: spacing.sm,
         alignItems: 'center',
-        justifyContent: center ? 'center' : 'flex-start',
+        justifyContent: center ? 'center' : 'space-between',
       }}
     >
       {items.map(([id, label]) => (
@@ -29,6 +29,10 @@ export function LegalLinks({ center = false }: { center?: boolean }) {
           key={id}
           variant="caption"
           color="accentText"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          style={{ flexShrink: 1, fontSize: 12 }}
           accessibilityRole="link"
           onPress={() => router.push(`/legal/${id}`)}
         >
