@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useSegments } from 'expo-router';
 import { useCallback, useMemo, useRef } from 'react';
 import { ScreenScrollContext } from './ScreenScroll';
 import { Platform } from 'react-native';
@@ -17,6 +17,10 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardHeight();
+  // Tab screens sit above the tab bar (which pads the system inset itself); every other screen must keep
+  // its content clear of the system navigation bar / gesture area (Android draws edge-to-edge).
+  const inTabs = (useSegments() as string[]).includes('(tabs)');
+  const bottomInset = inTabs ? 0 : insets.bottom;
   const scrollRef = useRef<ScrollView>(null);
   // After the keyboard has opened, scroll the focused field to a comfortable spot (Android needs this;
   // on iOS it is a harmless extra nudge).
@@ -64,7 +68,7 @@ export function Screen({ scroll = false, topInset = false, style, children, ...r
           alignSelf: 'center',
           paddingHorizontal: theme.isWide ? theme.spacing.xl : theme.spacing.md,
           paddingTop: topInset ? insets.top + theme.spacing.md : theme.spacing.md,
-          paddingBottom: topInset ? insets.bottom + theme.spacing.lg : theme.spacing.lg,
+          paddingBottom: (topInset ? insets.bottom : bottomInset) + theme.spacing.lg,
         },
         style,
       ]}

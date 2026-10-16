@@ -40,7 +40,7 @@ export function BottomSheet({
     [],
   );
   return (
-    <Modal visible={visible} transparent animationType={centered ? 'fade' : 'slide'} onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType={centered ? 'fade' : 'slide'} statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <Pressable
         accessibilityLabel={title}
         onPress={onClose}
