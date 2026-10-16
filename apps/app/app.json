@@ -2,8 +2,12 @@
   "expo": {
     "name": "SHUPIT",
     "slug": "shupit",
-    "scheme": "shupit",
-    "version": "0.1.0",
+    "scheme": [
+      "shupit",
+      "il.co.shupit.app",
+      "com.googleusercontent.apps.566415332417-0dng6v4vq2k2jnhf1bun9d3p4qcjaqs4"
+    ],
+    "version": "0.1.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#FFFFFF",

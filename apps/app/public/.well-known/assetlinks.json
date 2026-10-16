@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "il.co.shupit.app",
+      "sha256_cert_fingerprints": [
+        "44:43:46:65:B8:8F:D0:9A:20:F6:F4:5D:4B:A4:E3:5B:7E:35:0C:B2:8B:65:85:06:99:FB:AD:54:D0:48:90:22"
+      ]
+    }
+  }
+]
