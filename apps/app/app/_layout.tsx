@@ -17,7 +17,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider, ToastProvider, useTheme } from '@/design';
+import { KeyboardDoneBar, ThemeProvider, ToastProvider, useTheme } from '@/design';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import '@/i18n';
 import { useApplyLanguage } from '@/i18n/useApplyLanguage';
@@ -26,6 +26,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { installGlobalErrorReporting } from '@/lib/errorReporting';
 import { Platform } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from '@/i18n';
 import { useNativeShare } from '@/features/share/useNativeShare';
 import { useNativeNotifications } from '@/features/notifications/useNativeNotifications';
 import { useIncomingShare } from '@/lib/incomingShare';
@@ -42,6 +43,7 @@ const PENDING_SHARE_KEY = 'shupit.pendingShare';
 function RootNavigator() {
   const { status } = useAuth();
   const { mode } = useTheme();
+  const { t } = useTranslation();
   const router = useRouter();
   useApplyLanguage();
   useNativeShare();
@@ -81,6 +83,7 @@ function RootNavigator() {
   return (
     <>
       <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />
+      <KeyboardDoneBar label={t('common.done')} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={status === 'signedIn'}>
           <Stack.Screen name="(app)" />

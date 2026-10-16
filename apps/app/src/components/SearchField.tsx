@@ -38,6 +38,11 @@ export function SearchField({
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
+        keyboardAppearance={theme.mode}
+        selectionColor={colors.accent}
+        clearButtonMode="while-editing"
+        enablesReturnKeyAutomatically
+        underlineColorAndroid="transparent"
         style={[theme.textStyle('body'), { flex: 1, color: colors.text, paddingVertical: 10, textAlign: Platform.OS === 'web' && theme.isRTL ? 'right' : 'auto' }]}
       />
     </View>

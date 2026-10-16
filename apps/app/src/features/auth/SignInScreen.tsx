@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowLeft, ArrowRight, Heart, Package, ShoppingBag } from 'lucide-react-native';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { ActivityIndicator, Platform, Pressable, View, useWindowDimensions } from 'react-native';
 import { z } from 'zod';
@@ -41,6 +41,7 @@ export function SignInScreen() {
     appleSupported,
     resetPassword,
   } = useAuth();
+  const passwordRef = useRef<import('react-native').TextInput>(null);
   const [mode, setMode] = useState<'signIn' | 'signUp'>('signIn');
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -247,6 +248,8 @@ export function SignInScreen() {
                 inputMode="email"
                 textContentType="emailAddress"
                 returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
             )}
           />
@@ -255,6 +258,7 @@ export function SignInScreen() {
             name="password"
             render={({ field }) => (
               <AuthInput
+                ref={passwordRef}
                 kind="password"
                 label={t('auth.password')}
                 showLabel={t('auth.showPassword')}

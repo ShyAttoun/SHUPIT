@@ -1,6 +1,8 @@
-import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, View } from 'react-native';
+import { useMemo, useRef, type ReactNode } from 'react';
+import { Modal, Platform, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
+import { ScreenScrollContext } from './ScreenScroll';
 import { Text } from './Text';
 import { useTheme } from './theme';
 
@@ -19,6 +21,24 @@ export function BottomSheet({
   const { colors, spacing, radius, isWide, breakpoint } = useTheme();
   const centered = breakpoint !== 'phone';
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
+  const scrollRef = useRef<ScrollView>(null);
+  // Modals sit outside Screen's scroll context: bring the focused field into view within the sheet.
+  const ensureVisible = useMemo(
+    () => (target: View | null) => {
+      if (!target || Platform.OS === 'web') return;
+      setTimeout(() => {
+        const inner = (scrollRef.current as unknown as { getInnerViewRef?: () => unknown })?.getInnerViewRef?.();
+        if (!inner) return;
+        target.measureLayout(
+          inner as never,
+          (_x, y) => scrollRef.current?.scrollTo({ y: Math.max(0, y - 60), animated: true }),
+          () => undefined,
+        );
+      }, 320);
+    },
+    [],
+  );
   return (
     <Modal visible={visible} transparent animationType={centered ? 'fade' : 'slide'} onRequestClose={onClose}>
       <Pressable
@@ -29,6 +49,8 @@ export function BottomSheet({
           backgroundColor: colors.overlay,
           justifyContent: centered ? 'center' : 'flex-end',
           alignItems: 'center',
+          // The sheet rises above the keyboard while typing.
+          paddingBottom: keyboard,
         }}
       >
         <Pressable
@@ -39,7 +61,7 @@ export function BottomSheet({
           style={{
             width: '100%',
             maxWidth: isWide ? 520 : 560,
-            maxHeight: '90%',
+            maxHeight: keyboard > 0 ? '70%' : '90%',
             backgroundColor: colors.background,
             borderTopStartRadius: radius.xl,
             borderTopEndRadius: radius.xl,
@@ -48,14 +70,14 @@ export function BottomSheet({
             borderColor: colors.border,
           }}
         >
-          <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.lg + insets.bottom, gap: spacing.md }} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={scrollRef} contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.lg + insets.bottom, gap: spacing.md }} keyboardShouldPersistTaps="handled">
             <View style={{ alignItems: 'center' }}>
               <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
             </View>
             <Text variant="headline" accessibilityRole="header">
               {title}
             </Text>
-            {children}
+            <ScreenScrollContext.Provider value={ensureVisible}>{children}</ScreenScrollContext.Provider>
           </ScrollView>
         </Pressable>
       </Pressable>

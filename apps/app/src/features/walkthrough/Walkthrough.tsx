@@ -5,6 +5,7 @@ import { AccessibilityInfo, Animated, Platform, Pressable, ScrollView, StyleShee
 import { Chip } from '@/components/Chip';
 import { MerchantLogo } from '@/components/MerchantLogo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { Button, LogoMark, Text, useTheme } from '@/design';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { toggleFavoriteList, useFavoriteStores, useStoresMutations } from '@/features/stores/hooks';
@@ -40,6 +41,7 @@ export function Walkthrough() {
   const { colors, spacing, radius, isRTL } = useTheme();
   const { width: vw } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
   const { seenFor, replaying, markSeen, closeReplay } = useWalkthroughStore();
   const favorites = useFavoriteStores();
   const { saveFavorites } = useStoresMutations();
@@ -157,7 +159,7 @@ export function Walkthrough() {
           maxWidth: 520,
           paddingHorizontal: spacing.md,
           paddingTop: Math.max(insets.top, spacing.md),
-          paddingBottom: insets.bottom,
+          paddingBottom: keyboard > 0 ? keyboard : insets.bottom,
         }}
       >
         {/* top bar */}

@@ -1,5 +1,6 @@
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
-import { forwardRef, useState } from 'react';
+import { forwardRef, useRef, useState } from 'react';
+import { useEnsureVisible } from '@/design/ScreenScroll';
 import { Platform, Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import { Text, useTheme } from '@/design';
 
@@ -21,6 +22,8 @@ export const AuthInput = forwardRef<
   const theme = useTheme();
   const { colors, spacing, radius, isRTL } = theme;
   const [focused, setFocused] = useState(false);
+  const wrap = useRef<View>(null);
+  const ensureVisible = useEnsureVisible();
   const [visible, setVisible] = useState(false);
   const Icon = kind === 'email' ? Mail : Lock;
   const filled = !!value;
@@ -31,6 +34,7 @@ export const AuthInput = forwardRef<
   return (
     <View style={{ gap: spacing.xxs }}>
       <View
+        ref={wrap}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -49,11 +53,15 @@ export const AuthInput = forwardRef<
           accessibilityLabel={label}
           placeholder={label}
           placeholderTextColor={colors.textSecondary}
+          keyboardAppearance={theme.mode}
+          selectionColor={colors.accent}
+          underlineColorAndroid="transparent"
           value={value}
           {...({ dir } as object)}
           secureTextEntry={kind === 'password' && !visible}
           onFocus={(e) => {
             setFocused(true);
+            ensureVisible(wrap.current);
             rest.onFocus?.(e);
           }}
           onBlur={(e) => {

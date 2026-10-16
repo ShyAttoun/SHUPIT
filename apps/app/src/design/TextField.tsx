@@ -1,5 +1,8 @@
 import { forwardRef } from 'react';
 import { Platform, TextInput, View, type TextInputProps } from 'react-native';
+import { useRef } from 'react';
+import { KEYBOARD_DONE_ID } from './KeyboardDoneBar';
+import { useEnsureVisible } from './ScreenScroll';
 import { Text } from './Text';
 import { useTheme } from './theme';
 
@@ -14,8 +17,12 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
 ) {
   const theme = useTheme();
   const { colors } = theme;
+  const wrap = useRef<View>(null);
+  const ensureVisible = useEnsureVisible();
+  const numeric = ['decimal-pad', 'number-pad', 'numeric', 'phone-pad'].includes(String(rest.keyboardType));
+  const accessoryId = Platform.OS === 'ios' && numeric && !rest.multiline ? KEYBOARD_DONE_ID : undefined;
   return (
-    <View style={{ gap: theme.spacing.xxs }}>
+    <View ref={wrap} style={{ gap: theme.spacing.xxs }}>
       <Text variant="label" color="textSecondary">
         {label}
       </Text>
@@ -23,8 +30,18 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
         ref={ref}
         accessibilityLabel={label}
         placeholderTextColor={colors.textSecondary}
+        keyboardAppearance={theme.mode}
+        selectionColor={colors.accent}
+        underlineColorAndroid="transparent"
+        clearButtonMode={rest.multiline ? 'never' : 'while-editing'}
+        textAlignVertical={rest.multiline ? 'top' : 'center'}
+        inputAccessoryViewID={accessoryId}
         {...(({ dir: theme.isRTL ? 'rtl' : 'auto' }) as object)}
         {...rest}
+        onFocus={(e) => {
+          ensureVisible(wrap.current);
+          rest.onFocus?.(e);
+        }}
         style={[
           theme.textStyle('body'),
           {
