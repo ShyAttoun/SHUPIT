@@ -145,7 +145,7 @@ export function SignInScreen() {
                   <Deco Icon={ShoppingBag} size={46} />
                 </View>
               </Floating>
-              <Floating style={{ top: 62, start: 52 }} phase={600}>
+              <Floating style={{ top: 58, start: 2 }} phase={600}>
                 <Deco Icon={Heart} color="#E5446D" size={32} />
               </Floating>
               <Floating style={{ top: 10, end: 8 }} phase={300}>
