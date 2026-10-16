@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowDown, ArrowUp, Plus, Store } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ListRow } from '@/components/ListRow';
 import { MerchantLogo } from '@/components/MerchantLogo';
 import { SearchField } from '@/components/SearchField';
@@ -214,8 +215,11 @@ export function StoresScreen() {
         visible={modalOpen}
         animationType="slide"
         presentationStyle="fullScreen"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={() => setModalOpen(false)}
       >
+        <SafeAreaProvider>
         <StorePickerScreen
           initial={favoriteIds}
           title={t('stores.pickStores')}
@@ -224,6 +228,7 @@ export function StoresScreen() {
           onSave={save}
           onClose={() => setModalOpen(false)}
         />
+        </SafeAreaProvider>
       </Modal>
     </>
   );

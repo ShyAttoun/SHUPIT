@@ -66,7 +66,7 @@ export function useAiConsent(): { ensure: () => Promise<boolean>; modal: ReactEl
   };
 
   const modal = (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={() => finish(false)}>
+    <Modal visible={open} transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={() => finish(false)}>
       <View
         style={{
           flex: 1,

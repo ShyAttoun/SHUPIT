@@ -1,13 +1,40 @@
 import { useMemo, useRef, type ReactNode } from 'react';
 import { Modal, Platform, Pressable, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { ScreenScrollContext } from './ScreenScroll';
 import { Text } from './Text';
 import { useTheme } from './theme';
 
 /** Modal sheet: anchored to the bottom on phones, centered card on wider screens. Escape/backdrop closes. */
-export function BottomSheet({
+export function BottomSheet(props: SheetProps) {
+  const { breakpoint } = useTheme();
+  // A Modal is its own window on Android: it needs its own safe-area provider, or the insets read 0
+  // and the bottom of the sheet ends up under the system navigation bar.
+  return (
+    <Modal
+      visible={props.visible}
+      transparent
+      animationType={breakpoint !== 'phone' ? 'fade' : 'slide'}
+      statusBarTranslucent
+      navigationBarTranslucent
+      onRequestClose={props.onClose}
+    >
+      <SafeAreaProvider>
+        <SheetBody {...props} />
+      </SafeAreaProvider>
+    </Modal>
+  );
+}
+
+interface SheetProps {
+  visible: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+}
+
+function SheetBody({
   visible,
   title,
   onClose,
@@ -40,7 +67,7 @@ export function BottomSheet({
     [],
   );
   return (
-    <Modal visible={visible} transparent animationType={centered ? 'fade' : 'slide'} statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
+    <>
       <Pressable
         accessibilityLabel={title}
         onPress={onClose}
@@ -81,6 +108,6 @@ export function BottomSheet({
           </ScrollView>
         </Pressable>
       </Pressable>
-    </Modal>
+    </>
   );
 }
