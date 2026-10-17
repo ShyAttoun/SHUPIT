@@ -49,7 +49,7 @@ import { pickScreenshot } from '@/lib/imagePicker';
 import { confirmAction } from '@/lib/platform';
 import { openWaze } from '@/lib/waze';
 import { copyToClipboard } from '@/lib/clipboard';
-import { openExternal } from '@/lib/platform';
+import { openStore } from '@/lib/platform';
 import { useOrderMutations, useOrders, useShipments, type ShipmentDoc } from './hooks';
 
 type Tr = (key: string, opts?: Record<string, unknown>) => string;
@@ -928,7 +928,7 @@ export function OrderDetailScreen() {
             variant="secondary"
             label={t('orders.detail.openOrder', { store: order.merchantName })}
             icon={<Store size={18} color={colors.text} />}
-            onPress={() => void openExternal(storeOrderUrl)}
+            onPress={() => void openStore(storeOrderUrl)}
           />
         ) : null}
 

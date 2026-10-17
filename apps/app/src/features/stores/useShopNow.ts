@@ -1,7 +1,7 @@
 import { getMerchant, type GoResponse } from '@shupit/contracts';
 import { useCallback, useState } from 'react';
 import { apiFetch } from '@/lib/api';
-import { openExternal } from '@/lib/platform';
+import { openStore } from '@/lib/platform';
 
 /**
  * Resolves "Shop now / Buy at store" through the affiliate router and opens the result.
@@ -31,7 +31,7 @@ export function useShopNow() {
         return;
       }
       if (res?.kind === 'affiliate' && res.disclosure) setDisclosure(res.disclosure);
-      await openExternal(url);
+      await openStore(url);
     } catch {
       setFailed(true);
     } finally {

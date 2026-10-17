@@ -3,7 +3,7 @@ import { ExternalLink } from 'lucide-react-native';
 import { View } from 'react-native';
 import { BottomSheet, Button, Text, useTheme } from '@/design';
 import { useAppLanguage, useTranslation } from '@/i18n';
-import { openExternal } from '@/lib/platform';
+import { openStore } from '@/lib/platform';
 import { compareLinks } from './totals';
 
 /**
@@ -52,7 +52,7 @@ export function CompareSheet({
                 label={t(`wishlist.compare.${l.id}`)}
                 icon={<ExternalLink size={16} color={colors.text} />}
                 style={{ minHeight: 40, paddingHorizontal: spacing.md }}
-                onPress={() => void openExternal(l.url)}
+                onPress={() => void openStore(l.url)}
               />
             ))}
           </View>
