@@ -34,7 +34,22 @@ export async function openStore(url: string): Promise<void> {
   if (Platform.OS === 'web') return openExternal(url);
   try {
     const WebBrowser = await import('expo-web-browser');
-    await WebBrowser.openBrowserAsync(url, { dismissButtonStyle: 'close', enableBarCollapsing: true });
+    // Android: naming the browser explicitly stops the system from resolving the link to the store's own
+    // app (verified app links); the tab then opens in the browser, as on iOS.
+    let browserPackage: string | undefined;
+    if (Platform.OS === 'android') {
+      try {
+        const b = await WebBrowser.getCustomTabsSupportingBrowsersAsync();
+        browserPackage = b.preferredBrowserPackage ?? b.defaultBrowserPackage ?? b.browserPackages[0];
+      } catch {
+        browserPackage = undefined;
+      }
+    }
+    await WebBrowser.openBrowserAsync(url, {
+      dismissButtonStyle: 'close',
+      enableBarCollapsing: true,
+      ...(browserPackage ? { browserPackage } : {}),
+    });
   } catch {
     await Linking.openURL(url);
   }
