@@ -7,7 +7,8 @@ import { getShareExtensionKey } from 'expo-share-intent';
  */
 export function redirectSystemPath({ path }: { path: string; initial: boolean }): string {
   try {
-    if (path.includes(`dataUrl=${getShareExtensionKey()}`) || path.includes('dataUrl=shupitShareKey')) {
+    // Share-extension hand-off (cold start or while the app is open): never a screen, always Home.
+    if (path.includes('dataUrl=') || path.includes(getShareExtensionKey())) {
       return '/';
     }
     return path;
